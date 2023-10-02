@@ -9,7 +9,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 database_path = os.path.join(basedir, 'instance', 'users.db')
 
 
-app = Flask(__name__, static_folder='site/assets', template_folder='site')
+app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + database_path
 db = SQLAlchemy(app)
 
@@ -124,8 +124,8 @@ if __name__ == '__main__':
         db.create_all()
         db.session.commit()
     # Загрузка сертификата и ключа
-    context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-    context.load_cert_chain('cert.pem', 'key_unencrypted.pem')
-    app.run(debug=True,  ssl_context=context)
+    # context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+    # context.load_cert_chain('cert.pem', 'key_unencrypted.pem')
+    # app.run(debug=True,  ssl_context=context)
 
-    # app.run(debug=True)
+    app.run(debug=True)
