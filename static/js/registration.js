@@ -1,12 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const BASE_URL = 'https://188.64.15.189:8443';
     const registrationForm = document.getElementById('registrationForm');
     registrationForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
-        const url = `${BASE_URL}/registerUser`;
-        fetch(url, {
+        fetch('/registerUser', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
