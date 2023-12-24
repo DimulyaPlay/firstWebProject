@@ -1,0 +1,117 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div style="margin-top: 50px;">
+    <form id="fileForm" action="/upload" method="post" enctype="multipart/form-data">
+        <input class="btn btn-primary" type="file" name="file" id="fileInput" accept=".pdf" required/><br><br>
+            <div class="form-group" style="width: 500px;">
+                <label for="judgeComboBox">Выберите судью:</label>
+                <select class="form-control" name="judge" id="judgeComboBox" required>
+                    {% for judge in judges %}
+                        <option value="{{ judge.fio }}">{{ judge.fio }}</option>
+                    {% endfor %}
+                </select>
+            </div><br>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="sendToRosreestr" id="sendToRosreestr">
+            <label class="form-check-label" for="sendToRosreestr">Отправить в Росреестр</label>
+        </div><br>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="sendByEmail" id="sendByEmail">
+            <label class="form-check-label" for="sendByEmail">Отправить по эл. почте</label>
+        </div><br>
+
+        <div id="emailSection" style="display: none;">
+            <div class="form-group" style="width: 500px;">
+                <label for="emailInput">Email:</label>
+                <input type="email" class="form-control" name="email" placeholder="Первый email">
+            </div><br>
+
+            <button class="btn btn-secondary" id="addEmailBtn" type="button">Добавить еще email</button><br><br>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Отправить файл на подпись</button><br><br>
+    </form>
+</div>
+
+<script>
+    // Обработчик события для чекбокса sendByEmail
+    document.getElementById('sendByEmail').addEventListener('change', function() {
+        var emailSection = document.getElementById('emailSection');
+
+        // Показать или скрыть блок полей ввода email в зависимости от состояния чекбокса
+        if (this.checked) {
+            emailSection.style.display = 'block';
+        } else {
+            emailSection.style.display = 'none';
+        }
+    });
+
+    // Обработчик события для кнопки "Добавить еще email"
+    document.getElementById('addEmailBtn').addEventListener('click', function() {
+        var emailInput = document.createElement('input');
+        emailInput.type = 'email';
+        emailInput.className = 'form-control';
+        emailInput.name = 'email'; // Добавлено имя для поля email
+        emailInput.placeholder = 'Еще один email';
+        emailInput.required = true;
+
+        // Вставить новое поле ввода email перед кнопкой "Добавить еще email"
+        var addEmailBtn = document.getElementById('addEmailBtn');
+        addEmailBtn.parentNode.insertBefore(emailInput, addEmailBtn);
+
+        // Вставить <br> после каждого нового поля ввода email
+        var br = document.createElement('br');
+        addEmailBtn.parentNode.insertBefore(br, addEmailBtn);
+    });
+</script>
+
+<div class="d-flex flex-column align-items-right flex-shrink-0 bg-body-tertiary" style="width: 800px;">
+    <a class="d-flex align-items-center flex-shrink-0 p-3 link-body-emphasis text-decoration-none border-bottom">
+        <span class="fs-5 fw-semibold">Мои документы</span>
+    </a>
+    {% if user.files %}
+{% for file in user.files %}
+    <div class="list-group list-group-flush border-bottom scrollarea">
+        <a class="list-group-item list-group-item-action py-2 lh-sm">
+            <div class="row">
+                <!-- Колонка для filenameUploaded -->
+                <div class="col-md-6">
+                    <strong class="mb-1">{{ file.filenameUploaded }}</strong>
+                </div>
+
+                <!-- Колонка для иконок -->
+                <div class="col-md-6 text-right">
+                    {% if file.toRosreestr %}
+                        <img src="static/img/rosreestr-icon.png" alt="Rosreestr">
+                    {% else %}
+                        <img src="static/img/no-rosreestr-icon.png" alt="No Rosreestr">
+                    {% endif %}
+
+                    {% if file.toEmails %}
+                        <img src="static/img/email-icon.png" alt="Email">
+                    {% else %}
+                        <img src="static/img/no-email-icon.png" alt="No Email">
+                    {% endif %}
+
+                    {% if file.reportData %}
+                        <img src="static/img/report-icon.png" alt="Report">
+                    {% else %}
+                        <img src="static/img/no-report-icon.png" alt="No Report">
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
+{% endfor %}
+    {% else %}
+        <div class="list-group list-group-flush border-bottom scrollarea">
+        <a class="list-group-item list-group-item-action py-3 lh-sm">
+            <div class="d-flex w-100 align-items-center justify-content-between">
+                <strong class="mb-1">Файлы отсутствуют</strong>
+            </div>
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock content %}
