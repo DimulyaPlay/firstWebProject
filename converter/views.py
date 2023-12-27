@@ -18,7 +18,8 @@ def home():
         login()
     if current_user.is_authenticated:
         judges = Judge.query.all()
-        return render_template('index.html', title='Главная страница', user=current_user, judges=judges)
+        last_judge = current_user.last_judge if current_user.last_judge in [judge.fio for judge in judges] else None
+        return render_template('index.html', title='Главная страница', user=current_user, judges=judges, last_judge=last_judge)
     else:
         return render_template('login.html', title='Главная страница', user=current_user)
 
@@ -47,12 +48,20 @@ def upload_file():
     judge = Judge.query.filter_by(fio=judgeFio).first()
     filepath = os.path.join(judge.inputStorage, file.filename)
     filepath_db = ProcessedFile.query.filter_by(filenameStored=filepath).first()
-    while os.path.exists(filepath) or filepath == filepath_db.filenameStored:
+    while os.path.exists(filepath) or (filepath_db and filepath == filepath_db.filenameStored):
         filepath = os.path.join(judge.inputStorage, file.filename[:-4] + str(random.randint(0, 999)) + '.pdf')
     file.save(filepath)
     user_id = int(current_user.id)
-    new_row = ProcessedFile(filenameStored=filepath, filenameUploaded=os.path.basename(filepath), user_id=user_id, toRosreestr=toRosreestr, toEmails=toEmails)
+    mailSubject = 'TEMP'
+    new_row = ProcessedFile(filePath=filepath,
+                            fileName=os.path.basename(filepath),
+                            user_id=user_id,
+                            toRosreestr=toRosreestr,
+                            toEmails=toEmails,
+                            judge_fio=judgeFio,
+                            mailSubject=mailSubject)
     db.session.add(new_row)
+    current_user.last_judge = judgeFio
     db.session.commit()
     flash('Файл отправлен', category='success')
     return redirect('/')

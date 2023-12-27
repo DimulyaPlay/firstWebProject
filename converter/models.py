@@ -7,18 +7,25 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
+    last_judge = db.Column(db.String(80), unique=False, nullable=True, default='')
     files = db.relationship('ProcessedFile')
 
 
 class ProcessedFile(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    filenameStored = db.Column(db.String(120), unique=True, nullable=False)
-    filenameUploaded = db.Column(db.String(120), unique=False, nullable=False)
-    uploadedDate = db.Column(db.Date, default=datetime.datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    toRosreestr = db.Column(db.Boolean, default=False)
-    toEmails = db.Column(db.String(256), unique=False)
-    reportData = db.Column(db.String(256), unique=False)
+    id = db.Column(db.Integer, primary_key=True)  # ID
+    uploadedDate = db.Column(db.Date, default=datetime.datetime.utcnow)  # Время загрузки документа
+    filePath = db.Column(db.String(255), unique=True, nullable=False)  # Путь к сохраненному файлу
+    fileName = db.Column(db.String(255), unique=False, nullable=False)  # Название файла
+    sigPages = db.Column(db.String(120), unique=True, default='')  # Предложенные страницы для размещения штампа
+    sigPath = db.Column(db.String(255), unique=True, default='')  # Путь к сохраненной подписи
+    sigName = db.Column(db.String(255), unique=True, default='')  # Название файла подписи
+    sigBy = db.Column(db.String(120), unique=True, default='')  # Подписано кем (Название сертификата)
+    toRosreestr = db.Column(db.Boolean, default=False)  # Флаг отправки в росреестр
+    toEmails = db.Column(db.String(255), unique=False)  # Адреса отправки на почту, '' = не отправлять
+    mailSubject = db.Column(db.String(255), unique=False)  # Тема письма для отправки
+    reportDate = db.Column(db.String(255), unique=False)  # время подгрузки отчета об отправке по эл почте
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # связь файла с пользователем по ИД
+    judge_fio = db.Column(db.Integer, db.ForeignKey('judge.fio'))  # связь файла с судьей по ФИО
 
 
 class Judge(db.Model):
@@ -26,3 +33,4 @@ class Judge(db.Model):
     fio = db.Column(db.String(80), unique=True, nullable=False)
     inputStorage = db.Column(db.String(255), nullable=False)
     outputStorage = db.Column(db.String(255), nullable=False)
+    files = db.relationship('ProcessedFile')

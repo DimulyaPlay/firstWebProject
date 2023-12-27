@@ -4,14 +4,14 @@
 <div style="margin-top: 50px;">
     <form id="fileForm" action="/upload" method="post" enctype="multipart/form-data">
         <input class="btn btn-primary" type="file" name="file" id="fileInput" accept=".pdf" required/><br><br>
-            <div class="form-group" style="width: 500px;">
-                <label for="judgeComboBox">Выберите судью:</label>
-                <select class="form-control" name="judge" id="judgeComboBox" required>
-                    {% for judge in judges %}
-                        <option value="{{ judge.fio }}">{{ judge.fio }}</option>
-                    {% endfor %}
-                </select>
-            </div><br>
+        <div class="form-group" style="width: 500px;">
+            <label for="judgeComboBox">Выберите судью:</label>
+            <select class="form-control" name="judge" id="judgeComboBox" required>
+                {% for judge in judges %}
+                    <option value="{{ judge.fio }}" {% if last_judge == judge.fio %}selected{% endif %}>{{ judge.fio }}</option>
+                {% endfor %}
+            </select>
+        </div><br>
         <div class="form-check">
             <input class="form-check-input" type="checkbox" name="sendToRosreestr" id="sendToRosreestr">
             <label class="form-check-label" for="sendToRosreestr">Отправить в Росреестр</label>
@@ -23,23 +23,50 @@
 
         <div id="emailSection" style="display: none;">
             <div class="form-group" style="width: 500px;">
-                <label for="emailInput">Email:</label>
-                <input type="email" class="form-control" name="email" placeholder="Первый email">
+                <label for="emailSection">Email:</label>
+                <input type="email" class="form-control" name="email" placeholder="Email">
             </div><br>
 
             <button class="btn btn-secondary" id="addEmailBtn" type="button">Добавить еще email</button><br><br>
         </div>
 
-        <button class="btn btn-primary" type="submit">Отправить файл на подпись</button><br><br>
+        <button class="btn btn-primary" type="button" onclick="validateForm()">Отправить на подпись</button><br><br>
     </form>
 </div>
 
 <script>
-    // Обработчик события для чекбокса sendByEmail
+        function validateForm() {
+        var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        var atLeastOneChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+
+        var fileInput = document.getElementById('formFileMultiple');
+        var fileSelected = fileInput.files.length > 0;
+
+        if (atLeastOneChecked && fileSelected) {
+            if (document.getElementById('sendByEmail').checked) {
+                // Если чекбокс sendByEmail включен, проверяем, что хотя бы одно поле email заполнено
+                var emailInputs = document.querySelectorAll('input[name="email"]');
+                var atLeastOneEmailFilled = Array.from(emailInputs).some(emailInput => emailInput.value.trim() !== '');
+
+                if (atLeastOneEmailFilled) {
+                    document.getElementById("fileForm").submit();
+                } else {
+                    alert('Заполните хотя бы одно поле email!');
+                }
+            } else {
+                document.getElementById("fileForm").submit();
+            }
+        } else {
+            if (!fileSelected) {
+                alert('Выберите хотя бы один файл!');
+            } else {
+                alert('Выберите хотя бы один чекбокс!');
+            }
+            // Здесь вы можете добавить код для обработки формы в случае, если не все необходимые поля заполнены
+        }
+    }
     document.getElementById('sendByEmail').addEventListener('change', function() {
         var emailSection = document.getElementById('emailSection');
-
-        // Показать или скрыть блок полей ввода email в зависимости от состояния чекбокса
         if (this.checked) {
             emailSection.style.display = 'block';
         } else {
@@ -47,20 +74,17 @@
         }
     });
 
-    // Обработчик события для кнопки "Добавить еще email"
     document.getElementById('addEmailBtn').addEventListener('click', function() {
         var emailInput = document.createElement('input');
         emailInput.type = 'email';
         emailInput.className = 'form-control';
-        emailInput.name = 'email'; // Добавлено имя для поля email
-        emailInput.placeholder = 'Еще один email';
+        emailInput.style='width: 500px';
+        emailInput.name = 'email';
         emailInput.required = true;
 
-        // Вставить новое поле ввода email перед кнопкой "Добавить еще email"
         var addEmailBtn = document.getElementById('addEmailBtn');
         addEmailBtn.parentNode.insertBefore(emailInput, addEmailBtn);
 
-        // Вставить <br> после каждого нового поля ввода email
         var br = document.createElement('br');
         addEmailBtn.parentNode.insertBefore(br, addEmailBtn);
     });
