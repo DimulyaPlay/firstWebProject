@@ -23,7 +23,8 @@ class ProcessedFile(db.Model):
     toRosreestr = db.Column(db.Boolean, default=False)  # Флаг отправки в росреестр
     toEmails = db.Column(db.String(255), unique=False)  # Адреса отправки на почту, '' = не отправлять
     mailSubject = db.Column(db.String(255), unique=False)  # Тема письма для отправки
-    reportDate = db.Column(db.String(255), unique=False)  # время подгрузки отчета об отправке по эл почте
+    sentDatetime = db.Column(db.Date)  # время отправки файла по указанным реквизитам
+    reportDatetime = db.Column(db.Date)  # время подгрузки отчета об отправке по эл почте
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # связь файла с пользователем по ИД
     judge_fio = db.Column(db.Integer, db.ForeignKey('judge.fio'))  # связь файла с судьей по ФИО
 

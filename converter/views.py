@@ -26,8 +26,25 @@ def home():
 
 @views.route('/get_report/<fileId>')
 def get_file(filename):
-
     return send_file(processed_files[filename]['processed_file_path'], as_attachment=False)
+
+
+@views.route('/get_judge_filelist/<fio>')
+def get_judge_filelist(fio):
+    judge = Judge.query.filter_by(fio = fio)
+    if judge:
+        files = ProcessedFile.query.filter_by(judge_fio=fio)
+        files_data = {}
+        if files:
+            for f in files:
+                files_data[f.id] = f.filePath
+                files_data[f.id] = f.fileName
+                files_data[f.id] = f.sigPages
+            return jsonify(files_data)
+        else:
+            return {}
+    else:
+        return 0
 
 
 @views.post('/upload')
