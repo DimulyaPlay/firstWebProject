@@ -18,8 +18,7 @@ def home():
         login()
     if current_user.is_authenticated:
         judges = Judge.query.all()
-        last_judge = current_user.last_judge if current_user.last_judge in [judge.fio for judge in judges] else None
-        return render_template('index.html', title='Главная страница', user=current_user, judges=judges, last_judge=last_judge)
+        return render_template('index.html', title='Главная страница', user=current_user, judges=judges)
     else:
         return render_template('login.html', title='Главная страница', user=current_user)
 
@@ -37,12 +36,13 @@ def get_judge_filelist(fio):
         files_data = {}
         if files:
             for f in files:
+                files_data[f.id] = f.id
                 files_data[f.id] = f.filePath
                 files_data[f.id] = f.fileName
                 files_data[f.id] = f.sigPages
             return jsonify(files_data)
         else:
-            return {}
+            return 0
     else:
         return 0
 
@@ -64,7 +64,7 @@ def upload_file():
         toEmails = ''
     judge = Judge.query.filter_by(fio=judgeFio).first()
     filepath = os.path.join(judge.inputStorage, file.filename)
-    filepath_db = ProcessedFile.query.filter_by(filenameStored=filepath).first()
+    filepath_db = ProcessedFile.query.filter_by(filePath=filepath).first()
     while os.path.exists(filepath) or (filepath_db and filepath == filepath_db.filenameStored):
         filepath = os.path.join(judge.inputStorage, file.filename[:-4] + str(random.randint(0, 999)) + '.pdf')
     file.save(filepath)
@@ -75,10 +75,10 @@ def upload_file():
                             user_id=user_id,
                             toRosreestr=toRosreestr,
                             toEmails=toEmails,
-                            judge_fio=judgeFio,
+                            judge_id=judge.id,
                             mailSubject=mailSubject)
     db.session.add(new_row)
-    current_user.last_judge = judgeFio
+    current_user.last_judge = judge.id
     db.session.commit()
     flash('Файл отправлен', category='success')
     return redirect('/')

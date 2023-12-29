@@ -26,7 +26,7 @@ class ProcessedFile(db.Model):
     sentDatetime = db.Column(db.Date)  # время отправки файла по указанным реквизитам
     reportDatetime = db.Column(db.Date)  # время подгрузки отчета об отправке по эл почте
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # связь файла с пользователем по ИД
-    judge_fio = db.Column(db.Integer, db.ForeignKey('judge.fio'))  # связь файла с судьей по ФИО
+    judge_id = db.Column(db.Integer, db.ForeignKey('judge.id'))  # связь файла с судьей по ФИО
 
 
 class Judge(db.Model):

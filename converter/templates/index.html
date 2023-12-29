@@ -3,14 +3,16 @@
 {% block content %}
 <div style="margin-top: 50px;">
     <form id="fileForm" action="/upload" method="post" enctype="multipart/form-data">
-        <input class="btn btn-primary" type="file" name="file" id="fileInput" accept=".pdf" required/><br><br>
+        <input class="btn btn-primary" type="file" name="file" id="formFileMultiple" accept=".pdf" required multiple/><br><br>
         <div class="form-group" style="width: 500px;">
             <label for="judgeComboBox">Выберите судью:</label>
-            <select class="form-control" name="judge" id="judgeComboBox" required>
-                {% for judge in judges %}
-                    <option value="{{ judge.fio }}" {% if last_judge == judge.fio %}selected{% endif %}>{{ judge.fio }}</option>
-                {% endfor %}
-            </select>
+<select class="form-control" name="judge" id="judgeComboBox" required>
+    {% for judge in judges %}
+        <option value="{{ judge.fio }}" {% if user.last_judge|string == judge.id|string %}selected{% endif %}>
+            {{ judge.fio }}
+        </option>
+    {% endfor %}
+</select>
         </div><br>
         <div class="form-check">
             <input class="form-check-input" type="checkbox" name="sendToRosreestr" id="sendToRosreestr">
