@@ -2,7 +2,7 @@ import traceback
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from email_validator import validate_email
 from werkzeug.security import generate_password_hash, check_password_hash
-from .models import User
+from .models import Users
 from . import db
 from flask_login import login_user, login_required, logout_user, current_user
 
@@ -17,7 +17,7 @@ def registration():
         first_name = data.get('first_name')
         password1 = data.get('password1')
         password2 = data.get('password2')
-        user = User.query.filter_by(first_name=first_name).first()
+        user = Users.query.filter_by(first_name=first_name).first()
         if user:
             flash('Пользователь с таким именем существует', category='error')
         if len(first_name) < 2:
@@ -29,10 +29,10 @@ def registration():
 
         else:
             try:
-                newUser = User(first_name=first_name, password=generate_password_hash(password1))
+                newUser = Users(first_name=first_name, password=generate_password_hash(password1))
                 db.session.add(newUser)
                 db.session.commit()
-                user = User.query.filter_by(first_name=first_name).first()
+                user = Users.query.filter_by(first_name=first_name).first()
                 login_user(user, remember=True)
                 flash('Аккаунт успешно создан', category='success')
                 return redirect(url_for('views.home'))
@@ -50,7 +50,7 @@ def login():
     if request.method == 'POST':
         first_name = data.get('first_name')
         password = data.get('password')
-        user = User.query.filter_by(first_name=first_name).first()
+        user = Users.query.filter_by(first_name=first_name).first()
         if user:
             if check_password_hash(user.password, password):
                 login_user(user, remember=True)

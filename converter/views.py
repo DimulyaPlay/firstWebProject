@@ -4,7 +4,7 @@ import traceback
 from .auth import login
 from flask import Flask, request, render_template, url_for, redirect, send_file, jsonify, Blueprint, flash
 from flask_login import current_user, login_user, logout_user
-from .models import User, ProcessedFile, Judge
+from .models import Users, UploadedFiles, Judges, UploadedMessages
 from werkzeug.security import check_password_hash
 import os
 from . import db
@@ -17,7 +17,7 @@ def home():
     if request.method == 'POST':
         login()
     if current_user.is_authenticated:
-        judges = Judge.query.all()
+        judges = Judges.query.all()
         return render_template('index.html', title='Главная страница', user=current_user, judges=judges)
     else:
         return render_template('login.html', title='Главная страница', user=current_user)
@@ -28,11 +28,11 @@ def get_file(filename):
     return send_file(processed_files[filename]['processed_file_path'], as_attachment=False)
 
 
-@views.route('/get_judge_filelist/<fio>')
-def get_judge_filelist(fio):
-    judge = Judge.query.filter_by(fio = fio)
+@views.route('/get_judge_filelist/<judge_id>')
+def get_judge_filelist(judge_id):
+    judge = Judges.query.filter_by(judge_id=judge_id)
     if judge:
-        files = ProcessedFile.query.filter_by(judge_fio=fio)
+        files = UploadedFiles.query.filter_by(judge_id=judge_id)
         files_data = {}
         if files:
             for f in files:
@@ -47,39 +47,59 @@ def get_judge_filelist(fio):
         return 0
 
 
-@views.post('/upload')
+@views.post('/uploadMessage')
 def upload_file():
-    file = request.files['file']
-    data = request.form
-    judgeFio = data.get('judge')
-    toRosreestr = True if data.get('sendToRosreestr') == 'on' else False
-    toEmails = True if data.get('sendByEmail') == 'on' else False
+    # Получение данных из формы
+    form_data = request.form.lists()
+    files_data = request.files.lists()
+    for key, value in files_data:
+        print(key, value)
+    for key, value in form_data:
+        print(key, value)
+    judgeFio = request.form.get('judge')
+    toRosreestr = True if request.form.get('sendToRosreestr') == 'on' else False
+    toEmails = True if request.form.get('sendByEmail') == 'on' else False
+
     if toEmails:
-        emails = ';'.join(data.getlist('email'))
-        if emails:
-            toEmails = emails
-        else:
-            toEmails = ''
+        # Если отправка по эл. почте включена, получите адреса эл. почты
+        emails = ';'.join(request.form.getlist('email'))
+        toEmails = emails if emails else ''
     else:
         toEmails = ''
-    judge = Judge.query.filter_by(fio=judgeFio).first()
-    filepath = os.path.join(judge.inputStorage, file.filename)
-    filepath_db = ProcessedFile.query.filter_by(filePath=filepath).first()
-    while os.path.exists(filepath) or (filepath_db and filepath == filepath_db.filenameStored):
-        filepath = os.path.join(judge.inputStorage, file.filename[:-4] + str(random.randint(0, 999)) + '.pdf')
-    file.save(filepath)
-    user_id = int(current_user.id)
-    mailSubject = 'TEMP'
-    new_row = ProcessedFile(filePath=filepath,
-                            fileName=os.path.basename(filepath),
-                            user_id=user_id,
-                            toRosreestr=toRosreestr,
-                            toEmails=toEmails,
-                            judge_id=judge.id,
-                            mailSubject=mailSubject)
-    db.session.add(new_row)
-    current_user.last_judge = judge.id
+
+    # Получение всех файлов из формы
+    files = request.files.getlist('file')
+
+    # Обработка каждого файла
+    for file in files:
+    # Ваш код для обработки каждого файла
+        ...
+
+    # Пример сохранения первого файла
+    if files:
+        file = files[0]
+        judge = Judges.query.filter_by(fio=judgeFio).first()
+        filepath = os.path.join(judge.inputStorage, file.filename)
+
+        # Ваш код для обработки файла
+        # ...
+
+        # Пример добавления информации о файле в базу данных
+        user_id = int(current_user.id)
+        mailSubject = 'TEMP'
+        new_row = ProcessedFile(
+            filePath=filepath,
+            fileName=os.path.basename(filepath),
+            user_id=user_id,
+            toRosreestr=toRosreestr,
+            toEmails=toEmails,
+            judge_id=judge.id,
+            mailSubject=mailSubject
+        )
+        db.session.add(new_row)
+        current_user.last_judge = judge.id
+
     db.session.commit()
-    flash('Файл отправлен', category='success')
+    flash('Файл(ы) отправлен(ы)', category='success')
     return redirect('/')
 

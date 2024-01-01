@@ -1,18 +1,61 @@
 {% extends 'layout.html' %}
 
 {% block content %}
+<form id="fileForm" action="/uploadMessage" method="post" enctype="multipart/form-data">
 <div style="margin-top: 50px;">
-    <form id="fileForm" action="/upload" method="post" enctype="multipart/form-data">
-        <input class="btn btn-primary" type="file" name="file" id="formFileMultiple" accept=".pdf" required multiple/><br><br>
+    <div id="signatureFilesContainer">
+        <!-- Блок с файлом на подпись -->
+        <div class="signature-file-block" data-file-index="1">
+            <label for="formFile1">Файл на подпись:</label><br>
+            <input class="btn btn-primary" type="file" name="file1" id="formFile1" accept=".pdf" required/><br><br>
+    
+            <!-- Чекбокс и виджеты для добавления штампа -->
+            <div class="form-check">
+                <input class="form-check-input addStampCheckbox" type="checkbox" id="addStamp1" name="addStamp1">
+                <label class="form-check-label">Добавить штамп (только для PDF файлов)</label>
+            </div>
+    
+            <!-- Блок с виджетами, который будет отображаться при выборе чекбокса -->
+            <div class="stamp-options" id="stampOptions" style="display: none;">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="firstPage1">
+                    <label class="form-check-label">Первая страница</label>
+                </div>
+    
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="lastPage1">
+                    <label class="form-check-label">Последняя страница</label>
+                </div>
+    
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="allPages1">
+                    <label class="form-check-label">Все страницы</label>
+                </div>
+    
+                <div class="form-group">
+                    <label for="customPages1">Страницы по выбору:</label>
+                    <input type="text" class="form-control" name="customPages1" placeholder="Введите номера страниц">
+                </div>
+            </div><br>
+        </div>
+    </div>
+
+        <!-- Кнопка для добавления еще одного файла на подпись -->
+        <button class="btn btn-secondary addSignatureFileBtn" type="button">Добавить еще файл на подпись</button><br><br>
+
+        <!-- Новый input для файлов, не требующих подписи -->
+        <label for="formFileNoSignature">Файлы, не требующие подписи:</label><br>
+        <input class="btn btn-secondary" type="file" name="fileNoSignature" id="formFileNoSignature" accept=".pdf" multiple/><br><br>
+
         <div class="form-group" style="width: 500px;">
-            <label for="judgeComboBox">Выберите судью:</label>
-<select class="form-control" name="judge" id="judgeComboBox" required>
-    {% for judge in judges %}
-        <option value="{{ judge.fio }}" {% if user.last_judge|string == judge.id|string %}selected{% endif %}>
-            {{ judge.fio }}
-        </option>
-    {% endfor %}
-</select>
+            <label for="judgeComboBox">Выберите подписант:</label>
+        <select class="form-control" name="judge" id="judgeComboBox" required>
+            {% for judge in judges %}
+                <option value="{{ judge.fio }}" {% if user.last_judge|string == judge.id|string %}selected{% endif %}>
+                    {{ judge.fio }}
+                </option>
+            {% endfor %}
+        </select>
         </div><br>
         <div class="form-check">
             <input class="form-check-input" type="checkbox" name="sendToRosreestr" id="sendToRosreestr">
@@ -32,65 +75,11 @@
             <button class="btn btn-secondary" id="addEmailBtn" type="button">Добавить еще email</button><br><br>
         </div>
 
-        <button class="btn btn-primary" type="button" onclick="validateForm()">Отправить на подпись</button><br><br>
+        <button class="btn btn-primary" type="submit" >Отправить на подпись</button><br><br>
     </form>
 </div>
 
-<script>
-        function validateForm() {
-        var checkboxes = document.querySelectorAll('input[type="checkbox"]');
-        var atLeastOneChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
-
-        var fileInput = document.getElementById('formFileMultiple');
-        var fileSelected = fileInput.files.length > 0;
-
-        if (atLeastOneChecked && fileSelected) {
-            if (document.getElementById('sendByEmail').checked) {
-                // Если чекбокс sendByEmail включен, проверяем, что хотя бы одно поле email заполнено
-                var emailInputs = document.querySelectorAll('input[name="email"]');
-                var atLeastOneEmailFilled = Array.from(emailInputs).some(emailInput => emailInput.value.trim() !== '');
-
-                if (atLeastOneEmailFilled) {
-                    document.getElementById("fileForm").submit();
-                } else {
-                    alert('Заполните хотя бы одно поле email!');
-                }
-            } else {
-                document.getElementById("fileForm").submit();
-            }
-        } else {
-            if (!fileSelected) {
-                alert('Выберите хотя бы один файл!');
-            } else {
-                alert('Выберите хотя бы один чекбокс!');
-            }
-            // Здесь вы можете добавить код для обработки формы в случае, если не все необходимые поля заполнены
-        }
-    }
-    document.getElementById('sendByEmail').addEventListener('change', function() {
-        var emailSection = document.getElementById('emailSection');
-        if (this.checked) {
-            emailSection.style.display = 'block';
-        } else {
-            emailSection.style.display = 'none';
-        }
-    });
-
-    document.getElementById('addEmailBtn').addEventListener('click', function() {
-        var emailInput = document.createElement('input');
-        emailInput.type = 'email';
-        emailInput.className = 'form-control';
-        emailInput.style='width: 500px';
-        emailInput.name = 'email';
-        emailInput.required = true;
-
-        var addEmailBtn = document.getElementById('addEmailBtn');
-        addEmailBtn.parentNode.insertBefore(emailInput, addEmailBtn);
-
-        var br = document.createElement('br');
-        addEmailBtn.parentNode.insertBefore(br, addEmailBtn);
-    });
-</script>
+<script src="{{ url_for('static', filename='js/formscripts.js') }}"></script>
 
 <div class="d-flex flex-column align-items-right flex-shrink-0 bg-body-tertiary" style="width: 800px;">
     <a class="d-flex align-items-center flex-shrink-0 p-3 link-body-emphasis text-decoration-none border-bottom">

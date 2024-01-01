@@ -17,7 +17,7 @@ def create_app():
     from .auth import auth
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(auth, url_prefix='/')
-    from .models import User, ProcessedFile
+    from .models import Users, UploadedFiles
     create_db(app)
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
@@ -25,7 +25,7 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(userid):
-        return User.query.get(int(userid))
+        return Users.query.get(int(userid))
     return app
 
 
@@ -33,4 +33,3 @@ def create_db(app):
     if not os.path.exists(database_path):
         with app.app_context():
             db.create_all()
-        print('БД создана')
