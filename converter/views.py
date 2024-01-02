@@ -8,6 +8,7 @@ from .models import Users, UploadedFiles, Judges, UploadedMessages
 from werkzeug.security import check_password_hash
 import os
 from . import db
+from .Utils import analyze_file
 views = Blueprint('views', __name__)
 
 
@@ -50,8 +51,8 @@ def get_judge_filelist(judge_id):
 @views.post('/uploadMessage')
 def upload_file():
     # Получение данных из формы
-    form_data = request.form.lists()
     files_data = request.files.lists()
+    form_data = request.form.lists()
     for key, value in files_data:
         print(key, value)
     for key, value in form_data:
@@ -59,19 +60,14 @@ def upload_file():
     judgeFio = request.form.get('judge')
     toRosreestr = True if request.form.get('sendToRosreestr') == 'on' else False
     toEmails = True if request.form.get('sendByEmail') == 'on' else False
-
     if toEmails:
         # Если отправка по эл. почте включена, получите адреса эл. почты
-        emails = ';'.join(request.form.getlist('email'))
+        emails = '; '.join(request.form.getlist('email'))
         toEmails = emails if emails else ''
     else:
         toEmails = ''
 
-    # Получение всех файлов из формы
-    files = request.files.getlist('file')
-
-    # Обработка каждого файла
-    for file in files:
+    for key, value in files_data:
     # Ваш код для обработки каждого файла
         ...
 
@@ -103,3 +99,12 @@ def upload_file():
     flash('Файл(ы) отправлен(ы)', category='success')
     return redirect('/')
 
+
+@views.route('/analyzeFile', methods=['POST'])
+def analyzeFile():
+    file = request.files['file']
+    detected_addresses = analyze_file(file)
+    if detected_addresses:
+        return jsonify(detectedAddresses=detected_addresses)
+    else:
+        return jsonify(error='No addresses detected in the file'), 400
