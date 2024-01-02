@@ -78,9 +78,6 @@
         <button class="btn btn-primary" type="submit" >Отправить на подпись</button><br><br>
     </form>
 </div>
-
-<script src="{{ url_for('static', filename='js/formscripts.js') }}"></script>
-
 <div class="d-flex flex-column align-items-right flex-shrink-0 bg-body-tertiary" style="width: 800px;">
     <a class="d-flex align-items-center flex-shrink-0 p-3 link-body-emphasis text-decoration-none border-bottom">
         <span class="fs-5 fw-semibold">Мои документы</span>
@@ -129,4 +126,5 @@
     </div>
 </div>
 {% endif %}
+<script src="{{ url_for('static', filename='js/formscripts.js') }}"></script>
 {% endblock content %}
