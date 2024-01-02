@@ -29,11 +29,11 @@ document.getElementById('addStamp1').addEventListener('change', function () {
 
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelector('.addSignatureFileBtn').addEventListener('click', function () {
-        var container = document.getElementById('signatureFilesContainer');
-        var clonedBlock = container.querySelector('.signature-file-block').cloneNode(true);
+        let container = document.getElementById('signatureFilesContainer');
+        let clonedBlock = container.querySelector('.signature-file-block').cloneNode(true);
         
         // Получение текущего индекса
-        var currentIndex = container.children.length;
+        let currentIndex = container.children.length;
         
         // Установка новых идентификаторов и имен
         clonedBlock.dataset.fileIndex = currentIndex + 1;
@@ -42,7 +42,8 @@ document.addEventListener('DOMContentLoaded', function () {
         clonedBlock.querySelectorAll('[name]').forEach(function (element) {
             element.name = element.name.replace(/\d+/, currentIndex + 1);
         });
-
+       let br = document.createElement('br');
+        container.append(br)
         container.appendChild(clonedBlock);
 
         // Подключение событий для новых элементов

@@ -1,81 +1,83 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-<form id="fileForm" action="/uploadMessage" method="post" enctype="multipart/form-data">
 <div style="margin-top: 50px;">
-    <div id="signatureFilesContainer">
+    <div id="signatureFilesContainer" style="width: max-content;background-color: #dedede6d;padding: 0.5rem;border-radius: 0.5rem;">
         <!-- Блок с файлом на подпись -->
         <div class="signature-file-block" data-file-index="1">
-            <label for="formFile1">Файл на подпись:</label><br>
-            <input class="btn btn-primary" type="file" name="file1" id="formFile1" accept=".pdf" required/><br><br>
-    
+            <label>Файл на подпись:<br>
+                <input class="btn btn-primary" type="file" name="file1" id="formFile1" accept=".pdf" required/><br><br>
+            </label>
             <!-- Чекбокс и виджеты для добавления штампа -->
             <div class="form-check">
+                <label class="form-check-label">
                 <input class="form-check-input addStampCheckbox" type="checkbox" id="addStamp1" name="addStamp1">
-                <label class="form-check-label">Добавить штамп (только для PDF файлов)</label>
+                Добавить штамп (только для PDF файлов)</label>
             </div>
-    
             <!-- Блок с виджетами, который будет отображаться при выборе чекбокса -->
             <div class="stamp-options" id="stampOptions" style="display: none;">
                 <div class="form-check">
+                    <label class="form-check-label">
                     <input class="form-check-input" type="checkbox" name="firstPage1">
-                    <label class="form-check-label">Первая страница</label>
+                    Первая страница</label>
                 </div>
-    
-                <div class="form-check">
+
+                <div class="form-check"><label class="form-check-label">
                     <input class="form-check-input" type="checkbox" name="lastPage1">
-                    <label class="form-check-label">Последняя страница</label>
+                    Последняя страница</label>
                 </div>
-    
+
                 <div class="form-check">
+                    <label class="form-check-label">
                     <input class="form-check-input" type="checkbox" name="allPages1">
-                    <label class="form-check-label">Все страницы</label>
+                    Все страницы</label>
                 </div>
-    
+
                 <div class="form-group">
-                    <label for="customPages1">Страницы по выбору:</label>
-                    <input type="text" class="form-control" name="customPages1" placeholder="Введите номера страниц">
+                    <label>Страницы по выбору:
+                    <input type="text" class="form-control" name="customPages1" placeholder="Введите номера страниц" style="width: 300px;">
+                    </label>
                 </div>
-            </div><br>
+            </div>
         </div>
     </div>
+<br>
+    <!-- Кнопка для добавления еще одного файла на подпись -->
+    <button class="btn btn-secondary addSignatureFileBtn" type="button">Добавить еще файл на подпись</button><br>
 
-        <!-- Кнопка для добавления еще одного файла на подпись -->
-        <button class="btn btn-secondary addSignatureFileBtn" type="button">Добавить еще файл на подпись</button><br><br>
-
-        <!-- Новый input для файлов, не требующих подписи -->
-        <label for="formFileNoSignature">Файлы, не требующие подписи:</label><br>
+    <!-- Новый input для файлов, не требующих подписи -->
+    <label style="padding-top: 1rem;">Файлы, не требующие подписи:<br>
         <input class="btn btn-secondary" type="file" name="fileNoSignature" id="formFileNoSignature" accept=".pdf" multiple/><br><br>
-
-        <div class="form-group" style="width: 500px;">
-            <label for="judgeComboBox">Выберите подписант:</label>
+    </label>
+    <div class="form-group" style="width: 500px;">
+        <label for="judgeComboBox">Выберите подписанта:</label>
         <select class="form-control" name="judge" id="judgeComboBox" required>
             {% for judge in judges %}
-                <option value="{{ judge.fio }}" {% if user.last_judge|string == judge.id|string %}selected{% endif %}>
-                    {{ judge.fio }}
-                </option>
+            <option value="{{ judge.fio }}" {% if user.last_judge|string == judge.id|string %}selected{% endif %}>
+                {{ judge.fio }}
+            </option>
             {% endfor %}
         </select>
-        </div><br>
+        </div>
         <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="sendToRosreestr" id="sendToRosreestr">
-            <label class="form-check-label" for="sendToRosreestr">Отправить в Росреестр</label>
-        </div><br>
+            <label class="form-check-label" style="padding-top: 0.5rem;">
+                <input class="form-check-input" type="checkbox" name="sendToRosreestr" />
+                Отправить в Росреестр
+            </label>
+        </div>
         <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="sendByEmail" id="sendByEmail">
-            <label class="form-check-label" for="sendByEmail">Отправить по эл. почте</label>
-        </div><br>
-
+            <label class="form-check-label" style="padding-top: 0.5rem;padding-bottom: 0.5rem;">
+                <input class="form-check-input" type="checkbox" name="sendByEmail" id="sendByEmail"/>
+                Отправить по эл. почте
+            </label>
+        </div>
         <div id="emailSection" style="display: none;">
             <div class="form-group" style="width: 500px;">
-                <label for="emailSection">Email:</label>
                 <input type="email" class="form-control" name="email" placeholder="Email">
             </div><br>
-
-            <button class="btn btn-secondary" id="addEmailBtn" type="button">Добавить еще email</button><br><br>
+            <button class="btn btn-secondary" id="addEmailBtn" type="button" >Добавить еще email</button><br>
         </div>
-
-        <button class="btn btn-primary" type="submit" >Отправить на подпись</button><br><br>
+        <button class="btn btn-primary" type="submit">Отправить на подпись</button><br><br>
     </form>
 </div>
 <div class="d-flex flex-column align-items-right flex-shrink-0 bg-body-tertiary" style="width: 800px;">
@@ -126,5 +128,4 @@
     </div>
 </div>
 {% endif %}
-<script src="{{ url_for('static', filename='js/formscripts.js') }}"></script>
 {% endblock content %}
