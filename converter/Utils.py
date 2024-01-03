@@ -28,3 +28,29 @@ def analyze_text(text):
     except Exception as e:
         print(f"An error occurred during text analysis: {str(e)}")
         return []
+
+
+def generate_sig_pages(current_list, custom_string):
+    input_pagelist = get_sorted_pages(custom_string)
+    current_set = set(current_list)
+    current_set.update(input_pagelist)
+    return ",".join(map(str, sorted(current_set)))
+
+
+def get_sorted_pages(chosen_pages_string):
+    out_set = set()
+    chosen_pages_string = chosen_pages_string.replace(' ', '')
+    if chosen_pages_string:
+        string_lst = chosen_pages_string.split(',')
+        for i in string_lst:
+            try:
+                if '-' in i:
+                    start, end = map(int, i.split('-'))
+                    out_set.update(range(start, end + 1))
+                else:
+                    out_set.add(int(i))
+            except ValueError:
+                pass  # Ignoring non-integer values
+        return out_set
+    else:
+        return []

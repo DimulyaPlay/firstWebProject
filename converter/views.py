@@ -9,6 +9,8 @@ from werkzeug.security import check_password_hash
 import os
 from . import db
 from .Utils import analyze_file
+from uuid import uuid4
+
 views = Blueprint('views', __name__)
 
 
@@ -50,54 +52,65 @@ def get_judge_filelist(judge_id):
 
 @views.post('/uploadMessage')
 def upload_file():
-    # Получение данных из формы
-    files_data = request.files.lists()
-    form_data = request.form.lists()
-    for key, value in files_data:
-        print(key, value)
-    for key, value in form_data:
-        print(key, value)
-    judgeFio = request.form.get('judge')
-    toRosreestr = True if request.form.get('sendToRosreestr') == 'on' else False
-    toEmails = True if request.form.get('sendByEmail') == 'on' else False
-    if toEmails:
-        # Если отправка по эл. почте включена, получите адреса эл. почты
-        emails = '; '.join(request.form.getlist('email'))
-        toEmails = emails if emails else ''
-    else:
-        toEmails = ''
-
-    for key, value in files_data:
-    # Ваш код для обработки каждого файла
-        ...
-
-    # Пример сохранения первого файла
-    if files:
-        file = files[0]
+    try:
+        db.session.begin()
+        files_data = request.files.lists()
+        form_data = request.form.lists()
+        judgeFio = request.form.get('judge')
         judge = Judges.query.filter_by(fio=judgeFio).first()
-        filepath = os.path.join(judge.inputStorage, file.filename)
+        toRosreestr = True if request.form.get('sendToRosreestr') == 'on' else False
+        toEmails = True if request.form.get('sendByEmail') == 'on' else False
+        if toEmails:
+            emails = '; '.join(request.form.getlist('email'))
+            toEmails = emails if emails else None
+        else:
+            toEmails = None
+        new_message = UploadedMessages(toRosreestr=toRosreestr,
+                                       toEmails=toEmails,
+                                       mailSubject=request.form.get('subject'),
+                                       mailBody=request.form.get('body'),
+                                       user_id=current_user.id)
+        db.session.add(new_message)
+        message_id = new_message.id
+        for key, value in files_data:
+            if key.startswith('file'):
+                idx = key[4:]
+                filepath = os.path.join('fileStorage', str(uuid4()) + value[0].filename)
+                value[0].save(filepath)
+                addStamp = True if request.form.get('addStamp'+idx) == 'on' else False
+                allPages = True if request.form.get('allPages' + idx, default=False) == 'on' else False
+                if allPages:
+                    sig_page_str = 'all'
+                if addStamp and not allPages:
+                    sig_page_list = []
+                    lastPage = True if request.form.get('lastPage' + idx, default=False) == 'on' else False
+                    firstPage = True if request.form.get('firstPage' + idx, default=False) == 'on' else False
+                    customPages = request.form.get('customPages' + idx, default=False)
+                    if firstPage:
+                        sig_page_list.append(1)
+                    elif lastPage:
+                        sig_page_list.append(-1)
+                    sig_page_str = generate_sig_pages(sig_page_list, customPages)
+                if not allPages and not addStamp:
+                    sig_page_str = ''
+                newFile = UploadedFiles(
+                    filePath=filepath,
+                    fileName=value[0].filename,
+                    sigPages=sig_page_str,
+                    user_id=current_user.id,
+                    judge_id=judge.id,
+                    message_id=message_id)
+                db.session.add(newFile)
 
-        # Ваш код для обработки файла
-        # ...
-
-        # Пример добавления информации о файле в базу данных
-        user_id = int(current_user.id)
-        mailSubject = 'TEMP'
-        new_row = ProcessedFile(
-            filePath=filepath,
-            fileName=os.path.basename(filepath),
-            user_id=user_id,
-            toRosreestr=toRosreestr,
-            toEmails=toEmails,
-            judge_id=judge.id,
-            mailSubject=mailSubject
-        )
-        db.session.add(new_row)
         current_user.last_judge = judge.id
-
-    db.session.commit()
-    flash('Файл(ы) отправлен(ы)', category='success')
-    return redirect('/')
+        db.session.commit()
+        flash('Файл(ы) отправлен(ы)', category='success')
+        return redirect('/')
+    except:
+        db.session.rollback()
+        traceback.print_exc()
+        flash('Ошибка создания сообщения', category='error')
+        return redirect('/')
 
 
 @views.route('/analyzeFile', methods=['POST'])

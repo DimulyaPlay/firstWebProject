@@ -48,7 +48,7 @@
 
     <!-- Новый input для файлов, не требующих подписи -->
     <label style="padding-top: 1rem;">Файлы, не требующие подписи:<br>
-        <input class="btn btn-secondary" type="file" name="fileNoSignature" id="formFileNoSignature" accept=".pdf" multiple/><br><br>
+        <input class="btn btn-secondary" type="file" name="attachments" id="formFileNoSignature" multiple/><br><br>
     </label>
     <div class="form-group" style="width: 500px;">
         <label for="judgeComboBox">Выберите подписанта:</label>
@@ -73,8 +73,8 @@
             </label>
         </div>
         <div id="emailSection" style="display: none;">
-            <div class="form-group" style="width: 500px;">
-            </div>
+            <input type="subject" class="form-control" style="width: 500px;margin-bottom: 10px;" name="subject" id="subject" placeholder="Тема письма">
+            <textarea class="form-control" style="width: 500px; margin-bottom: 10px;" rows="3" placeholder="Текст письма" name="body"></textarea>
             <button class="btn btn-secondary" id="addEmailBtn" type="button">Добавить еще email</button><br>
         </div>
         <div class="pt-3 pb-3">

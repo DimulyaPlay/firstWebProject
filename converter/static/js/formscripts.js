@@ -15,7 +15,7 @@ $('#addEmailBtn').on('click', function() {
         name: 'email',
         placeholder: 'Email'
     });
-    emailInput.insertBefore($(this));
+    emailInput.insertBefore($("#subject"));
 });
 
 $('#addStamp1').on('change', function() {
