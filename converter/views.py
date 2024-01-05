@@ -43,21 +43,40 @@ def get_file(filename):
 @views.route('/get_judge_filelist/<judge_id>')
 @login_required
 def get_judge_filelist(judge_id):
-    judge = Judges.query.filter_by(judge_id=judge_id)
-    if judge:
-        files = UploadedFiles.query.filter_by(judge_id=judge_id)
-        files_data = {}
-        if files:
-            for f in files:
-                files_data[f.id] = f.id
-                files_data[f.id] = f.filePath
-                files_data[f.id] = f.fileName
-                files_data[f.id] = f.sigPages
-            return jsonify(files_data)
-        else:
-            return 0
+    # files = UploadedFiles.query.filter_by(judge_id=judge_id).filter(UploadedFiles.sigPath.isnot(None)).all()
+    files = UploadedFiles.query.filter_by(judge_id=judge_id, sigPath=None).all()
+    files_data = {}
+    if files:
+        for f in files:
+            files_data[f.id] = {'id': f.id,
+                                'filePath': f.filePath,
+                                'fileName': f.fileName,
+                                'sigPages': f.sigPages
+                                }
+        return jsonify(files_data)
     else:
-        return 0
+        return jsonify({})
+
+
+@views.route('/set_file_signed/<file_id>')
+@login_required
+def set_file_signed(file_id):
+    try:
+        file = UploadedFiles.query.filter_by(id=file_id).first()
+        file.sigPath = file.filePath+'.sig'
+        file.sigName = file.fileName+'.sig'
+        db.session.commit()
+        message_files = UploadedFiles.query.filter_by(message_id=file.message_id).all()
+        all_files_signed = all(file.sigName for file in message_files)
+        if all_files_signed:
+            message = UploadedMessages.query.filter_by(id=file.message_id).first()
+            message.signed = True
+            db.session.commit()
+        return jsonify(1)
+    except:
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify(0)
 
 
 @views.post('/uploadMessage')
@@ -65,6 +84,7 @@ def get_judge_filelist(judge_id):
 def upload_file():
     try:
         files_data = request.files.lists()
+        attachments = request.files.getlist('attachments')
         form_data = request.form.lists()
         judgeFio = request.form.get('judge')
         judge = Judges.query.filter_by(fio=judgeFio).first()
@@ -76,17 +96,18 @@ def upload_file():
         else:
             toEmails = None
         new_message = UploadedMessages(toRosreestr=toRosreestr,
-                                       sigBy=judgeFio,
+                                       sigBy=judge.fio,
                                        toEmails=toEmails,
                                        mailSubject=request.form.get('subject'),
                                        mailBody=request.form.get('body'),
                                        user_id=current_user.id)
         db.session.add(new_message)
+        db.session.commit()
         message_id = new_message.id
         for key, value in files_data:
             if key.startswith('file'):
                 idx = key[4:]
-                filepath = os.path.join(os.getcwd(), 'fileStorage', str(uuid4()) + value[0].filename)
+                filepath = os.path.join(os.getcwd(), 'fileStorage', str(uuid4()) + '.pdf')
                 value[0].save(filepath)
                 addStamp = True if request.form.get('addStamp'+idx) == 'on' else False
                 allPages = True if request.form.get('allPages' + idx, default=False) == 'on' else False
@@ -99,7 +120,7 @@ def upload_file():
                     customPages = request.form.get('customPages' + idx, default=False)
                     if firstPage:
                         sig_page_list.append(1)
-                    elif lastPage:
+                    if lastPage:
                         sig_page_list.append(-1)
                     sig_page_str = generate_sig_pages(sig_page_list, customPages)
                 if not allPages and not addStamp:
@@ -110,8 +131,19 @@ def upload_file():
                     sigPages=sig_page_str,
                     user_id=current_user.id,
                     judge_id=judge.id,
-                    message_id=message_id)
+                    message_id=message_id,
+                    sigBy=judgeFio)
                 db.session.add(newFile)
+        for attachment in attachments:
+            file_extention = "." + attachment.filename.rsplit('.', 1)[-1]
+            filepath = os.path.join(os.getcwd(), 'fileStorage', str(uuid4()) + file_extention)
+            attachment.save(filepath)
+            newFile = UploadedFiles(
+                filePath=filepath,
+                fileName=attachment.filename,
+                user_id=current_user.id,
+                message_id=message_id)
+            db.session.add(newFile)
         current_user.last_judge = judge.id
         db.session.commit()
         flash('Файл(ы) отправлен(ы)', category='success')

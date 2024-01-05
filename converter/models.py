@@ -21,7 +21,8 @@ class Judges(db.Model):
 class UploadedMessages(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # ID
     createDatetime = db.Column(db.DateTime, default=datetime.utcnow)  # время создания письма
-    signed = db.Column(db.Boolean, default=False)
+    signed = db.Column(db.Boolean, default=False)  # подписано ли
+    sended = db.Column(db.Boolean, default=False)  # отправлено ли
     sigBy = db.Column(db.String(120), default=None)  # Подписано кем ФИО
     toRosreestr = db.Column(db.Boolean)  # Флаг отправки в росреестр
     toEmails = db.Column(db.String(255))  # Адреса отправки на почту, '' = не отправлять
@@ -38,9 +39,9 @@ class UploadedFiles(db.Model):
     fileName = db.Column(db.String(255), nullable=False)  # Название файла
     sigPages = db.Column(db.String(120), default=None)  # Предложенные страницы для размещения штампа
     sigPath = db.Column(db.String(255), unique=True, default=None)  # Путь к сохраненной подписи
-    sigName = db.Column(db.String(255), unique=True, default=None)  # Название файла подписи
-    sigBy = db.Column(db.String(120), default=None)  # Подписано кем ФИО
+    sigName = db.Column(db.String(255), default=None)  # Название файла подписи
+    sigBy = db.Column(db.String(120), default=None)  # Подписано кем ФИО, если None, то подписи не требует (аттачмент)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # связь файла с пользователем по ИД
-    judge_id = db.Column(db.Integer, db.ForeignKey('judges.id'))  # связь файла с судьей по ИД
+    judge_id = db.Column(db.Integer, db.ForeignKey('judges.id'), default=None)  # связь файла с судьей по ИД
     message_id = db.Column(db.Integer, db.ForeignKey('uploaded_messages.id'))  # внешний ключ для UploadedMessages.id
     message = db.relationship('UploadedMessages', backref='file', lazy=True)

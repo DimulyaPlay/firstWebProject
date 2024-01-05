@@ -31,9 +31,11 @@ def analyze_text(text):
 
 
 def generate_sig_pages(current_list, custom_string):
+    print(current_list, custom_string)
     input_pagelist = get_sorted_pages(custom_string)
     current_set = set(current_list)
     current_set.update(input_pagelist)
+    print(current_set)
     return ",".join(map(str, sorted(current_set)))
 
 

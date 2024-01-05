@@ -17,7 +17,11 @@
     {% if user.messages %}
     
         {% for message in user.messages %}
+            {% if message.signed %}
+            <tr class="table-success">
+            {% else %}
             <tr class="table-warning">
+            {% endif %}
 
             <th scope="row">{{ message.mailSubject }}</th>
 
