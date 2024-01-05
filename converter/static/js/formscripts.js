@@ -46,12 +46,25 @@ $(document).ready(function () {
             required: true
         });
 
-        label.append('<br>').append(fileInput).append('<br><br>');
+
+        label.append('<br>').append(fileInput);
+
+        let deleteButton = $('<button>', {
+            class: 'btn btn-danger deleteSignatureFileBtn',
+            text: 'X',
+            style: 'margin-left:10px;',
+            click: function () {
+                $(this).closest('.signature-file-block').remove();
+            }
+        });
+        label.append(deleteButton);
+        label.append('<br>');
 
         let addStampCheckbox = $('<div>', {
             class: 'form-check'
         }).append($('<label>', {
-            class: 'form-check-label'
+            class: 'form-check-label',
+            style: 'margin-top: 10px;'
         }).append($('<input>', {
             class: 'form-check-input addStampCheckbox',
             type: 'checkbox',
@@ -112,11 +125,14 @@ $(document).ready(function () {
             .append(allPagesCheckbox)
             .append(customPagesInput);
 
-        newBlock.append(label)
+        newBlock.append('<br>')
+            .append(label)
             .append(addStampCheckbox)
             .append(stampOptions);
 
-        container.append('<br>').append(newBlock);
+
+
+        container.append(newBlock);
         newBlock.find('.addStampCheckbox').on('change', function () {
             let stampOptions = $(this).closest('.signature-file-block').find('.stamp-options');
             stampOptions.css('display', this.checked ? 'block' : 'none');
