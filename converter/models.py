@@ -8,6 +8,7 @@ class Users(db.Model, UserMixin):
     first_name = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
     last_judge = db.Column(db.String(80), nullable=True, default=None)
+    judge_id = db.Column(db.Integer)
     files = db.relationship('UploadedFiles', backref='user', lazy=True)
     messages = db.relationship('UploadedMessages', backref='user', lazy=True)
 

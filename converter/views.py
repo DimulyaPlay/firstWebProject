@@ -40,9 +40,10 @@ def get_file(filename):
     return send_file(processed_files[filename]['processed_file_path'], as_attachment=False)
 
 
-@views.route('/get_judge_filelist/<judge_id>')
+@views.route('/get_judge_filelist')
 @login_required
-def get_judge_filelist(judge_id):
+def get_judge_filelist():
+    judge_id = current_user.judge_id
     # files = UploadedFiles.query.filter_by(judge_id=judge_id).filter(UploadedFiles.sigPath.isnot(None)).all()
     files = UploadedFiles.query.filter_by(judge_id=judge_id, sigPath=None).all()
     files_data = {}

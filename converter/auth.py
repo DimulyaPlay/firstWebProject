@@ -47,20 +47,24 @@ def registration():
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     data = request.form
-    if request.method == 'POST':
-        first_name = data.get('first_name')
-        password = data.get('password')
-        user = Users.query.filter_by(first_name=first_name).first()
-        if user:
-            if check_password_hash(user.password, password):
-                login_user(user, remember=True)
-                flash('Успешная авторизация', category='success')
-                return redirect(url_for('views.home'))
-            else:
-                flash('Неверный пароль', category='error')
+    first_name = data.get('first_name')
+    password = data.get('password')
+    lite = data.get('lite', False)  # Флаг для толстого клиента, чтобы не генерировать страницы.
+    user = Users.query.filter_by(first_name=first_name).first()
+    if user:
+        if check_password_hash(user.password, password):
+            login_user(user, remember=True)
+            if lite:
+                return {}, 200
+            flash('Успешная авторизация', category='success')
+            return redirect(url_for('views.home')), 200
         else:
-            flash('Пользователь с таким именем отсутствует', category='error')
-    return render_template('login.html', title='Вход', user=current_user)
+            if lite:
+                return {}, 400
+            flash('Неверный пароль', category='error')
+    else:
+        flash('Пользователь с таким именем отсутствует', category='error')
+    return render_template('login.html', title='Вход', user=current_user), 400
 
 
 @auth.route('/logout')
