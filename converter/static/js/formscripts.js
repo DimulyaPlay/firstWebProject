@@ -8,14 +8,39 @@ $('#sendByEmail').on('change', function() {
 });
 
 $('#addEmailBtn').on('click', function() {
+    // Создаем новый input
     let emailInput = $('<input>', {
         type: 'email',
         class: 'form-control',
-        style: 'width: 500px;margin-bottom: 10px;',
+        style: 'width: 500px; margin-bottom: 10px;',
         name: 'email',
         placeholder: 'Email'
     });
-    emailInput.insertBefore($("#subject"));
+
+    // Создаем новую кнопку
+    let removeButton = $('<button>', {
+        class: 'btn btn-danger',
+        id: 'removeEmail',
+        type: 'button',
+        style: 'margin-left: 10px; margin-bottom: 10px;',
+        text: 'X',
+        click: function () {
+            $(this).closest('label').remove();
+        }
+    });
+
+    // Создаем новый label
+    let emailLabel = $('<label>', {
+        id: 'emailAdresses',
+        style: 'display: flex;'
+    });
+
+    // Добавляем input и button внутрь label
+    emailLabel.append(emailInput);
+    emailLabel.append(removeButton);
+
+    // Вставляем новый label перед элементом с id "subject"
+    emailLabel.insertBefore($("#subject"));
 });
 
 $('#addStamp1').on('change', function() {
@@ -157,15 +182,40 @@ $(document).ready(function() {
                 // Обработка успешного ответа от сервера
                 $('#sendByEmail').prop('checked', true);
                 data.detectedAddresses.forEach(function(address) {
+                    // Создаем новый input
                     let emailInput = $('<input>', {
                         type: 'email',
                         class: 'form-control',
-                        style: 'width: 500px;margin-bottom: 10px;',
+                        style: 'width: 500px; margin-bottom: 10px;',
                         name: 'email',
                         placeholder: 'Email',
                         value: address
                     });
-                    emailInput.insertBefore($('#addEmailBtn'));
+                
+                    // Создаем новую кнопку
+                    let removeButton = $('<button>', {
+                        class: 'btn btn-danger',
+                        id: 'removeEmail',
+                        type: 'button',
+                        style: 'margin-left: 10px; margin-bottom: 10px;',
+                        text: 'X',
+                        click: function () {
+                            $(this).closest('label').remove();
+                        }
+                    });
+                
+                    // Создаем новый label
+                    let emailLabel = $('<label>', {
+                        id: 'emailAdresses',
+                        style: 'display: flex;'
+                    });
+                
+                    // Добавляем input и button внутрь label
+                    emailLabel.append(emailInput);
+                    emailLabel.append(removeButton);
+                
+                    // Вставляем новый label перед элементом с id "subject"
+                    emailLabel.insertBefore($("#subject"));
                 });
 
                 $('#emailSection').show()
