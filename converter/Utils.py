@@ -1,5 +1,47 @@
-import re
+import os, sys, json, re
 from PyPDF2 import PdfReader
+import subprocess
+
+
+config_path = os.path.dirname(sys.argv[0])
+if not os.path.exists(config_path):
+    os.mkdir(config_path)
+config_file = os.path.join(config_path, 'config.json')
+
+
+def read_create_config(config_file):
+    default_configuration = {
+        "sig_check": True,
+        "csp_path": r"C:\Program Files\Crypto Pro\CSP",
+        "file_storage": r"C:\fileStorage"
+    }
+    if os.path.exists(config_file):
+        try:
+            with open(config_file, 'r') as configfile:
+                config = json.load(configfile)
+        except Exception as e:
+            print(e)
+            os.remove(config_file)
+            config = default_configuration
+            with open(config_file, 'w') as configfile:
+                json.dump(config, configfile)
+    else:
+        config = default_configuration
+        with open(config_file, 'w') as configfile:
+            json.dump(config, configfile)
+    return config
+
+
+config = read_create_config(config_file)
+
+
+def save_config(config):
+    try:
+        with open(config_file, 'w') as json_file:
+            json.dump(config, json_file)
+        config = read_create_config(config_file)
+    except:
+        traceback.print_exc()
 
 
 def analyze_file(file):
@@ -56,3 +98,21 @@ def get_sorted_pages(chosen_pages_string):
         return out_set
     else:
         return []
+
+
+def check_sig(fp, sp):
+    if os.path.exists(fp) and os.path.exists(sp):
+        command = [
+            config['csp_path'] + '\\csptest.exe',
+            "-sfsign",
+            "-verify",
+            "-in",
+            fp,
+            "-signature",
+            sp,
+            "-detached",
+        ]
+        result = subprocess.run(command, capture_output=True, text=True, encoding='cp866',
+                                creationflags=subprocess.CREATE_NO_WINDOW)
+        output = result.returncode
+        return not output

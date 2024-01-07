@@ -10,8 +10,9 @@ from .models import Users, UploadedFiles, Judges, UploadedMessages
 from werkzeug.security import check_password_hash
 import os
 from . import db
-from .Utils import analyze_file, generate_sig_pages
+from .Utils import analyze_file, generate_sig_pages, check_sig, config
 from uuid import uuid4
+import base64
 
 views = Blueprint('views', __name__)
 
@@ -44,13 +45,11 @@ def get_file(filename):
 @login_required
 def get_judge_filelist():
     judge_id = current_user.judge_id
-    # files = UploadedFiles.query.filter_by(judge_id=judge_id).filter(UploadedFiles.sigPath.isnot(None)).all()
     files = UploadedFiles.query.filter_by(judge_id=judge_id, sigPath=None).all()
     files_data = {}
     if files:
         for f in files:
             files_data[f.id] = {'id': f.id,
-                                'filePath': f.filePath,
                                 'fileName': f.fileName,
                                 'sigPages': f.sigPages
                                 }
@@ -59,25 +58,53 @@ def get_judge_filelist():
         return jsonify({})
 
 
-@views.route('/set_file_signed/<file_id>')
+@views.route('/download_file/<file_id>')
+@login_required
+def download_file(file_id):
+    file = UploadedFiles.query.get(file_id)
+    if file and file.filePath:
+        return send_file(file.filePath, as_attachment=True)
+    else:
+        return jsonify({'error': 'File not found'})
+
+
+@views.route('/set_file_signed/<file_id>', methods=['POST'])
 @login_required
 def set_file_signed(file_id):
     try:
         file = UploadedFiles.query.filter_by(id=file_id).first()
+        file_path = file.filePath
+        sig_path = file.filePath+'.sig'
         file.sigPath = file.filePath+'.sig'
-        file.sigName = file.fileName+'.sig'
-        db.session.commit()
-        message_files = UploadedFiles.query.filter_by(message_id=file.message_id).all()
-        all_files_signed = all(file.sigName for file in message_files)
-        if all_files_signed:
-            message = UploadedMessages.query.filter_by(id=file.message_id).first()
-            message.signed = True
+        file.sigName = file.fileName + '.sig'
+        # Принимаем файлы от клиента
+        pdf_file = request.files.get('pdf_file')
+        sig_file = request.files.get('sig_file')
+
+        if pdf_file:
+            pdf_file.save(file_path)
+
+        if sig_file:
+            sig_file.save(sig_path)
+
+        if os.path.isfile(sig_path):
+            if config['sig_check']:
+                if not check_sig(file_path, sig_path):
+                    return jsonify(0), 400
             db.session.commit()
-        return jsonify(1)
-    except:
+            message_files = UploadedFiles.query.filter_by(message_id=file.message_id).all()
+            all_files_signed = all(file.sigName for file in message_files)
+            if all_files_signed:
+                message = UploadedMessages.query.filter_by(id=file.message_id).first()
+                message.signed = True
+                db.session.commit()
+            return jsonify(1), 200
+        else:
+            return jsonify(0), 400
+    except Exception as e:
         traceback.print_exc()
         db.session.rollback()
-        return jsonify(0)
+        return jsonify(0), 400
 
 
 @views.post('/uploadMessage')
@@ -108,7 +135,7 @@ def upload_file():
         for key, value in files_data:
             if key.startswith('file'):
                 idx = key[4:]
-                filepath = os.path.join(os.getcwd(), 'fileStorage', str(uuid4()) + '.pdf')
+                filepath = os.path.join(config['file_storage'], str(uuid4()) + '.pdf')
                 value[0].save(filepath)
                 addStamp = True if request.form.get('addStamp'+idx) == 'on' else False
                 allPages = True if request.form.get('allPages' + idx, default=False) == 'on' else False
@@ -136,15 +163,16 @@ def upload_file():
                     sigBy=judgeFio)
                 db.session.add(newFile)
         for attachment in attachments:
-            file_extention = "." + attachment.filename.rsplit('.', 1)[-1]
-            filepath = os.path.join(os.getcwd(), 'fileStorage', str(uuid4()) + file_extention)
-            attachment.save(filepath)
-            newFile = UploadedFiles(
-                filePath=filepath,
-                fileName=attachment.filename,
-                user_id=current_user.id,
-                message_id=message_id)
-            db.session.add(newFile)
+            if attachment.filename:
+                file_extention = "." + attachment.filename.rsplit('.', 1)[-1]
+                filepath = os.path.join(config['file_storage'], str(uuid4()) + file_extention)
+                attachment.save(filepath)
+                newFile = UploadedFiles(
+                    filePath=filepath,
+                    fileName=attachment.filename,
+                    user_id=current_user.id,
+                    message_id=message_id)
+                db.session.add(newFile)
         current_user.last_judge = judge.id
         db.session.commit()
         flash('Файл(ы) отправлен(ы)', category='success')
