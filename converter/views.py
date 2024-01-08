@@ -10,7 +10,7 @@ from .models import Users, UploadedFiles, Judges, UploadedMessages
 from werkzeug.security import check_password_hash
 import os
 from . import db
-from .Utils import analyze_file, generate_sig_pages, check_sig, config
+from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message
 from uuid import uuid4
 import base64
 
@@ -97,6 +97,7 @@ def set_file_signed(file_id):
             if all_files_signed:
                 message = UploadedMessages.query.filter_by(id=file.message_id).first()
                 message.signed = True
+                export_signed_message(message)
                 db.session.commit()
             return jsonify(1), 200
         else:

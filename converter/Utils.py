@@ -1,6 +1,10 @@
 import os, sys, json, re
 from PyPDF2 import PdfReader
 import subprocess
+from .models import UploadedFiles
+import zipfile
+import json
+from datetime import datetime
 
 
 config_path = os.path.dirname(sys.argv[0])
@@ -13,7 +17,8 @@ def read_create_config(config_file):
     default_configuration = {
         "sig_check": True,
         "csp_path": r"C:\Program Files\Crypto Pro\CSP",
-        "file_storage": r"C:\fileStorage"
+        "file_storage": r"C:\fileStorage",
+        "file_export_folder": r"C:\fileStorage\Export"
     }
     if os.path.exists(config_file):
         try:
@@ -116,3 +121,40 @@ def check_sig(fp, sp):
                                 creationflags=subprocess.CREATE_NO_WINDOW)
         output = result.returncode
         return not output
+
+
+def export_signed_message(message):
+    zip_filename = os.path.join(config['file_export_folder'],
+                                f'Export_msg_id_{message.id}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip')
+
+    files = UploadedFiles.query.filter_by(message_id=message.id).all()
+    filepaths = [f.filePath for f in files]
+    filenames = [f.fileName for f in files]
+    filenames = [f'file_{i}' if filenames.count(f) > 1 else f for i, f in enumerate(filenames)]
+
+    sigpaths = [f.sigPath for f in files]
+    signames = [f.sigName for f in files]
+    signames = [f'file_{i}' if signames.count(f) > 1 else f for i, f in enumerate(signames)]
+
+    fileNames = filenames.copy()
+    fileNames.extend(signames)
+
+    meta = {
+        'id': message.id,
+        'rr': message.toRosreestr,
+        'emails': message.toEmails,
+        'subject': message.mailSubject,
+        'body': message.mailBody,
+        'fileNames': fileNames
+    }
+    with zipfile.ZipFile(zip_filename, 'w') as zip_file:
+        for file_path, file_name in zip(filepaths, filenames):
+            zip_file.write(file_path, arcname=file_name)
+        for file_path, file_name in zip(sigpaths, signames):
+            zip_file.write(file_path, arcname=file_name)
+        meta_filename = 'meta.json'
+        with open(meta_filename, 'w') as meta_file:
+            json.dump(meta, meta_file)
+        zip_file.write(meta_filename, arcname=meta_filename)
+    os.remove(meta_filename)
+    return zip_filename
