@@ -10,7 +10,7 @@ from .models import Users, UploadedFiles, Judges, UploadedMessages
 from werkzeug.security import check_password_hash
 import os
 from . import db
-from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message
+from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists
 from uuid import uuid4
 import base64
 
@@ -32,13 +32,17 @@ def home():
 @views.route('/outbox', methods=['GET'])
 @login_required
 def outbox():
-    return render_template('outbox.html', title='Мои отправления', user=current_user)
+    return render_template('outbox.html', title='Мои отправления', user=current_user, report_exists=report_exists)
 
 
-@views.route('/get_report/<fileId>')
+@views.route('/get_report/<messageId>')
 @login_required
-def get_file(filename):
-    return send_file(processed_files[filename]['processed_file_path'], as_attachment=False)
+def get_report(messageId):
+    report_filepath = os.path.join(config['reports_path'], f'{messageId}.pdf')
+    if os.path.exists(report_filepath):
+        return send_file(report_filepath, as_attachment=False)
+    else:
+        flash('Файл отчета не обнаружен', category='error')
 
 
 @views.route('/get_judge_filelist')

@@ -45,7 +45,7 @@
             <td><img src="static/img/no-email-icon.png" alt="No Email"></td> 
             {% endif %}
 
-            {% if message.reportDatetime %}
+            {% if report_exists(message.id) %}
             <td><img src="static/img/report-icon.png" alt="Report"></td>
             {% else %}
             <td><img src="static/img/no-report-icon.png" alt="No Report"></td>

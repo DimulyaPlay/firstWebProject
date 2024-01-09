@@ -18,7 +18,8 @@ def read_create_config(config_file):
         "sig_check": True,
         "csp_path": r"C:\Program Files\Crypto Pro\CSP",
         "file_storage": r"C:\fileStorage",
-        "file_export_folder": r"C:\fileStorage\Export"
+        "file_export_folder": r"C:\fileStorage\Export",
+        "reports_path": r"C:\fileStorage\Reports"
     }
     if os.path.exists(config_file):
         try:
@@ -158,3 +159,8 @@ def export_signed_message(message):
         zip_file.write(meta_filename, arcname=meta_filename)
     os.remove(meta_filename)
     return zip_filename
+
+
+def report_exists(messageId):
+    report_filepath = os.path.join(config['reports_path'], f'{messageId}.pdf')
+    return os.path.exists(report_filepath)
