@@ -2,7 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from sqlalchemy import text
-import os
+import os, sys
 
 db = SQLAlchemy()
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -10,7 +10,13 @@ database_path = os.path.join(basedir, 'instance', 'database.db')
 
 
 def create_app():
-    app = Flask(__name__)
+    if getattr(sys, 'frozen', False):
+        template_folder = os.path.join(sys._MEIPASS, 'templates')
+        static_folder = os.path.join(sys._MEIPASS, 'static')
+        instance_path = os.path.join(sys._MEIPASS, 'instance')
+        app = Flask(__name__, template_folder=template_folder, static_folder=static_folder, instance_path=instance_path)
+    else:
+        app = Flask(__name__)
     app.config['SECRET_KEY'] = 'ndfjknsdflkghnfhjkgndbfd dfghmdghnm'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + database_path + '?check_same_thread=False'
     db.init_app(app)

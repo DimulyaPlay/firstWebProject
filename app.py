@@ -1,5 +1,8 @@
 from converter import create_app
 
+# C:\\Users\\CourtUser\\Desktop\\release\\firstWebProject\\venv\\Scripts\\pyinstaller.exe --onedir --contents-directory "." --add-data "C:\\Users\\CourtUser\\Desktop\\release\\firstWebProject\\converter;converter"   C:\\Users\\CourtUser\\Desktop\\release\\firstWebProject\\app.py
+
+
 app = create_app()
 
 if __name__ == '__main__':
