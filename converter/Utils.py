@@ -5,6 +5,7 @@ from .models import UploadedFiles
 import zipfile
 import json
 from datetime import datetime
+from uuid import uuid4
 
 
 config_path = os.path.dirname(sys.argv[0])
@@ -133,12 +134,12 @@ def export_signed_message(message):
     filenames = [f.fileName for f in files]
     filenames = [f'file_{i}' if filenames.count(f) > 1 else f for i, f in enumerate(filenames)]
 
-    sigpaths = [f.sigPath for f in files]
+    sigpaths = [f.sigPath for f in files if f.sigPath]
     signames = [f.sigName for f in files]
     signames = [f'file_{i}' if signames.count(f) > 1 else f for i, f in enumerate(signames)]
-
     fileNames = filenames.copy()
-    fileNames.extend(signames)
+    if sigpaths:
+        fileNames.extend(signames)
 
     meta = {
         'id': message.id,
@@ -151,8 +152,9 @@ def export_signed_message(message):
     with zipfile.ZipFile(zip_filename, 'w') as zip_file:
         for file_path, file_name in zip(filepaths, filenames):
             zip_file.write(file_path, arcname=file_name)
-        for file_path, file_name in zip(sigpaths, signames):
-            zip_file.write(file_path, arcname=file_name)
+        if sigpaths:
+            for file_path, file_name in zip(sigpaths, signames):
+                zip_file.write(file_path, arcname=file_name)
         meta_filename = 'meta.json'
         with open(meta_filename, 'w') as meta_file:
             json.dump(meta, meta_file)
@@ -164,3 +166,13 @@ def export_signed_message(message):
 def report_exists(messageId):
     report_filepath = os.path.join(config['reports_path'], f'{messageId}.pdf')
     return os.path.exists(report_filepath)
+
+
+def save_file(file, attachment=False):
+    try:
+        file_extension = "." + attachment.filename.rsplit('.', 1)[-1] if attachment else '.pdf'
+        filepath = os.path.join(config['file_storage'], str(uuid4()) + file_extension)
+        file.save(filepath)
+        return filepath
+    except Exception as e:
+        raise ValueError(f'Ошибка при сохранении файла {file.filename}: {e}')

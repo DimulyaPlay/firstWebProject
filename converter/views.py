@@ -10,8 +10,7 @@ from .models import Users, UploadedFiles, Judges, UploadedMessages
 from werkzeug.security import check_password_hash
 import os
 from . import db
-from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists
-from uuid import uuid4
+from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_file
 import base64
 
 views = Blueprint('views', __name__)
@@ -81,7 +80,6 @@ def set_file_signed(file_id):
         sig_path = file.filePath+'.sig'
         file.sigPath = file.filePath+'.sig'
         file.sigName = file.fileName + '.sig'
-        # Принимаем файлы от клиента
         pdf_file = request.files.get('pdf_file')
         sig_file = request.files.get('sig_file')
 
@@ -117,76 +115,133 @@ def set_file_signed(file_id):
 def upload_file():
     try:
         files_data = request.files.lists()
+        files_data = {key: value for key, value in files_data if value[0].filename and key != 'attachments'}
         attachments = request.files.getlist('attachments')
-        form_data = request.form.lists()
+        attachments = [attachment for attachment in attachments if attachment.filename]
         judgeFio = request.form.get('judge')
         judge = Judges.query.filter_by(fio=judgeFio).first()
         toRosreestr = True if request.form.get('sendToRosreestr') == 'on' else False
-        toEmails = True if request.form.get('sendByEmail') == 'on' else False
+        toEmails = True if request.form.get('sendByEmail') == 'on' else None
         if toEmails:
             emails = '; '.join(request.form.getlist('email'))
             toEmails = emails if emails else None
         else:
             toEmails = None
-        new_message = UploadedMessages(toRosreestr=toRosreestr,
-                                       sigBy=judge.fio,
-                                       toEmails=toEmails,
-                                       mailSubject=request.form.get('subject'),
-                                       mailBody=request.form.get('body'),
-                                       user_id=current_user.id)
-        db.session.add(new_message)
-        db.session.commit()
+        subject = request.form.get('subject', None)
+        if toEmails and not subject:
+            error_message = 'Тема сообщения отсутствует, отправка отменена'
+            db.session.rollback()
+            return jsonify({'error': True, 'error_message': error_message})
+        body = request.form.get('body')
+        if not (toEmails or toRosreestr):
+            error_message = 'Не выбрана ни один адрес отправки, отправка отменена'
+            db.session.rollback()
+            return jsonify({'error': True, 'error_message': error_message})
+        try:
+            new_message = UploadedMessages(toRosreestr=toRosreestr,
+                                           sigBy=judge.fio,
+                                           toEmails=toEmails,
+                                           mailSubject=subject,
+                                           mailBody=body,
+                                           user_id=current_user.id)
+            db.session.add(new_message)
+            db.session.commit()
+        except Exception as e:
+            traceback.print_exc()
+            error_message = f'Ошибка при создани письма, отправка отменена ({e})'
+            db.session.rollback()
+            return jsonify({'error': True, 'error_message': error_message})
         message_id = new_message.id
-        for key, value in files_data:
-            if key.startswith('file'):
-                idx = key[4:]
-                filepath = os.path.join(config['file_storage'], str(uuid4()) + '.pdf')
-                value[0].save(filepath)
-                addStamp = True if request.form.get('addStamp'+idx) == 'on' else False
-                allPages = True if request.form.get('allPages' + idx, default=False) == 'on' else False
-                if allPages:
-                    sig_page_str = 'all'
-                if addStamp and not allPages:
-                    sig_page_list = []
-                    lastPage = True if request.form.get('lastPage' + idx, default=False) == 'on' else False
-                    firstPage = True if request.form.get('firstPage' + idx, default=False) == 'on' else False
-                    customPages = request.form.get('customPages' + idx, default=False)
-                    if firstPage:
-                        sig_page_list.append(1)
-                    if lastPage:
-                        sig_page_list.append(-1)
-                    sig_page_str = generate_sig_pages(sig_page_list, customPages)
-                if not allPages and not addStamp:
-                    sig_page_str = ''
-                newFile = UploadedFiles(
-                    filePath=filepath,
-                    fileName=value[0].filename,
-                    sigPages=sig_page_str,
-                    user_id=current_user.id,
-                    judge_id=judge.id,
-                    message_id=message_id,
-                    sigBy=judgeFio)
-                db.session.add(newFile)
-        for attachment in attachments:
-            if attachment.filename:
-                file_extention = "." + attachment.filename.rsplit('.', 1)[-1]
-                filepath = os.path.join(config['file_storage'], str(uuid4()) + file_extention)
-                attachment.save(filepath)
-                newFile = UploadedFiles(
-                    filePath=filepath,
-                    fileName=attachment.filename,
-                    user_id=current_user.id,
-                    message_id=message_id)
-                db.session.add(newFile)
+        if files_data:
+            for key, value in files_data:
+                if key.startswith('file'):
+                    idx = key[4:]
+                    filepath = save_file(value[0])
+                    addStamp = True if request.form.get('addStamp'+idx) == 'on' else False
+                    allPages = True if request.form.get('allPages' + idx, default=False) == 'on' else False
+                    if allPages:
+                        sig_page_str = 'all'
+                    if addStamp and not allPages:
+                        sig_page_list = []
+                        lastPage = True if request.form.get('lastPage' + idx, default=False) == 'on' else False
+                        firstPage = True if request.form.get('firstPage' + idx, default=False) == 'on' else False
+                        customPages = request.form.get('customPages' + idx, default=False)
+                        if firstPage:
+                            sig_page_list.append(1)
+                        if lastPage:
+                            sig_page_list.append(-1)
+                        sig_page_str = generate_sig_pages(sig_page_list, customPages)
+                    if not allPages and not addStamp:
+                        sig_page_str = ''
+                    sigfile = [value for key, value in files_data if key == 'sig'+str(idx)][0]
+                    if sigfile:
+                        sigPath = filepath+'.sig'
+                        sigName = sigfile[0].filename
+                        sigfile[0].save(sigPath)
+                        sig_valid = check_sig(filepath, sigPath)
+                        if not sig_valid:
+                            db.session.rollback()
+                            return jsonify({'error': True, 'error_message': f'Прикрепленная к файлу {value[0].filename} подпись не прошла проверку, отправка отменена'})
+                    else:
+                        sigPath = None
+                        sigName = None
+                    try:
+                        newFile = UploadedFiles(
+                            filePath=filepath,
+                            fileName=value[0].filename,
+                            sigPages=sig_page_str,
+                            sigPath=sigPath,
+                            sigName=sigName,
+                            user_id=current_user.id,
+                            judge_id=judge.id,
+                            message_id=message_id,
+                            sigBy=judgeFio)
+                        db.session.add(newFile)
+                    except Exception as e:
+                        traceback.print_exc()
+                        error_message = f'Ошибка при сохранении файла {value[0].filename}, отправка отменена ({e})'
+                        db.session.rollback()
+                        return jsonify({'error': True, 'error_message': error_message})
+        if attachments:
+            for attachment in attachments:
+                try:
+                    filepath = save_file(attachment)
+                    newFile = UploadedFiles(
+                        filePath=filepath,
+                        fileName=attachment.filename,
+                        sigName='No_need',
+                        user_id=current_user.id,
+                        message_id=message_id)
+                    db.session.add(newFile)
+                except Exception as e:
+                    traceback.print_exc()
+                    error_message = f'Ошибка при сохранении файла {attachment.filename}, отправка отменена ({e})'
+                    db.session.rollback()
+                    return jsonify({'error': True, 'error_message': error_message})
         current_user.last_judge = judge.id
         db.session.commit()
-        flash('Файл(ы) отправлен(ы)', category='success')
-        return redirect('/')
-    except:
+        try:
+            message_files = UploadedFiles.query.filter_by(message_id=message_id).all()
+            all_files_signed = all(file.sigName for file in message_files)
+            if all_files_signed:
+                new_message = UploadedMessages.query.filter_by(id=message_id).first()
+                new_message.signed = True
+                export_signed_message(new_message)
+                db.session.commit()
+                flash('Сообщение успешно выведено к отправке.', category='success')
+                return jsonify({'success': True, 'redirect_url': url_for('views.home')})
+        except Exception as e:
+            traceback.print_exc()
+            error_message = f'Ошибка при отправке подписанного письма ({e}).'
+            db.session.rollback()
+            return jsonify({'error': True, 'error_message': error_message})
+        flash('Файл(ы) отправлен(ы) на подпись.', category='success')
+        return jsonify({'success': True, 'redirect_url': url_for('views.home')})
+    except Exception as e:
         db.session.rollback()
         traceback.print_exc()
-        flash('Ошибка создания сообщения', category='error')
-        return redirect('/')
+        error_message = f'Ошибка {e}'
+        return jsonify({'error': True, 'error_message': error_message})
     finally:
         db.session.close()
 

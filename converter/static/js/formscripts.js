@@ -85,6 +85,22 @@ $(document).ready(function () {
         label.append(deleteButton);
         label.append('<br>');
 
+
+        let labelSig = $('<label>', {
+            text: 'Выберите подпись, если файл подписан:'
+        });
+
+        let fileInputSig = $('<input>', {
+            class: 'btn btn-secondary',
+            type: 'file',
+            name: 'sig' + currentIndex,
+            id: 'formFileSignature' + currentIndex,
+            accept: '.sig'
+        });
+
+        labelSig.append('<br>').append(fileInputSig);
+
+
         let addStampCheckbox = $('<div>', {
             class: 'form-check'
         }).append($('<label>', {
@@ -152,6 +168,8 @@ $(document).ready(function () {
 
         newBlock.append('<br>')
             .append(label)
+            .append('<br>')
+            .append(labelSig)
             .append(addStampCheckbox)
             .append(stampOptions);
 
@@ -182,7 +200,7 @@ $(document).ready(function() {
                 // Обработка успешного ответа от сервера
                 $('#sendByEmail').prop('checked', true);
                 data.detectedAddresses.forEach(function(address) {
-                    // Создаем новый input
+                    // Создаем новый input для найденных в файле адресов
                     let emailInput = $('<input>', {
                         type: 'email',
                         class: 'form-control',
@@ -222,6 +240,49 @@ $(document).ready(function() {
             },
             error: function(error) {
                 console.log('Error:', error);
+            }
+        });
+    });
+});
+
+$(document).ready(function() {
+    $('#fileForm').submit(function(e) {
+        e.preventDefault();
+
+        // Проверка размера каждого файла перед отправкой
+        let totalSize = 0;
+        let formData = new FormData(this);
+
+        for (let pair of formData.entries()) {
+            if (pair[1] instanceof File) {
+                totalSize += pair[1].size;
+            }
+        }
+
+        if (totalSize > 25 * 1024 * 1024) {
+            alert('Ошибка: Превышен максимально допустимый размер файлов (25 МБ)');
+            return;
+        }
+
+        // Отправка формы через AJAX
+        $.ajax({
+            type: 'POST',
+            url: '/uploadMessage',
+            data: formData,
+            contentType: false,
+            cache: false,
+            processData: false,
+            success: function(response) {
+                if (response.error) {
+                    alert('Ошибка: ' + response.error_message);
+                } else {
+                    if (response.redirect_url) {
+                        window.location.href = response.redirect_url;
+                    }
+                }
+            },
+            error: function(error) {
+                console.log('Ошибка AJAX-запроса:', error);
             }
         });
     });

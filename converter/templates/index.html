@@ -7,7 +7,11 @@
         <!-- Блок с файлом на подпись -->
         <div class="signature-file-block" data-file-index="1">
             <label>Файл на подпись:<br>
-                <input class="btn btn-primary" type="file" name="file1" id="formFile1" accept=".pdf" required/><br>
+                <input class="btn btn-primary" type="file" name="file1" id="formFile1" accept=".pdf"/>
+            </label>
+            <br><!-- Новый input для файлов подписи для файлов на подпись -->
+            <label>Выберите подпись, если файл подписан:<br>
+                <input class="btn btn-secondary" type="file" name="sig1" id="formFileSignature1" accept=".sig"/>
             </label>
             <!-- Чекбокс и виджеты для добавления штампа -->
             <div class="form-check">
@@ -44,7 +48,7 @@
     </div>
 <br>
     <!-- Кнопка для добавления еще одного файла на подпись -->
-    <button class="btn btn-secondary addSignatureFileBtn" type="button">Добавить еще файл на подпись</button><br>
+    <button class="btn btn-primary addSignatureFileBtn" type="button">Добавить еще файл на подпись</button><br>
 
     <!-- Новый input для файлов, не требующих подписи -->
     <label style="padding-top: 1rem;">Файлы, не требующие подписи:<br>
