@@ -1,6 +1,17 @@
 {% extends 'layout.html' %}
 
 {% block content %}
+<br>
+<form method="GET" action="{{ url_for('views.outbox') }}" class="form-inline mb-2" style="margin-top: 10px;">
+  <div class="input-group">
+      <input type="text" name="search" class="form-control rounded-0" placeholder="Поиск по теме" value="{{ search_query }}">
+      <div class="input-group-append">
+          <button type="submit" class="btn btn-primary rounded-0">Искать</button>
+      </div>
+  </div>
+</form>
+
+
 <table class="table table-hover">
     <thead>
     <tr>
@@ -14,9 +25,9 @@
     </thead>
     <tbody>
      
-    {% if user.messages %}
+    {% if messages %}
     
-        {% for message in user.messages %}
+        {% for message in messages %}
             {% if message.signed %}
             <tr class="table-success">
             {% else %}
@@ -66,6 +77,32 @@
     
 </tbody>
 </table>
+
+<nav aria-label="Page navigation" class="d-flex justify-content-center">
+  <ul class="pagination">
+
+      <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('views.outbox', page=1, search=search_query) }}" tabindex="-1" aria-disabled="true">В начало</a>
+      </li>
+      <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('views.outbox', page=current_page-1 , search=search_query) }}" tabindex="-1" aria-disabled="true">Назад</a>
+      </li>
+
+      {% for page_num in range(start_index_pages, end_index_pages+1) %}
+          <li class="page-item {% if page_num == current_page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('views.outbox', page=page_num, search=search_query) }}">{{ page_num }}</a>
+          </li>
+      {% endfor %}
+
+      <li class="page-item {% if current_page + 1 > total_pages %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('views.outbox', page=current_page+1 , search=search_query) }}" tabindex="-1" aria-disabled="true">Вперед</a>
+      </li>
+      <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('views.outbox', page=total_pages , search=search_query) }}" tabindex="-1" aria-disabled="true">В конец</a>
+      </li>
+  </ul>
+</nav>
+
 
 <br><br><br>
 <table class="table table-hover">

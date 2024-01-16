@@ -31,7 +31,25 @@ def home():
 @views.route('/outbox', methods=['GET'])
 @login_required
 def outbox():
-    return render_template('outbox.html', title='Мои отправления', user=current_user, report_exists=report_exists)
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    search_query = request.args.get('search', '')
+    filtered_messages = [message for message in current_user.messages if search_query.lower() in message.mailSubject.lower()]
+    start_index = (page - 1) * per_page
+    end_index = start_index + per_page
+    paginated_messages = filtered_messages[start_index:end_index]
+    total_pages = (len(filtered_messages) + per_page - 1) // per_page
+    start_index_pages = page-3 if page-3 > 1 else 1
+    end_index_pages = page+3 if page+3 < total_pages else total_pages
+    return render_template('outbox.html', title='Мои отправления',
+                           user=current_user,
+                           messages=paginated_messages,
+                           report_exists=report_exists,
+                           search_query=search_query,
+                           total_pages=total_pages,
+                           current_page=page,
+                           start_index_pages=start_index_pages,
+                           end_index_pages=end_index_pages)
 
 
 @views.route('/get_report/<messageId>')
@@ -115,7 +133,10 @@ def set_file_signed(file_id):
 def upload_file():
     try:
         files_data = request.files.lists()
-        files_data = {key: value for key, value in files_data if value[0].filename and key != 'attachments'}
+        new_files_data = {}
+        for key, value in files_data:
+            if key != 'attachments' and value[0].filename:
+                new_files_data[key] = value[0]
         attachments = request.files.getlist('attachments')
         attachments = [attachment for attachment in attachments if attachment.filename]
         judgeFio = request.form.get('judge')
@@ -152,11 +173,11 @@ def upload_file():
             db.session.rollback()
             return jsonify({'error': True, 'error_message': error_message})
         message_id = new_message.id
-        if files_data:
-            for key, value in files_data:
+        if new_files_data:
+            for key, value in new_files_data.items():
                 if key.startswith('file'):
                     idx = key[4:]
-                    filepath = save_file(value[0])
+                    filepath = save_file(value)
                     addStamp = True if request.form.get('addStamp'+idx) == 'on' else False
                     allPages = True if request.form.get('allPages' + idx, default=False) == 'on' else False
                     if allPages:
@@ -173,22 +194,22 @@ def upload_file():
                         sig_page_str = generate_sig_pages(sig_page_list, customPages)
                     if not allPages and not addStamp:
                         sig_page_str = ''
-                    sigfile = [value for key, value in files_data if key == 'sig'+str(idx)][0]
+                    sigfile = [value for key, value in new_files_data.items() if key == 'sig'+str(idx)][0]
                     if sigfile:
                         sigPath = filepath+'.sig'
-                        sigName = sigfile[0].filename
-                        sigfile[0].save(sigPath)
+                        sigName = sigfile.filename
+                        sigfile.save(sigPath)
                         sig_valid = check_sig(filepath, sigPath)
                         if not sig_valid:
                             db.session.rollback()
-                            return jsonify({'error': True, 'error_message': f'Прикрепленная к файлу {value[0].filename} подпись не прошла проверку, отправка отменена'})
+                            return jsonify({'error': True, 'error_message': f'Прикрепленная к файлу {value.filename} подпись не прошла проверку, отправка отменена'})
                     else:
                         sigPath = None
                         sigName = None
                     try:
                         newFile = UploadedFiles(
                             filePath=filepath,
-                            fileName=value[0].filename,
+                            fileName=value.filename,
                             sigPages=sig_page_str,
                             sigPath=sigPath,
                             sigName=sigName,
@@ -199,7 +220,7 @@ def upload_file():
                         db.session.add(newFile)
                     except Exception as e:
                         traceback.print_exc()
-                        error_message = f'Ошибка при сохранении файла {value[0].filename}, отправка отменена ({e})'
+                        error_message = f'Ошибка при сохранении файла {value.filename}, отправка отменена ({e})'
                         db.session.rollback()
                         return jsonify({'error': True, 'error_message': error_message})
         if attachments:
