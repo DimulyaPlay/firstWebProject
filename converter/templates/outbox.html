@@ -2,7 +2,7 @@
 
 {% block content %}
 <br>
-<form method="GET" action="{{ url_for('views.outbox') }}" class="form-inline mb-2" style="margin-top: 10px;">
+<form method="GET" action="{{ url_for('views.outbox') }}" class="form-inline mb-2" style="margin-top: 10px;user-select: text;">
   <div class="input-group">
       <input type="text" name="search" class="form-control rounded-0" placeholder="Поиск по теме" value="{{ search_query }}">
       <div class="input-group-append">
@@ -57,7 +57,11 @@
             {% endif %}
 
             {% if report_exists(message.id) %}
-            <td><img src="static/img/report-icon.png" alt="Report"></td>
+            <td>
+              <a href="{{ url_for('views.get_report', message_id=message.id) }}" target="_blank">
+              <img src="static/img/report-icon.png" alt="Report" href="{{ url_for('views.get_report', message_id=message.id) }}">
+              </a>
+            </td>
             {% else %}
             <td><img src="static/img/no-report-icon.png" alt="No Report"></td>
             {% endif %}

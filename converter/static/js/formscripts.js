@@ -32,7 +32,7 @@ $('#addEmailBtn').on('click', function() {
     // Создаем новый label
     let emailLabel = $('<label>', {
         id: 'emailAdresses',
-        style: 'display: flex;'
+        style: 'display: flex;user-select: text;'
     });
 
     // Добавляем input и button внутрь label

@@ -40,7 +40,7 @@
 
                 <div class="form-group">
                     <label>Страницы по выбору:
-                    <input type="text" class="form-control" name="customPages1" placeholder="Введите номера страниц" style="width: 300px;">
+                    <input type="text" class="form-control" name="customPages1" placeholder="Введите номера страниц" style="width: 300px;user-select: text;">
                     </label>
                 </div>
             </div>
@@ -77,15 +77,15 @@
             </label>
         </div>
         <div id="emailSection" style="display: none;">
-            <label id="emailAdresses" style="display: flex;">
+            <label id="emailAdresses" style="display: flex;user-select: text;">
                 <input type="email" class="form-control" style="width: 500px; margin-bottom: 10px;" name="email" id="email" placeholder="Email">
             </label>
-            <input type="subject" class="form-control" style="width: 500px;margin-bottom: 10px;" name="subject" id="subject" placeholder="Тема письма">
-            <textarea class="form-control" style="width: 500px; margin-bottom: 10px;" rows="3" placeholder="Текст письма" name="body"></textarea>
+            <input type="subject" class="form-control" style="width: 500px;margin-bottom: 10px;user-select: text;" name="subject" id="subject" placeholder="Тема письма">
+            <textarea class="form-control" style="width: 500px; margin-bottom: 10px;user-select: text;" rows="3" placeholder="Текст письма" name="body"></textarea>
             <button class="btn btn-secondary" id="addEmailBtn" type="button">Добавить еще email</button><br>
         </div>
         <div class="pt-3 pb-3">
-        <button class="btn btn-primary" type="submit">Отправить на подпись</button><br>
+        <button class="btn btn-primary" type="submit">Отправить письмо</button><br>
         </div>
     </form>
 </div>

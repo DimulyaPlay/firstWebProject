@@ -8,6 +8,7 @@ from flask import Flask, request, render_template, url_for, redirect, send_file,
 from flask_login import current_user, login_user, logout_user, login_required
 from .models import Users, UploadedFiles, Judges, UploadedMessages
 from werkzeug.security import check_password_hash
+from sqlalchemy import desc
 import os
 from . import db
 from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_file
@@ -34,7 +35,11 @@ def outbox():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     search_query = request.args.get('search', '')
-    filtered_messages = [message for message in current_user.messages if search_query.lower() in message.mailSubject.lower()]
+    filtered_messages = (UploadedMessages.query
+                         .filter(UploadedMessages.user == current_user,
+                                 UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
+                         .order_by(desc(UploadedMessages.createDatetime))  # Сортировка по убыванию времени создания
+                         .all())
     start_index = (page - 1) * per_page
     end_index = start_index + per_page
     paginated_messages = filtered_messages[start_index:end_index]
@@ -50,16 +55,6 @@ def outbox():
                            current_page=page,
                            start_index_pages=start_index_pages,
                            end_index_pages=end_index_pages)
-
-
-@views.route('/get_report/<messageId>')
-@login_required
-def get_report(messageId):
-    report_filepath = os.path.join(config['reports_path'], f'{messageId}.pdf')
-    if os.path.exists(report_filepath):
-        return send_file(report_filepath, as_attachment=False)
-    else:
-        flash('Файл отчета не обнаружен', category='error')
 
 
 @views.route('/get_judge_filelist')
@@ -79,12 +74,13 @@ def get_judge_filelist():
         return jsonify({})
 
 
-@views.route('/download_file/<file_id>')
+@views.route('/get_report', methods=['GET'])
 @login_required
-def download_file(file_id):
-    file = UploadedFiles.query.get(file_id)
-    if file and file.filePath:
-        return send_file(file.filePath, as_attachment=True)
+def get_report():
+    idx = request.args.get('message_id', 1, type=int)
+    report_filepath = os.path.join(config['reports_path'], f'{idx}.pdf')
+    if os.path.exists(report_filepath):
+        return send_file(report_filepath, as_attachment=False)
     else:
         return jsonify({'error': 'File not found'})
 
@@ -158,6 +154,10 @@ def upload_file():
             error_message = 'Не выбрана ни один адрес отправки, отправка отменена'
             db.session.rollback()
             return jsonify({'error': True, 'error_message': error_message})
+        if not new_files_data and toRosreestr:
+            error_message = 'в Росреестр недопустима отправка сообщения без вложений'
+            db.session.rollback()
+            return jsonify({'error': True, 'error_message': error_message})
         try:
             new_message = UploadedMessages(toRosreestr=toRosreestr,
                                            sigBy=judge.fio,
@@ -169,7 +169,7 @@ def upload_file():
             db.session.commit()
         except Exception as e:
             traceback.print_exc()
-            error_message = f'Ошибка при создани письма, отправка отменена ({e})'
+            error_message = f'при создани письма, отправка отменена ({e})'
             db.session.rollback()
             return jsonify({'error': True, 'error_message': error_message})
         message_id = new_message.id
@@ -220,7 +220,7 @@ def upload_file():
                         db.session.add(newFile)
                     except Exception as e:
                         traceback.print_exc()
-                        error_message = f'Ошибка при сохранении файла {value.filename}, отправка отменена ({e})'
+                        error_message = f'при сохранении файла {value.filename}, отправка отменена ({e})'
                         db.session.rollback()
                         return jsonify({'error': True, 'error_message': error_message})
         if attachments:
@@ -236,7 +236,7 @@ def upload_file():
                     db.session.add(newFile)
                 except Exception as e:
                     traceback.print_exc()
-                    error_message = f'Ошибка при сохранении файла {attachment.filename}, отправка отменена ({e})'
+                    error_message = f'при сохранении файла {attachment.filename}, отправка отменена ({e})'
                     db.session.rollback()
                     return jsonify({'error': True, 'error_message': error_message})
         current_user.last_judge = judge.id
@@ -249,14 +249,14 @@ def upload_file():
                 new_message.signed = True
                 export_signed_message(new_message)
                 db.session.commit()
-                flash('Сообщение успешно выведено к отправке.', category='success')
+                flash('Сообщение успешно отправлено.', category='success')
                 return jsonify({'success': True, 'redirect_url': url_for('views.home')})
         except Exception as e:
             traceback.print_exc()
-            error_message = f'Ошибка при отправке подписанного письма ({e}).'
+            error_message = f'при экспорте готового письма ({e}).'
             db.session.rollback()
             return jsonify({'error': True, 'error_message': error_message})
-        flash('Файл(ы) отправлен(ы) на подпись.', category='success')
+        flash('Сообщение передано на подпись. После подписания будет отправлено.', category='success')
         return jsonify({'success': True, 'redirect_url': url_for('views.home')})
     except Exception as e:
         db.session.rollback()
