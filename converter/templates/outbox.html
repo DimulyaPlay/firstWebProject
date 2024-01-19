@@ -14,14 +14,15 @@
 
 <table class="table table-hover">
     <thead>
-    <tr>
-      <th scope="col">Тема отправления</th>
-      <th scope="col">Кому отправлено подпись</th>
-      <th scope="col">Подписано</th>
-      <th scope="col">В Росреестр</th>
-      <th scope="col">На эл. почту</th>
-      <th scope="col">Отчет об отправке</th>
-    </tr>
+      <tr style="text-align: center;">
+        <th scope="col" class="col-md-4 align-middle" style="text-align: left;">Тема отправления</th>
+        <th scope="col" class="col-md-2 align-middle">Подписант</th>
+        <th scope="col" class="col-md-2 align-middle">Время создания</th>
+        <th scope="col" class="col-md-1 align-middle">Росреестр</th>
+        <th scope="col" class="col-md-1 align-middle">Эл. почта</th>
+        <th scope="col" class="col-md-1 align-middle">Печать отчета</th>
+        <th scope="col" class="col-md-1 align-middle">Переслать</th>
+      </tr>
     </thead>
     <tbody>
      
@@ -29,20 +30,16 @@
     
         {% for message in messages %}
             {% if message.signed %}
-            <tr class="table-success">
+            <tr class="table-success" style="text-align: center;" data-toggle="modal" data-target="#myModal" data-message-id="{{ message.id }}">
             {% else %}
-            <tr class="table-warning">
+            <tr class="table-warning" style="text-align: center;" data-toggle="modal" data-target="#myModal" data-message-id="{{ message.id }}">
             {% endif %}
 
-            <th scope="row">{{ message.mailSubject }}</th>
+            <th scope="row" style="text-align: left;" data-bs-toggle="tooltip" data-bs-html="true" data-bs-original-title="{{ message.mailBody | replace('\n', '<br>')}}">{{ message.mailSubject }}</th>
 
             <td>{{ message.sigBy }}</td>
 
-            {% if message.signed %}
-            <td>Да</td>
-            {% else %}
-            <td>Нет</td>
-            {% endif %}
+            <td>{{ message.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>
 
             {% if message.toRosreestr %}
             <td><img src="static/img/rosreestr-icon.png" alt="Rosreestr"></td>
@@ -51,7 +48,7 @@
             {% endif %}
 
             {% if message.toEmails %}
-            <td><img src="static/img/email-icon.png" alt="Email"></td> 
+            <td><img src="static/img/email-icon.png" alt="Email" data-bs-toggle="tooltip" data-bs-html="true" data-bs-original-title="{{ message.toEmails | replace(';', '<br>') }}"></td> 
             {% else %}
             <td><img src="static/img/no-email-icon.png" alt="No Email"></td> 
             {% endif %}
@@ -59,13 +56,13 @@
             {% if report_exists(message.id) %}
             <td>
               <a href="{{ url_for('views.get_report', message_id=message.id) }}" target="_blank">
-              <img src="static/img/report-icon.png" alt="Report" href="{{ url_for('views.get_report', message_id=message.id) }}">
+                  <img src="static/img/report-icon.png" alt="Report">
               </a>
-            </td>
+            </td>          
             {% else %}
             <td><img src="static/img/no-report-icon.png" alt="No Report"></td>
             {% endif %}
-            </tr>
+            <td><img src="static/img/email-forward.png" style="text-align: center;" alt="Forward"></td>
         {% endfor %}
          
     {% else %}
@@ -75,6 +72,7 @@
         <td> </td>
         <td> </td>
         <td> </td>        
+        <td> </td>  
         <td> </td>  
     </tr> 
     {% endif %}
@@ -127,4 +125,5 @@
     </tr>
     </tbody>
   </table>
+
 {% endblock content %}

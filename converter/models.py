@@ -23,7 +23,6 @@ class UploadedMessages(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # ID
     createDatetime = db.Column(db.DateTime, default=datetime.utcnow)  # время создания письма
     signed = db.Column(db.Boolean, default=False)  # подписано ли
-    sended = db.Column(db.Boolean, default=False)  # отправлено ли
     sigBy = db.Column(db.String(120), default=None)  # Подписано кем ФИО
     toRosreestr = db.Column(db.Boolean)  # Флаг отправки в росреестр
     toEmails = db.Column(db.String(255))  # Адреса отправки на почту, '' = не отправлять
