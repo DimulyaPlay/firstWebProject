@@ -44,4 +44,4 @@ class UploadedFiles(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # связь файла с пользователем по ИД
     judge_id = db.Column(db.Integer, db.ForeignKey('judges.id'), default=None)  # связь файла с судьей по ИД
     message_id = db.Column(db.Integer, db.ForeignKey('uploaded_messages.id'))  # внешний ключ для UploadedMessages.id
-    message = db.relationship('UploadedMessages', backref='file', lazy=True)
+    message = db.relationship('UploadedMessages', backref='files', lazy=True)

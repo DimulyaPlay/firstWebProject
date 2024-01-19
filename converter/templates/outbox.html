@@ -16,6 +16,7 @@
     <thead>
       <tr style="text-align: center;">
         <th scope="col" class="col-md-4 align-middle" style="text-align: left;">Тема отправления</th>
+        <th scope="col" class="col-md-2 align-middle">Вложений</th>
         <th scope="col" class="col-md-2 align-middle">Подписант</th>
         <th scope="col" class="col-md-2 align-middle">Время создания</th>
         <th scope="col" class="col-md-1 align-middle">Росреестр</th>
@@ -36,6 +37,14 @@
             {% endif %}
 
             <th scope="row" style="text-align: left;" data-bs-toggle="tooltip" data-bs-html="true" data-bs-original-title="{{ message.mailBody | replace('\n', '<br>')}}">{{ message.mailSubject }}</th>
+
+            {% if message.files %}
+            <td data-bs-toggle="tooltip" data-bs-html="true" data-bs-original-title="{% for file in message.files %}{{ file.fileName }}<br>{% endfor %}">
+                {{ message.files | length }}
+            </td>
+            {% else %}
+            <td>0</td>
+            {% endif %}
 
             <td>{{ message.sigBy }}</td>
 
