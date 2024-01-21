@@ -1,6 +1,5 @@
 import traceback
 from flask import Blueprint, render_template, request, flash, redirect, url_for
-from email_validator import validate_email
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import Users
 from . import db

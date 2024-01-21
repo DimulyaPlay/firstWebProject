@@ -1,12 +1,13 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from sqlalchemy import text
 import os, sys
 
 db = SQLAlchemy()
 basedir = os.path.abspath(os.path.dirname(__file__))
 database_path = os.path.join(basedir, 'instance', 'database.db')
+if not os.path.exists(os.path.join(basedir, 'instance')):
+    os.mkdir(os.path.join(basedir, 'instance'))
 
 
 def create_app():

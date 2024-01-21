@@ -1,18 +1,13 @@
-import random
-import sys
-import time
-import datetime
 import traceback
 from .auth import login
-from flask import Flask, request, render_template, url_for, redirect, send_file, jsonify, Blueprint, flash
-from flask_login import current_user, login_user, logout_user, login_required
-from .models import Users, UploadedFiles, Judges, UploadedMessages
-from werkzeug.security import check_password_hash
+from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash
+from flask_login import current_user, login_required
+from .models import UploadedFiles, UploadedMessages, Users
 from sqlalchemy import desc
 import os
 from . import db
 from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_file
-import base64
+from email_validator import validate_email
 
 views = Blueprint('views', __name__)
 
@@ -23,10 +18,32 @@ def home():
     if request.method == 'POST':
         login()
     if current_user.is_authenticated:
-        judges = Judges.query.all()
-        return render_template('index.html', title='Главная страница', user=current_user, judges=judges)
+        judges = Users.query.filter_by(is_judge=True)
+        return render_template('index.html', title='Отправить письмо', user=current_user, judges=judges)
     else:
-        return render_template('login.html', title='Главная страница', user=current_user)
+        return render_template('login.html', title='Войти', user=current_user)
+
+
+@views.route('/judge', methods=['GET'])
+@login_required
+def judge_cabinet():
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    filtered_files = (UploadedFiles.query
+                         .filter(UploadedFiles.sigBy == current_user.fio)
+                         .order_by(desc(UploadedFiles.createDatetime)).all())
+    start_index = (page - 1) * per_page
+    end_index = start_index + per_page
+    paginated_files = filtered_files[start_index:end_index]
+    total_pages = (len(filtered_files) + per_page - 1) // per_page
+    start_index_pages = page - 3 if page - 3 > 1 else 1
+    end_index_pages = page + 3 if page + 3 < total_pages else total_pages
+    return render_template('judgecabinet.html', title='Кабинет судьи', user=current_user,
+                           files=paginated_files,
+                           total_pages=total_pages,
+                           current_page=page,
+                           start_index_pages=start_index_pages,
+                           end_index_pages=end_index_pages)
 
 
 @views.route('/outbox', methods=['GET'])
@@ -136,11 +153,11 @@ def upload_file():
         attachments = request.files.getlist('attachments')
         attachments = [attachment for attachment in attachments if attachment.filename]
         judgeFio = request.form.get('judge')
-        judge = Judges.query.filter_by(fio=judgeFio).first()
+        judge = Users.query.filter_by(fio=judgeFio).first()
         toRosreestr = True if request.form.get('sendToRosreestr') == 'on' else False
         toEmails = True if request.form.get('sendByEmail') == 'on' else None
         if toEmails:
-            emails = '; '.join(request.form.getlist('email'))
+            emails = '; '.join([email for email in request.form.getlist('email') if validate_email(email)])
             toEmails = emails if emails else None
         else:
             toEmails = None
@@ -180,8 +197,7 @@ def upload_file():
                     filepath = save_file(value)
                     addStamp = True if request.form.get('addStamp'+idx) == 'on' else False
                     allPages = True if request.form.get('allPages' + idx, default=False) == 'on' else False
-                    if allPages:
-                        sig_page_str = 'all'
+                    sig_page_str = ''
                     if addStamp and not allPages:
                         sig_page_list = []
                         lastPage = True if request.form.get('lastPage' + idx, default=False) == 'on' else False
@@ -192,7 +208,9 @@ def upload_file():
                         if lastPage:
                             sig_page_list.append(-1)
                         sig_page_str = generate_sig_pages(sig_page_list, customPages)
-                    if not allPages and not addStamp:
+                    if allPages:
+                        sig_page_str = 'all'
+                    if not addStamp:
                         sig_page_str = ''
                     sigfile = [value for key, value in new_files_data.items() if key == 'sig'+str(idx)][0]
                     if sigfile:
@@ -214,9 +232,8 @@ def upload_file():
                             sigPath=sigPath,
                             sigName=sigName,
                             user_id=current_user.id,
-                            judge_id=judge.id,
                             message_id=message_id,
-                            sigBy=judgeFio)
+                            sigBy=judge.id)
                         db.session.add(newFile)
                     except Exception as e:
                         traceback.print_exc()
@@ -269,7 +286,7 @@ def upload_file():
 
 @views.route('/analyzeFile', methods=['POST'])
 @login_required
-def analyzeFile():
+def analyze_file():
     file = request.files['file']
     detected_addresses = analyze_file(file)
     if detected_addresses:

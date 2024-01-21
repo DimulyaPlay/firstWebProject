@@ -1,4 +1,6 @@
-import os, sys, json, re
+import os
+import sys
+import re
 from PyPDF2 import PdfReader
 import subprocess
 from .models import UploadedFiles
@@ -6,7 +8,7 @@ import zipfile
 import json
 from datetime import datetime
 from uuid import uuid4
-
+import traceback
 
 config_path = os.path.dirname(sys.argv[0])
 if not os.path.exists(config_path):
@@ -14,7 +16,7 @@ if not os.path.exists(config_path):
 config_file = os.path.join(config_path, 'config.json')
 
 
-def read_create_config(config_file):
+def read_create_config(config_filepath):
     default_configuration = {
         "sig_check": True,
         "csp_path": r"C:\Program Files\Crypto Pro\CSP",
@@ -22,31 +24,31 @@ def read_create_config(config_file):
         "file_export_folder": r"C:\fileStorage\Export",
         "reports_path": r"C:\fileStorage\Reports"
     }
-    if os.path.exists(config_file):
+    if os.path.exists(config_filepath):
         try:
-            with open(config_file, 'r') as configfile:
-                config = json.load(configfile)
+            with open(config_filepath, 'r') as configfile:
+                cfg = json.load(configfile)
         except Exception as e:
             print(e)
-            os.remove(config_file)
-            config = default_configuration
-            with open(config_file, 'w') as configfile:
-                json.dump(config, configfile)
+            os.remove(config_filepath)
+            cfg = default_configuration
+            with open(config_filepath, 'w') as configfile:
+                json.dump(cfg, configfile)
     else:
-        config = default_configuration
-        with open(config_file, 'w') as configfile:
-            json.dump(config, configfile)
-    return config
+        cfg = default_configuration
+        with open(config_filepath, 'w') as configfile:
+            json.dump(cfg, configfile)
+    return cfg
 
 
 config = read_create_config(config_file)
 
 
-def save_config(config):
+def save_config():
     try:
+        global config
         with open(config_file, 'w') as json_file:
             json.dump(config, json_file)
-        config = read_create_config(config_file)
     except:
         traceback.print_exc()
 
@@ -163,8 +165,8 @@ def export_signed_message(message):
     return zip_filename
 
 
-def report_exists(messageId):
-    report_filepath = os.path.join(config['reports_path'], f'{messageId}.pdf')
+def report_exists(message_id):
+    report_filepath = os.path.join(config['reports_path'], f'{message_id}.pdf')
     return os.path.exists(report_filepath)
 
 

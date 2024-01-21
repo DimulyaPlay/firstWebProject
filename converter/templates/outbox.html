@@ -92,7 +92,7 @@
 <nav aria-label="Page navigation" class="d-flex justify-content-center">
   <ul class="pagination">
 
-      <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+      <li class="page-item {% if total_pages == 0 %}disabled{% endif %}">
         <a class="page-link" href="{{ url_for('views.outbox', page=1, search=search_query) }}" tabindex="-1" aria-disabled="true">В начало</a>
       </li>
       <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
@@ -108,7 +108,7 @@
       <li class="page-item {% if current_page + 1 > total_pages %}disabled{% endif %}">
         <a class="page-link" href="{{ url_for('views.outbox', page=current_page+1 , search=search_query) }}" tabindex="-1" aria-disabled="true">Вперед</a>
       </li>
-      <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+      <li class="page-item {% if total_pages == 0 %}disabled{% endif %}">
         <a class="page-link" href="{{ url_for('views.outbox', page=total_pages , search=search_query) }}" tabindex="-1" aria-disabled="true">В конец</a>
       </li>
   </ul>
