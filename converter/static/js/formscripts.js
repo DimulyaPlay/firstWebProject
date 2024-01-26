@@ -292,12 +292,4 @@ $(document).ready(function(){
     $('[data-bs-toggle="tooltip"]').tooltip();
 });
 
-cadesplugin.set_log_level(cadesplugin.LOG_LEVEL_DEBUG)
-
-
-window.onload = function(){
-var oStore =  cadesplugin.CreateObject("CAdESCOM.Store");
-var oSigner =  cadesplugin.CreateObject("CAdESCOM.CPSigner");
-var oPrivateKey =  cadesplugin.CreateObject("X509Enrollment.CX509PrivateKey");
-};
 
