@@ -326,30 +326,33 @@ $(document).ready(function () {
 
     $('.btn-sign-file').click(function() {
         const fileId = $(this).data('fileId');
+        const selectedCert = $('#certificateSelector').val();
+        // Запрос файла для подписания с главного сервера
         $.ajax({
-            url: '/get_file_for_signing/' + fileId,  // URL для получения файла
+            url: '/get_file?file_id=' + fileId,
             type: 'GET',
-            success: function(data) {
-                // Перенаправляем файл на локальный сервер для подписи
+            headers: {
+                'Selected-Certificate': selectedCert // Добавляем выбранный сертификат в заголовки запроса
+            },
+            xhrFields: {
+                responseType: 'blob'  // Важно для получения файла в виде Blob
+            },
+            success: function(blob) {
+                let formData = new FormData();
+                formData.append('file', blob, 'document.pdf');
+    
+                // Отправка файла на локальный сервер для подписания
                 fetch('http://localhost:4999/sign_file', {
                     method: 'POST',
-                    body: data  // Отправляем файл для подписи
+                    body: formData
                 })
                 .then(response => response.blob())
-                .then(signature => {
-                    // Отправляем подписанный файл обратно на сервер
-                    const formData = new FormData();
-                    formData.append('fileId', fileId);
-                    formData.append('signature', signature);
-    
-                    fetch('/upload_signature', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        alert(result.message); // Сообщение об успехе или ошибке
-                    });
+                .then(zipBlob => {
+                    // Отправка ZIP-архива обратно на главный сервер
+                    uploadSignedFile(fileId, zipBlob);
+                })
+                .catch(error => {
+                    console.error('Ошибка при подписании файла:', error);
                 });
             },
             error: function() {
@@ -357,6 +360,24 @@ $(document).ready(function () {
             }
         });
     });
+    
+    function uploadSignedFile(fileId, zipBlob) {
+        let formData = new FormData();
+        formData.append('fileId', fileId);
+        formData.append('file', zipBlob, 'signed_files.zip');
+    
+        fetch('/upload_signed_file', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);  // Сообщение об успехе или ошибке
+        })
+        .catch(error => {
+            console.error('Ошибка при отправке подписанных файлов:', error);
+        });
+    }
 
     $('#fileForm').submit(function(e) {
         e.preventDefault();

@@ -163,10 +163,32 @@ def get_report():
         return jsonify({'error': 'File not found'})
 
 
-@views.route('/set_file_signed/<file_id>', methods=['POST'])
+@views.route('/get_file', methods=['GET'])
 @login_required
-def set_file_signed(file_id):
+def get_file():
+    idx = request.args.get('file_id', 1, type=int)
+    file_obj = UploadedFiles.query.get(idx)
+    if file_obj:
+        file_path = file_obj.filePath
+        sig_pages = file_obj.sigPages
+        response = make_response(send_file(file_path, as_attachment=False))
+        response.headers['Sig-Pages'] = sig_pages  # Добавляем информацию о страницах в заголовки
+        return response
+    else:
+        return jsonify({'error': 'File not found'})
+
+
+@views.route('/upload_signed_file', methods=['POST'])
+@login_required
+def upload_signed_file():
     try:
+        file_id = request.form['fileId']
+        zip_file = request.files['file']
+        zip_path = 'path_to_save_zip_file.zip'
+        zip_file.save(zip_path)
+        with zipfile.ZipFile(zip_path, 'r') as zipf:
+            zipf.extractall('path_to_extract_files')
+
         file = UploadedFiles.query.filter_by(id=file_id).first()
         file_path = file.filePath
         sig_path = file.filePath+'.sig'
