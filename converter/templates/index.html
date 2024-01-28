@@ -56,7 +56,7 @@
     </label>
     <div class="form-group" style="width: 500px;">
         <label for="judgeComboBox">Выберите подписанта:</label>
-        <select class="form-control" name="judge" id="judgeComboBox" required>
+        <select class="form-select" name="judge" id="judgeComboBox" required>
             {% for judge in judges %}
             <option value="{{ judge.fio }}" {% if user.last_judge|string == judge.id|string %}selected{% endif %}>
                 {{ judge.fio }}
