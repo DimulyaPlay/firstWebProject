@@ -1,12 +1,12 @@
 import traceback
 from .auth import login
-from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash
+from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash, redirect
 from flask_login import current_user, login_required
 from .models import UploadedFiles, UploadedMessages, Users
 from sqlalchemy import desc
 import os
 from . import db
-from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_file
+from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_file, save_config, read_create_config
 from email_validator import validate_email
 
 views = Blueprint('views', __name__)
@@ -44,6 +44,67 @@ def judge_cabinet():
                            current_page=page,
                            start_index_pages=start_index_pages,
                            end_index_pages=end_index_pages)
+
+
+@views.route('/admin', methods=['GET'])
+@login_required
+def adminpanel():
+    return render_template('adminpanel.html', user=current_user)
+
+
+@views.route('/adminpanel/system', methods=['GET', 'POST'])
+@login_required
+def adminpanel_system():
+    global config
+    if request.method == 'GET':
+        return render_template('adminpanel_system.html',
+                               user=current_user,
+                               default_configuration=config)
+    if request.method == 'POST':
+        try:
+            sig_check = request.form.get('sig_check') == 'on'  # Преобразование в boolean
+            csp_path = request.form.get('csp_path', '')
+            file_storage = request.form.get('file_storage', '')
+            file_export_folder = request.form.get('file_export_folder', '')
+            reports_path = request.form.get('reports_path', '')
+            config['sig_check'] = sig_check
+            config['csp_path'] = csp_path
+            config['file_storage'] = file_storage
+            config['file_export_folder'] = file_export_folder
+            config['reports_path'] = reports_path
+            save_config()
+            flash('Параметры успешно сохранены', category='success')
+        except:
+            config = read_create_config()
+            traceback.print_exc()
+            flash('Параметры не были сохранены', category='error')
+        return redirect(url_for('views.adminpanel_system'))
+
+
+@views.route('/adminpanel/users', methods=['GET', 'POST'])
+@login_required
+def adminpanel_users():
+    global config
+    if request.method == 'GET':
+        users_table = Users.query.filter_by().all()
+        return render_template('adminpanel_users.html',
+                               user=current_user,
+                               default_configuration=config,
+                               users_table=users_table)
+    if request.method == 'POST':
+        try:
+            data = request.json
+            for user_id, user_data in data.items():
+                user = Users.query.get(user_id)
+                if user:
+                    user.is_judge = user_data.get('judge', user.is_judge)
+                    user.fio = user_data.get('fio', user.fio)
+                    user.first_name = user_data.get('first_name', user.first_name)
+                    db.session.commit()
+            return jsonify({'success': True, 'message': 'Параметры успешно сохранены'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': 'Параметры не были сохранены: ' + str(e)})
 
 
 @views.route('/outbox', methods=['GET'])

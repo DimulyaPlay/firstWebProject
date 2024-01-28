@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div style="margin-top: 50px;">
+    <h2>Настройки системы</h2>
+    <form id="settings-form" method="POST">
+        <!-- Поле для sig_check -->
+        <div class="form-group" style="padding-top: 0.5rem;">
+            <input type="checkbox" class="form-check-input" id="sig_check" name="sig_check" {% if default_configuration.sig_check %}checked{% endif %}>
+            <label for="sig_check">Проверка подписи с помощью КриптоПро. Прикрепяемый sig файл должен будет пройти проверку, иначе результат не будет сохранен.</label>
+        </div>
+        <div class="form-group" style="padding-top: 0.5rem;">
+            <label for="csp_path">Путь к Crypto Pro CSP:</label>
+            <input type="text" class="form-control" id="csp_path" name="csp_path" value="{{ default_configuration.csp_path }}">
+        </div>
+        <div class="form-group" style="padding-top: 0.5rem;">
+            <label for="file_storage">Путь к хранилищу файлов, сюда сохраняются все файлы пользователей включая подписи. Хранятся с названиями в формате uuid4.</label>
+            <input type="text" class="form-control" id="file_storage" name="file_storage" value="{{ default_configuration.file_storage }}">
+        </div>
+        <div class="form-group" style="padding-top: 0.5rem;">
+            <label for="file_export_folder">Путь для экспорта файлов, сюда выводятся пакеты для отправки с помощью OutlookAutosender. Один пакет - одно сообщение.</label>
+            <input type="text" class="form-control" id="file_export_folder" name="file_export_folder" value="{{ default_configuration.file_export_folder }}">
+        </div>
+        <div class="form-group" style="padding-top: 0.5rem;">
+            <label for="reports_path">Путь для отчетов, отсюда будут браться отчеты об отправке сообщения. Имя файла должно быть в виде "ИД сообщения.pdf". <br>OutlookAutosender выводит такие файлы после отправки в заданную в нем папку:</label>
+            <input type="text" class="form-control" id="reports_path" name="reports_path" value="{{ default_configuration.reports_path }}">
+        </div>
+        <br>
+        <button type="submit" class="btn btn-primary" >Сохранить настройки системы</button>
+    </form>
+</div>
+
+
+{% endblock content %}

@@ -1,5 +1,5 @@
 import traceback
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import Users
 from . import db
@@ -71,3 +71,35 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('views.home'))
+
+
+@auth.route('/change-password', methods=['POST'])
+@login_required
+def change_password():
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        new_password = data.get('newPassword')
+        confirm_password = data.get('confirmPassword')
+
+        # Проверка на существование данных
+        if not all([user_id, new_password, confirm_password]):
+            return jsonify({'success': False, 'message': 'Не все поля заполнены.'})
+
+        # Проверка совпадения паролей
+        if new_password != confirm_password:
+            return jsonify({'success': False, 'message': 'Пароли не совпадают.'})
+
+        # Найти пользователя по ID
+        user = Users.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'Пользователь не найден.'})
+
+        # Обновление пароля
+        user.password = generate_password_hash(new_password)
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Пароль успешно изменен.'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': e})

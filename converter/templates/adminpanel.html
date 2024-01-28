@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div style="margin-top: 50px;">
+    <h2>Панель управления</h2>
+    <br>
+    <a href="{{ url_for('views.adminpanel_system') }}" class="btn btn-primary btn-lg">Настройки системы</a>
+    <br><br>
+    <a href="{{ url_for('views.adminpanel_users') }}" class="btn btn-primary btn-lg">Управление пользователями</a>
+</div>
+{% endblock content %}

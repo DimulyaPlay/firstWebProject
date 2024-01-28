@@ -1,54 +1,93 @@
-$('#sendByEmail').on('change', function() {
-    let emailSection = $('#emailSection');
-    if (this.checked) {
-        emailSection.show();
-    } else {
-        emailSection.hide();
-    }
-});
-
-$('#addEmailBtn').on('click', function() {
-    // Создаем новый input
-    let emailInput = $('<input>', {
-        type: 'email',
-        class: 'form-control',
-        style: 'width: 500px; margin-bottom: 10px;',
-        name: 'email',
-        placeholder: 'Email'
-    });
-
-    // Создаем новую кнопку
-    let removeButton = $('<button>', {
-        class: 'btn btn-danger',
-        id: 'removeEmail',
-        type: 'button',
-        style: 'margin-left: 10px; margin-bottom: 10px;',
-        text: 'X',
-        click: function () {
-            $(this).closest('label').remove();
+$(document).ready(function () {
+    $('#sendByEmail').on('change', function() {
+        let emailSection = $('#emailSection');
+        if (this.checked) {
+            emailSection.show();
+        } else {
+            emailSection.hide();
         }
     });
-
-    // Создаем новый label
-    let emailLabel = $('<label>', {
-        id: 'emailAdresses',
-        style: 'display: flex;user-select: text;'
+    
+    $('#addEmailBtn').on('click', function() {
+        // Создаем новый input
+        let emailInput = $('<input>', {
+            type: 'email',
+            class: 'form-control',
+            style: 'width: 500px; margin-bottom: 10px;',
+            name: 'email',
+            placeholder: 'Email'
+        });
+    
+        // Создаем новую кнопку
+        let removeButton = $('<button>', {
+            class: 'btn btn-danger',
+            id: 'removeEmail',
+            type: 'button',
+            style: 'margin-left: 10px; margin-bottom: 10px;',
+            text: 'X',
+            click: function () {
+                $(this).closest('label').remove();
+            }
+        });
+    
+        // Создаем новый label
+        let emailLabel = $('<label>', {
+            id: 'emailAdresses',
+            style: 'display: flex;user-select: text;'
+        });
+    
+        // Добавляем input и button внутрь label
+        emailLabel.append(emailInput);
+        emailLabel.append(removeButton);
+    
+        // Вставляем новый label перед элементом с id "subject"
+        emailLabel.insertBefore($("#subject"));
+    });
+    
+    $('#addStamp1').on('change', function() {
+        let stampOptions = $('#stampOptions');
+        this.checked ? stampOptions.show() : stampOptions.hide();
     });
 
-    // Добавляем input и button внутрь label
-    emailLabel.append(emailInput);
-    emailLabel.append(removeButton);
 
-    // Вставляем новый label перед элементом с id "subject"
-    emailLabel.insertBefore($("#subject"));
-});
+    $('#saveUserSettings').click(function() {
+        var userSettings = {};
+        $('[name^="is_judge_"], [name^="fio_"], [name^="first_name_"]').each(function() {
+            var $input = $(this);
+            var splitName = $input.attr('name').split('_');
+            var userId = splitName[splitName.length - 1];
+            var fieldName = splitName[0];
+    
+            if (!userSettings[userId]) {
+                userSettings[userId] = {};
+            }
+    
+            if ($input.is(':checkbox')) {
+                userSettings[userId]['judge'] = $input.is(':checked');
+            } else {
+                userSettings[userId][fieldName] = $input.val();
+            }
+        });
+        $.ajax({
+            url: '/adminpanel/users',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(userSettings),
+            success: function(data) {
+                if (data.success) {
+                    alert(data.message); // или обработать сообщение другим способом
+                    window.location.reload(); // Перезагрузка страницы
+                } else {
+                    alert(data.message); // или отобразить сообщение об ошибке
+                }
+            },
+            error: function() {
+                alert('Произошла ошибка при отправке запроса.');
+            }
+        });
+    });
 
-$('#addStamp1').on('change', function() {
-    let stampOptions = $('#stampOptions');
-    this.checked ? stampOptions.show() : stampOptions.hide();
-});
 
-$(document).ready(function () {
     $('.addSignatureFileBtn').on('click', function () {
         let container = $('#signatureFilesContainer');
         let currentIndex = container.children('.signature-file-block').length + 1;
@@ -181,10 +220,7 @@ $(document).ready(function () {
             stampOptions.css('display', this.checked ? 'block' : 'none');
         });
     });
-});
 
-$(document).ready(function() {
-    // Обработчик изменения файла
     $('#signatureFilesContainer').on('change', '[id^="formFile"]', function () {
         // Создаем объект формы и добавляем файл
         let formData = new FormData();
@@ -243,9 +279,85 @@ $(document).ready(function() {
             }
         });
     });
-});
 
-$(document).ready(function() {
+
+    $('.change-password-button').click(function() {
+        var userId = $(this).data('userId');
+        var modal = $('#changePasswordModal');
+        modal.data('userId', userId);
+    });
+
+    $('.modal').on('hidden.bs.modal', function() {
+        $(this).find('input[type="password"]').val('');
+    });
+
+    function handleCloseModalAndAlert(modal, message, isSuccess) {
+        alert(message);
+        if (isSuccess) {
+            modal.modal('hide');
+        }
+    }
+
+    $('.save-password-btn').click(function() {
+        var modal = $('#changePasswordModal');
+        var userId = modal.data('userId');
+        var newPassword = $('#new_password').val();
+        var confirmPassword = $('#confirm_password').val();
+
+        $.ajax({
+            url: '/change-password',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                userId: userId,
+                newPassword: newPassword,
+                confirmPassword: confirmPassword
+            }),
+            success: function(data) {
+                handleCloseModalAndAlert(modal, data.message, data.success);
+            },
+            error: function() {
+                alert('Произошла ошибка при отправке запроса.');
+            }
+        });
+    });
+
+    $('[data-bs-toggle="tooltip"]').tooltip();
+
+    $('.btn-sign-file').click(function() {
+        const fileId = $(this).data('fileId');
+        $.ajax({
+            url: '/get_file_for_signing/' + fileId,  // URL для получения файла
+            type: 'GET',
+            success: function(data) {
+                // Перенаправляем файл на локальный сервер для подписи
+                fetch('http://localhost:4999/sign_file', {
+                    method: 'POST',
+                    body: data  // Отправляем файл для подписи
+                })
+                .then(response => response.blob())
+                .then(signature => {
+                    // Отправляем подписанный файл обратно на сервер
+                    const formData = new FormData();
+                    formData.append('fileId', fileId);
+                    formData.append('signature', signature);
+    
+                    fetch('/upload_signature', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        alert(result.message); // Сообщение об успехе или ошибке
+                    });
+                });
+            },
+            error: function() {
+                alert('Ошибка при получении файла для подписания');
+            }
+        });
+    });
+
     $('#fileForm').submit(function(e) {
         e.preventDefault();
 
@@ -287,9 +399,3 @@ $(document).ready(function() {
         });
     });
 });
-
-$(document).ready(function(){
-    $('[data-bs-toggle="tooltip"]').tooltip();
-});
-
-

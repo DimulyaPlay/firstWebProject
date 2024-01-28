@@ -16,7 +16,7 @@ if not os.path.exists(config_path):
 config_file = os.path.join(config_path, 'config.json')
 
 
-def read_create_config(config_filepath):
+def read_create_config(config_filepath=config_file):
     default_configuration = {
         "sig_check": True,
         "csp_path": r"C:\Program Files\Crypto Pro\CSP",
