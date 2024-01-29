@@ -32,6 +32,7 @@ class UploadedFiles(db.Model):
     createDatetime = db.Column(db.DateTime, default=datetime.utcnow)  # Время загрузки документа
     filePath = db.Column(db.String(255), unique=True, nullable=False)  # Путь к сохраненному файлу
     fileName = db.Column(db.String(255), nullable=False)  # Название файла
+    fileType = db.Column(db.String(50))  # Расширение файла
     sigPages = db.Column(db.String(120), default=None)  # Предложенные страницы для размещения штампа
     sigPath = db.Column(db.String(255), unique=True, default=None)  # Путь к сохраненной подписи
     sigName = db.Column(db.String(255), default=None)  # Название файла подписи

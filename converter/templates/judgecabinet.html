@@ -40,7 +40,7 @@
                 <img src="static/img/email-icon.png" alt="OpenLetter" data-toggle="modal" data-target="#myModal" data-message-id="{{ file.message_id }}">
             </td>   
 
-            <td><button class="btn btn-primary">Подписать Файл</button></td>
+            <td><button class="btn btn-primary btn-sign-file" data-file-id="{{ file.id }}">Подписать Файл</button></td>
         {% endfor %}
          
     {% else %}

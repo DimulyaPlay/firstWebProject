@@ -81,6 +81,14 @@ def analyze_text(text):
         return []
 
 
+def process_emails(request_form):
+    toEmails = True if request_form.get('sendByEmail') == 'on' else None
+    if toEmails:
+        emails = '; '.join([email for email in request_form.getlist('email') if validate_email(email)])
+        return emails if emails else None
+    return None
+
+
 def generate_sig_pages(current_list, custom_string):
     print(current_list, custom_string)
     input_pagelist = get_sorted_pages(custom_string)

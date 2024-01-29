@@ -1,13 +1,14 @@
 import traceback
 from .auth import login
-from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash, redirect
+from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash, redirect, make_response
 from flask_login import current_user, login_required
 from .models import UploadedFiles, UploadedMessages, Users
 from sqlalchemy import desc
 import os
 from . import db
-from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_file, save_config, read_create_config
+from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_file, save_config, read_create_config, process_emails
 from email_validator import validate_email
+import zipfile
 
 views = Blueprint('views', __name__)
 
@@ -30,7 +31,7 @@ def judge_cabinet():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     filtered_files = (UploadedFiles.query
-                         .filter(UploadedFiles.sigBy == current_user.fio)
+                         .filter(UploadedFiles.sigBy == current_user.id)
                          .order_by(desc(UploadedFiles.createDatetime)).all())
     start_index = (page - 1) * per_page
     end_index = start_index + per_page
@@ -135,23 +136,6 @@ def outbox():
                            end_index_pages=end_index_pages)
 
 
-@views.route('/get_judge_filelist')
-@login_required
-def get_judge_filelist():
-    judge_id = current_user.judge_id
-    files = UploadedFiles.query.filter_by(judge_id=judge_id, sigPath=None).all()
-    files_data = {}
-    if files:
-        for f in files:
-            files_data[f.id] = {'id': f.id,
-                                'fileName': f.fileName,
-                                'sigPages': f.sigPages
-                                }
-        return jsonify(files_data)
-    else:
-        return jsonify({})
-
-
 @views.route('/get_report', methods=['GET'])
 @login_required
 def get_report():
@@ -169,10 +153,9 @@ def get_file():
     idx = request.args.get('file_id', 1, type=int)
     file_obj = UploadedFiles.query.get(idx)
     if file_obj:
-        file_path = file_obj.filePath
-        sig_pages = file_obj.sigPages
-        response = make_response(send_file(file_path, as_attachment=False))
-        response.headers['Sig-Pages'] = sig_pages  # Добавляем информацию о страницах в заголовки
+        response = make_response(send_file(file_obj.filePath, as_attachment=False, download_name=file_obj.fileName))
+        response.headers['Sig-Pages'] = file_obj.sigPages
+        response.headers['File-Type'] = file_obj.fileType
         return response
     else:
         return jsonify({'error': 'File not found'})
@@ -186,6 +169,7 @@ def upload_signed_file():
         zip_file = request.files['file']
         zip_path = 'path_to_save_zip_file.zip'
         zip_file.save(zip_path)
+        return jsonify({'success':True, 'message':'Файл получен'})
         with zipfile.ZipFile(zip_path, 'r') as zipf:
             zipf.extractall('path_to_extract_files')
 
@@ -238,12 +222,7 @@ def upload_file():
         judgeFio = request.form.get('judge')
         judge = Users.query.filter_by(fio=judgeFio).first()
         toRosreestr = True if request.form.get('sendToRosreestr') == 'on' else False
-        toEmails = True if request.form.get('sendByEmail') == 'on' else None
-        if toEmails:
-            emails = '; '.join([email for email in request.form.getlist('email') if validate_email(email)])
-            toEmails = emails if emails else None
-        else:
-            toEmails = None
+        toEmails = process_emails(request.form)
         subject = request.form.get('subject', None)
         if toEmails and not subject:
             error_message = 'Тема сообщения отсутствует, отправка отменена'
@@ -295,11 +274,11 @@ def upload_file():
                         sig_page_str = 'all'
                     if not addStamp:
                         sig_page_str = ''
-                    sigfile = [value for key, value in new_files_data.items() if key == 'sig'+str(idx)][0]
+                    sigfile = [value for key, value in new_files_data.items() if key == 'sig'+str(idx)]
                     if sigfile:
                         sigPath = filepath+'.sig'
-                        sigName = sigfile.filename
-                        sigfile.save(sigPath)
+                        sigName = sigfile[0].filename
+                        sigfile[0].save(sigPath)
                         sig_valid = check_sig(filepath, sigPath)
                         if not sig_valid:
                             db.session.rollback()
@@ -313,6 +292,7 @@ def upload_file():
                             fileName=value.filename,
                             sigPages=sig_page_str,
                             sigPath=sigPath,
+                            fileType=os.path.splitext(value.filename)[1][1:],
                             sigName=sigName,
                             user_id=current_user.id,
                             message_id=message_id,
@@ -330,6 +310,7 @@ def upload_file():
                     newFile = UploadedFiles(
                         filePath=filepath,
                         fileName=attachment.filename,
+                        fileType=os.path.splitext(attachment.filename)[1][1:],
                         sigName='No_need',
                         user_id=current_user.id,
                         message_id=message_id)

@@ -323,32 +323,33 @@ $(document).ready(function () {
     });
 
     $('[data-bs-toggle="tooltip"]').tooltip();
-
+    
     $('.btn-sign-file').click(function() {
         const fileId = $(this).data('fileId');
         const selectedCert = $('#certificateSelector').val();
-        // Запрос файла для подписания с главного сервера
+    
         $.ajax({
             url: '/get_file?file_id=' + fileId,
             type: 'GET',
-            headers: {
-                'Selected-Certificate': selectedCert // Добавляем выбранный сертификат в заголовки запроса
-            },
             xhrFields: {
-                responseType: 'blob'  // Важно для получения файла в виде Blob
+                responseType: 'blob'
             },
-            success: function(blob) {
-                let formData = new FormData();
-                formData.append('file', blob, 'document.pdf');
+            success: function(blob, status, xhr) {
+                const fileType = xhr.getResponseHeader('File-Type');
+                const sigPages = xhr.getResponseHeader('Sig-Pages');
     
-                // Отправка файла на локальный сервер для подписания
+                let formData = new FormData();
+                formData.append('file', blob, `document.${fileType}`);
+                formData.append('sigPages', sigPages);
+                formData.append('fileType', fileType)
+                formData.append('selectedCert', selectedCert)
+    
                 fetch('http://localhost:4999/sign_file', {
                     method: 'POST',
                     body: formData
                 })
                 .then(response => response.blob())
                 .then(zipBlob => {
-                    // Отправка ZIP-архива обратно на главный сервер
                     uploadSignedFile(fileId, zipBlob);
                 })
                 .catch(error => {
@@ -372,7 +373,14 @@ $(document).ready(function () {
         })
         .then(response => response.json())
         .then(data => {
-            alert(data.message);  // Сообщение об успехе или ошибке
+            if (data.success) {
+                // Если операция успешна
+                alert("Успешно: " + data.message);
+                window.location.reload();
+            } else {
+                // Если операция неуспешна
+                alert("Ошибка: " + data.message);
+            }
         })
         .catch(error => {
             console.error('Ошибка при отправке подписанных файлов:', error);
