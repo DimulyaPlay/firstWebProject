@@ -1,7 +1,9 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-import os, sys
+import os
+import sys
+from threading import Thread
 
 db = SQLAlchemy()
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -30,6 +32,10 @@ def create_app():
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
+    from .Utils import start_monitoring, config, process_existing_reports
+    process_existing_reports(config['reports_path'], config['file_storage'],  app)
+    monitor_thread = Thread(target=start_monitoring, args = (config['reports_path'], app), daemon=True).start()
+
 
     @login_manager.user_loader
     def load_user(userid):

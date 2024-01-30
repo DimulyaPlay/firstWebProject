@@ -19,11 +19,13 @@ class UploadedMessages(db.Model):
     createDatetime = db.Column(db.DateTime, default=datetime.utcnow)  # время создания письма
     signed = db.Column(db.Boolean, default=False)  # подписано ли
     sigBy = db.Column(db.String(120), default=None)  # Подписано кем ФИО
+    reportDatetime = db.Column(db.DateTime, default=None)  # время подгрузки отчета
+    reportFilepath = db.Column(db.String(255), default=None)  # путь к файлу отчета
+    reportFilename = db.Column(db.String(255), default=None)  # имя файла отчета
     toRosreestr = db.Column(db.Boolean)  # Флаг отправки в росреестр
     toEmails = db.Column(db.String(255))  # Адреса отправки на почту, '' = не отправлять
     mailSubject = db.Column(db.String(255))  # Тема письма для отправки
     mailBody = db.Column(db.Text)  # Тело сообщения
-    reportDatetime = db.Column(db.DateTime, default=None)  # время подгрузки отчета об отправке по эл почте
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # внешний ключ для Users.id
 
 

@@ -1,14 +1,21 @@
+import glob
 import os
 import sys
 import re
 from PyPDF2 import PdfReader
 import subprocess
-from .models import UploadedFiles
+from .models import UploadedFiles, UploadedMessages
+from . import db
 import zipfile
 import json
 from datetime import datetime
 from uuid import uuid4
 import traceback
+import shutil
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import time
+
 
 config_path = os.path.dirname(sys.argv[0])
 if not os.path.exists(config_path):
@@ -186,3 +193,58 @@ def save_file(file, attachment=False):
         return filepath
     except Exception as e:
         raise ValueError(f'Ошибка при сохранении файла {file.filename}: {e}')
+
+
+class ReportHandler(FileSystemEventHandler):
+    def __init__(self, app):
+        self.app = app
+
+    def on_created(self, event):
+        if event.is_directory:
+            return
+        with self.app.app_context():
+            filename = os.path.basename(event.src_path)
+            message_id = filename.split('.')[0]  # функция для извлечения ID из названия файла
+            new_filename = str(uuid4()) + '.pdf'
+            new_filepath = os.path.join(config['file_storage'], new_filename)
+            time.sleep(1)
+            shutil.move(event.src_path, new_filepath)
+            message = UploadedMessages.query.get(message_id)
+            if message:
+                message.reportDatetime = datetime.utcnow()
+                message.reportFilepath = new_filepath
+                message.reportFilename = new_filename
+                db.session.commit()
+
+
+def start_monitoring(path, app):
+    event_handler = ReportHandler(app)
+    observer = Observer()
+    observer.schedule(event_handler, path, recursive=False)
+    observer.start()
+    print('reports monitoring started')
+    try:
+        while True:
+            time.sleep(1)
+    finally:
+        observer.stop()
+        observer.join()
+
+
+def process_existing_reports(directory, file_storage, app):
+    with app.app_context():
+        # Теперь весь код здесь выполняется в контексте приложения Flask
+        existing_files = glob.glob(directory + '/*.pdf')
+        for fp in existing_files:
+            filename = os.path.basename(fp)
+            message_id = filename.split('.')[0]  # функция для извлечения ID из названия файла
+            new_filename = str(uuid4()) + '.pdf'
+            new_filepath = os.path.join(file_storage, new_filename)
+            time.sleep(1)
+            shutil.move(fp, new_filepath)
+            message = UploadedMessages.query.get(message_id)
+            if message:
+                message.reportDatetime = datetime.utcnow()
+                message.reportFilepath = new_filepath
+                message.reportFilename = new_filename
+                db.session.commit()

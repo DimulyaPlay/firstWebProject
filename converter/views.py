@@ -1,3 +1,4 @@
+import time
 import traceback
 from .auth import login
 from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash, redirect, make_response
@@ -9,6 +10,7 @@ from . import db
 from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_file, save_config, read_create_config, process_emails
 from email_validator import validate_email
 import zipfile
+import tempfile
 
 views = Blueprint('views', __name__)
 
@@ -140,9 +142,9 @@ def outbox():
 @login_required
 def get_report():
     idx = request.args.get('message_id', 1, type=int)
-    report_filepath = os.path.join(config['reports_path'], f'{idx}.pdf')
-    if os.path.exists(report_filepath):
-        return send_file(report_filepath, as_attachment=False)
+    msg = UploadedMessages.query.get(idx)
+    if os.path.exists(msg.reportFilepath):
+        return send_file(msg.reportFilepath, as_attachment=False)
     else:
         return jsonify({'error': 'File not found'})
 
@@ -167,45 +169,40 @@ def upload_signed_file():
     try:
         file_id = request.form['fileId']
         zip_file = request.files['file']
-        zip_path = 'path_to_save_zip_file.zip'
-        zip_file.save(zip_path)
-        return jsonify({'success':True, 'message':'Файл получен'})
-        with zipfile.ZipFile(zip_path, 'r') as zipf:
-            zipf.extractall('path_to_extract_files')
-
         file = UploadedFiles.query.filter_by(id=file_id).first()
         file_path = file.filePath
         sig_path = file.filePath+'.sig'
-        file.sigPath = file.filePath+'.sig'
+        file.sigPath = sig_path
         file.sigName = file.fileName + '.sig'
-        pdf_file = request.files.get('pdf_file')
-        sig_file = request.files.get('sig_file')
-
-        if pdf_file:
-            pdf_file.save(file_path)
-
-        if sig_file:
-            sig_file.save(sig_path)
-
-        if os.path.isfile(sig_path):
-            if config['sig_check']:
-                if not check_sig(file_path, sig_path):
-                    return jsonify(0), 400
+        fd, temp_zip = tempfile.mkstemp(f'.zip')
+        os.close(fd)
+        zip_file.save(temp_zip)
+        zip_path = temp_zip
+        with zipfile.ZipFile(zip_path, 'r') as zipf:
+            files_in_zip = zipf.namelist()
+            for file_in_zip in files_in_zip:
+                if file_in_zip.endswith('.sig'):
+                    zipf.extract(file_in_zip, os.path.dirname(sig_path))
+                    os.replace(os.path.join(os.path.dirname(sig_path), file_in_zip), sig_path)
+                else:
+                    zipf.extract(file_in_zip, os.path.dirname(file_path))
+                    os.replace(os.path.join(os.path.dirname(file_path), file_in_zip), file_path)
+        if config['sig_check']:
+            if not check_sig(file_path, sig_path):
+                return jsonify({'success':False, 'message':'Подпись не прошла проверку на сервере'})
+        db.session.commit()
+        message_files = UploadedFiles.query.filter_by(message_id=file.message_id).all()
+        all_files_signed = all(file.sigName for file in message_files)
+        if all_files_signed:
+            message = UploadedMessages.query.filter_by(id=file.message_id).first()
+            message.signed = True
+            export_signed_message(message)
             db.session.commit()
-            message_files = UploadedFiles.query.filter_by(message_id=file.message_id).all()
-            all_files_signed = all(file.sigName for file in message_files)
-            if all_files_signed:
-                message = UploadedMessages.query.filter_by(id=file.message_id).first()
-                message.signed = True
-                export_signed_message(message)
-                db.session.commit()
-            return jsonify(1), 200
-        else:
-            return jsonify(0), 400
+        return jsonify({'success': True, 'message': 'Файл получен'})
     except Exception as e:
         traceback.print_exc()
         db.session.rollback()
-        return jsonify(0), 400
+        return jsonify({'success': False, 'message': e})
 
 
 @views.post('/uploadMessage')
