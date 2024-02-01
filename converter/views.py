@@ -2,17 +2,28 @@ import time
 import traceback
 from .auth import login
 from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash, redirect, make_response
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, logout_user
 from .models import UploadedFiles, UploadedMessages, Users
 from sqlalchemy import desc
 import os
+from datetime import datetime, timedelta
 from . import db
-from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_file, save_config, read_create_config, process_emails
+from uuid import uuid4
+from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_config, read_create_config, process_emails
 from email_validator import validate_email
 import zipfile
 import tempfile
 
 views = Blueprint('views', __name__)
+
+
+@views.before_request
+def before_request():
+    if current_user.is_authenticated:
+        if int(config['auth_timeout']) and (current_user.last_seen < datetime.utcnow() - timedelta(hours=int(config['auth_timeout']))):  # 2 часа неактивности
+            logout_user()
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
 
 
 # Главная страница
@@ -66,15 +77,17 @@ def adminpanel_system():
     if request.method == 'POST':
         try:
             sig_check = request.form.get('sig_check') == 'on'  # Преобразование в boolean
-            csp_path = request.form.get('csp_path', '')
-            file_storage = request.form.get('file_storage', '')
-            file_export_folder = request.form.get('file_export_folder', '')
-            reports_path = request.form.get('reports_path', '')
+            csp_path = request.form.get('csp_path')
+            file_storage = request.form.get('file_storage')
+            file_export_folder = request.form.get('file_export_folder')
+            reports_path = request.form.get('reports_path')
+            auth_timeout = request.form.get('auth_timeout')
             config['sig_check'] = sig_check
             config['csp_path'] = csp_path
             config['file_storage'] = file_storage
             config['file_export_folder'] = file_export_folder
             config['reports_path'] = reports_path
+            config['auth_timeout'] = auth_timeout
             save_config()
             flash('Параметры успешно сохранены', category='success')
         except:
@@ -116,11 +129,17 @@ def outbox():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     search_query = request.args.get('search', '')
-    filtered_messages = (UploadedMessages.query
-                         .filter(UploadedMessages.user == current_user,
-                                 UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
-                         .order_by(desc(UploadedMessages.createDatetime))  # Сортировка по убыванию времени создания
-                         .all())
+    if current_user.first_name != 'admin':
+        filtered_messages = (UploadedMessages.query
+                             .filter(UploadedMessages.user == current_user,
+                                     UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
+                             .order_by(desc(UploadedMessages.createDatetime))  # Сортировка по убыванию времени создания
+                             .all())
+    else:
+        filtered_messages = (UploadedMessages.query
+                             .filter(UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
+                             .order_by(desc(UploadedMessages.createDatetime))  # Сортировка по убыванию времени создания
+                             .all())
     start_index = (page - 1) * per_page
     end_index = start_index + per_page
     paginated_messages = filtered_messages[start_index:end_index]
@@ -143,8 +162,21 @@ def outbox():
 def get_report():
     idx = request.args.get('message_id', 1, type=int)
     msg = UploadedMessages.query.get(idx)
-    if os.path.exists(msg.reportFilepath):
-        return send_file(msg.reportFilepath, as_attachment=False)
+    report_filepath = os.path.join(config['file_storage'], msg.reportNameUUID)
+    if os.path.exists(report_filepath):
+        return send_file(report_filepath, as_attachment=False)
+    else:
+        return jsonify({'error': 'File not found'})
+
+
+@views.route('/get_message_data', methods=['GET'])
+@login_required
+def get_message_data():
+    idx = request.args.get('message_id', 1, type=int)
+    msg = UploadedMessages.query.get(idx)
+    report_filepath = os.path.join(config['file_storage'], msg.reportNameUUID)
+    if os.path.exists(report_filepath):
+        return send_file(report_filepath, as_attachment=False)
     else:
         return jsonify({'error': 'File not found'})
 
@@ -154,55 +186,16 @@ def get_report():
 def get_file():
     idx = request.args.get('file_id', 1, type=int)
     file_obj = UploadedFiles.query.get(idx)
-    if file_obj:
-        response = make_response(send_file(file_obj.filePath, as_attachment=False, download_name=file_obj.fileName))
+    if not file_obj:
+        return jsonify({'error': 'File not found in DB'})
+    file_path = os.path.join(config['file_storage'], file_obj.fileNameUUID)
+    if os.path.exists(file_path):
+        response = make_response(send_file(file_path, as_attachment=False, download_name=file_obj.fileName))
         response.headers['Sig-Pages'] = file_obj.sigPages
         response.headers['File-Type'] = file_obj.fileType
         return response
     else:
-        return jsonify({'error': 'File not found'})
-
-
-@views.route('/upload_signed_file', methods=['POST'])
-@login_required
-def upload_signed_file():
-    try:
-        file_id = request.form['fileId']
-        zip_file = request.files['file']
-        file = UploadedFiles.query.filter_by(id=file_id).first()
-        file_path = file.filePath
-        sig_path = file.filePath+'.sig'
-        file.sigPath = sig_path
-        file.sigName = file.fileName + '.sig'
-        fd, temp_zip = tempfile.mkstemp(f'.zip')
-        os.close(fd)
-        zip_file.save(temp_zip)
-        zip_path = temp_zip
-        with zipfile.ZipFile(zip_path, 'r') as zipf:
-            files_in_zip = zipf.namelist()
-            for file_in_zip in files_in_zip:
-                if file_in_zip.endswith('.sig'):
-                    zipf.extract(file_in_zip, os.path.dirname(sig_path))
-                    os.replace(os.path.join(os.path.dirname(sig_path), file_in_zip), sig_path)
-                else:
-                    zipf.extract(file_in_zip, os.path.dirname(file_path))
-                    os.replace(os.path.join(os.path.dirname(file_path), file_in_zip), file_path)
-        if config['sig_check']:
-            if not check_sig(file_path, sig_path):
-                return jsonify({'success':False, 'message':'Подпись не прошла проверку на сервере'})
-        db.session.commit()
-        message_files = UploadedFiles.query.filter_by(message_id=file.message_id).all()
-        all_files_signed = all(file.sigName for file in message_files)
-        if all_files_signed:
-            message = UploadedMessages.query.filter_by(id=file.message_id).first()
-            message.signed = True
-            export_signed_message(message)
-            db.session.commit()
-        return jsonify({'success': True, 'message': 'Файл получен'})
-    except Exception as e:
-        traceback.print_exc()
-        db.session.rollback()
-        return jsonify({'success': False, 'message': e})
+        return jsonify({'error': 'File not found in storage'})
 
 
 @views.post('/uploadMessage')
@@ -253,7 +246,11 @@ def upload_file():
             for key, value in new_files_data.items():
                 if key.startswith('file'):
                     idx = key[4:]
-                    filepath = save_file(value)
+                    file_type = os.path.splitext(value.filename)[1][1:]
+                    file_name_uuid = str(uuid4()) + '.' + file_type
+                    file_name = value.filename
+                    filepath_to_save = os.path.join(config['file_storage'], file_name_uuid)
+                    value.save(filepath_to_save)
                     addStamp = True if request.form.get('addStamp'+idx) == 'on' else False
                     allPages = True if request.form.get('allPages' + idx, default=False) == 'on' else False
                     sig_page_str = ''
@@ -273,23 +270,24 @@ def upload_file():
                         sig_page_str = ''
                     sigfile = [value for key, value in new_files_data.items() if key == 'sig'+str(idx)]
                     if sigfile:
-                        sigPath = filepath+'.sig'
+                        sigNameUUID = file_name_uuid+'.sig'
+                        sig_path_to_save = os.path.join(config['file_storage'], sigNameUUID)
                         sigName = sigfile[0].filename
-                        sigfile[0].save(sigPath)
-                        sig_valid = check_sig(filepath, sigPath)
+                        sigfile[0].save(sig_path_to_save)
+                        sig_valid = check_sig(filepath_to_save, sig_path_to_save)
                         if not sig_valid:
                             db.session.rollback()
                             return jsonify({'error': True, 'error_message': f'Прикрепленная к файлу {value.filename} подпись не прошла проверку, отправка отменена'})
                     else:
-                        sigPath = None
+                        sigNameUUID = None
                         sigName = None
                     try:
                         newFile = UploadedFiles(
-                            filePath=filepath,
-                            fileName=value.filename,
+                            fileNameUUID=file_name_uuid,
+                            fileName=file_name,
                             sigPages=sig_page_str,
-                            sigPath=sigPath,
-                            fileType=os.path.splitext(value.filename)[1][1:],
+                            sigNameUUID=sigNameUUID,
+                            fileType=file_type,
                             sigName=sigName,
                             user_id=current_user.id,
                             message_id=message_id,
@@ -304,10 +302,15 @@ def upload_file():
             for attachment in attachments:
                 try:
                     filepath = save_file(attachment)
+                    file_name = attachment.filename
+                    file_type = os.path.splitext(file_name)[1][1:]
+                    file_name_uuid = str(uuid4()) + '.' + file_type
+                    filepath_to_save = os.path.join(config['file_storage'], file_name_uuid)
+                    attachment.save(filepath_to_save)
                     newFile = UploadedFiles(
-                        filePath=filepath,
-                        fileName=attachment.filename,
-                        fileType=os.path.splitext(attachment.filename)[1][1:],
+                        fileNameUUID=file_name_uuid,
+                        fileName=file_name,
+                        fileType=file_type,
                         sigName='No_need',
                         user_id=current_user.id,
                         message_id=message_id)
@@ -345,9 +348,52 @@ def upload_file():
         db.session.close()
 
 
+@views.route('/upload_signed_file', methods=['POST'])
+@login_required
+def upload_signed_file():
+    try:
+        file_id = request.form['fileId']
+        zip_file = request.files['file']
+        file = UploadedFiles.query.get(file_id)
+        file_path = os.path.join(config['file_storage'], file.fileNameUUID)
+        file.sigNameUUID = file.fileNameUUID + '.sig'
+        file.sigName = file.fileName + '.sig'
+        sig_path = os.path.join(config['file_storage'], file.sigNameUUID)
+        fd, temp_zip = tempfile.mkstemp(f'.zip')
+        os.close(fd)
+        zip_file.save(temp_zip)
+        zip_path = temp_zip
+        with zipfile.ZipFile(zip_path, 'r') as zipf:
+            files_in_zip = zipf.namelist()
+            for file_in_zip in files_in_zip:
+                if file_in_zip.endswith('.sig'):
+                    zipf.extract(file_in_zip, os.path.dirname(sig_path))
+                    os.replace(os.path.join(os.path.dirname(sig_path), file_in_zip), sig_path)
+                else:
+                    zipf.extract(file_in_zip, os.path.dirname(file_path))
+                    os.replace(os.path.join(os.path.dirname(file_path), file_in_zip), file_path)
+        os.remove(zip_path)
+        if config['sig_check']:
+            if not check_sig(file_path, sig_path):
+                return jsonify({'success':False, 'message':'Подпись не прошла проверку на сервере'})
+        db.session.commit()
+        message_files = UploadedFiles.query.filter_by(message_id=file.message_id).all()
+        all_files_signed = all(file.sigName for file in message_files)
+        if all_files_signed:
+            message = UploadedMessages.query.filter_by(id=file.message_id).first()
+            message.signed = True
+            export_signed_message(message)
+            db.session.commit()
+        return jsonify({'success': True, 'message': 'Документ подписан успешно'})
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'success': False, 'message': e})
+
+
 @views.route('/analyzeFile', methods=['POST'])
 @login_required
-def analyze_file():
+def analyzeFile():
     file = request.files['file']
     detected_addresses = analyze_file(file)
     if detected_addresses:

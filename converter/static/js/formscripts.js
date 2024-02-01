@@ -222,10 +222,8 @@ $(document).ready(function () {
     });
 
     $('#signatureFilesContainer').on('change', '[id^="formFile"]', function () {
-        // Создаем объект формы и добавляем файл
         let formData = new FormData();
         formData.append('file', $(this)[0].files[0]);
-
         $.ajax({
             type: 'POST',
             url: '/analyzeFile',
@@ -233,10 +231,8 @@ $(document).ready(function () {
             contentType: false,
             processData: false,
             success: function(data) {
-                // Обработка успешного ответа от сервера
                 $('#sendByEmail').prop('checked', true);
                 data.detectedAddresses.forEach(function(address) {
-                    // Создаем новый input для найденных в файле адресов
                     let emailInput = $('<input>', {
                         type: 'email',
                         class: 'form-control',
@@ -245,8 +241,6 @@ $(document).ready(function () {
                         placeholder: 'Email',
                         value: address
                     });
-                
-                    // Создаем новую кнопку
                     let removeButton = $('<button>', {
                         class: 'btn btn-danger',
                         id: 'removeEmail',
@@ -257,18 +251,12 @@ $(document).ready(function () {
                             $(this).closest('label').remove();
                         }
                     });
-                
-                    // Создаем новый label
                     let emailLabel = $('<label>', {
                         id: 'emailAdresses',
                         style: 'display: flex;'
                     });
-                
-                    // Добавляем input и button внутрь label
                     emailLabel.append(emailInput);
                     emailLabel.append(removeButton);
-                
-                    // Вставляем новый label перед элементом с id "subject"
                     emailLabel.insertBefore($("#subject"));
                 });
 
@@ -298,6 +286,13 @@ $(document).ready(function () {
         }
     }
 
+    $('#addUserModal').on('hidden.bs.modal', function () {
+        // Очистка всех текстовых полей внутри модального окна
+        $(this).find('input[type="text"], input[type="password"]').val('');
+        // Если есть чекбоксы или радиокнопки, их тоже можно сбросить
+        $(this).find('input[type="checkbox"], input[type="radio"]').prop('checked', false);
+    });
+
     $('.save-password-btn').click(function() {
         var modal = $('#changePasswordModal');
         var userId = modal.data('userId');
@@ -322,10 +317,33 @@ $(document).ready(function () {
         });
     });
 
+    $('.block-user-btn').click(function() {
+        var userId = $(this).data('userId');
+
+        $.ajax({
+            url: '/block-user',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                userId: userId,
+            }),
+            success: function(data) {
+                if (data.success) {
+                    alert("Успешно: " + data.message);
+                    window.location.reload();
+                } else {
+                    alert("Ошибка: " + data.message);
+                }
+            }
+        });
+    });
+
+
     $('[data-bs-toggle="tooltip"]').tooltip();
     
     $('.btn-sign-file').click(function() {
         const fileId = $(this).data('fileId');
+        const fileName = $(this).data('fileName');
         const selectedCert = $('#certificateSelector').val();
     
         $.ajax({
@@ -343,6 +361,7 @@ $(document).ready(function () {
                 formData.append('sigPages', sigPages);
                 formData.append('fileType', fileType)
                 formData.append('selectedCert', selectedCert)
+                formData.append('fileName', fileName)
     
                 fetch('http://localhost:4999/sign_file', {
                     method: 'POST',
@@ -374,11 +393,9 @@ $(document).ready(function () {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Если операция успешна
                 alert("Успешно: " + data.message);
                 window.location.reload();
             } else {
-                // Если операция неуспешна
                 alert("Ошибка: " + data.message);
             }
         })
@@ -387,10 +404,16 @@ $(document).ready(function () {
         });
     }
 
+    $('[data-utc-time]').each(function() {
+        var utcTime = $(this).data('utc-time');
+        // Создаем объект Date, интерпретируя исходную строку времени как UTC
+        var date = new Date(utcTime + 'Z'); // Добавляем 'Z' для указания на UTC
+        var localTime = date.toLocaleString();
+        $(this).text(localTime);
+    });
+
     $('#fileForm').submit(function(e) {
         e.preventDefault();
-
-        // Проверка размера каждого файла перед отправкой
         let totalSize = 0;
         let formData = new FormData(this);
 
@@ -405,7 +428,6 @@ $(document).ready(function () {
             return;
         }
 
-        // Отправка формы через AJAX
         $.ajax({
             type: 'POST',
             url: '/uploadMessage',
@@ -424,6 +446,35 @@ $(document).ready(function () {
             },
             error: function(error) {
                 console.log('Ошибка AJAX-запроса:', error);
+            }
+        });
+    });
+
+    $('.add-user-btn').click(function() {
+        const newUser = {
+            fio: $('#new_user_fio').val(),
+            firstName: $('#new_user_first_name').val(),
+            password: $('#new_user_password').val(),
+            confirmPassword: $('#new_user_confirm_password').val(),
+            isJudge: $('#new_user_is_judge').is(':checked')
+        };
+
+        // AJAX запрос на сервер для создания пользователя
+        $.ajax({
+            url: '/add-user',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(newUser),
+            success: function(data) {
+                if (data.success) {
+                    alert("Успешно: " + data.message);
+                    window.location.reload();
+                } else {
+                    alert("Ошибка: " + data.message);
+                }
+            },
+            error: function(error) {
+                alert("Ошибка: " + error.responseText);
             }
         });
     });

@@ -28,7 +28,7 @@
 
             <th scope="row" style="text-align: left;" >{{ file.fileName }}</th>
 
-            <td>{{ file.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>       
+            <td data-utc-time="{{ file.createDatetime.isoformat() }}">{{ file.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>       
 
             <td>
                 <a href="{{ url_for('views.get_file', file_id=file.id) }}" target="_blank">
@@ -40,7 +40,7 @@
                 <img src="static/img/email-icon.png" alt="OpenLetter" data-toggle="modal" data-target="#myModal" data-message-id="{{ file.message_id }}">
             </td>   
 
-            <td><button class="btn btn-primary btn-sign-file" data-file-id="{{ file.id }}">Подписать Файл</button></td>
+            <td><button class="btn btn-primary btn-sign-file" data-file-id="{{ file.id }}" data-file-name="{{ file.fileName }}" {% if file.sigPath %}disabled{% endif %}>Подписать</button></td>
         {% endfor %}
          
     {% else %}
@@ -115,9 +115,10 @@ $(document).ready(function() {
             });
         },
         error: function() {
-            alert('Не удалось получить список сертификатов с локального сервера.');
+            alert('Не удалось получить список сертификатов. DocumentSIGner запущен?');
         }
     });
+
 });
 </script>
 

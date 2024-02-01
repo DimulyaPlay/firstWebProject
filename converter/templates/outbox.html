@@ -48,7 +48,7 @@
 
             <td>{{ message.sigBy }}</td>
 
-            <td>{{ message.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>
+            <td data-utc-time="{{ message.createDatetime.isoformat() }}">{{ message.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>
 
             {% if message.toRosreestr %}
             <td><img src="static/img/rosreestr-icon.png" alt="Rosreestr"></td>

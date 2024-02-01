@@ -103,3 +103,51 @@ def change_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': e})
+
+
+@auth.route('/block-user', methods=['POST'])
+@login_required
+def block_user():
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        # Найти пользователя по ID
+        user = Users.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'Пользователь не найден.'})
+        if user.first_name == 'admin':
+            return jsonify({'success': False, 'message': 'Нельзя заблокировать учетную запись администратора.'})
+        # Обновление пароля
+        user.password = ' '
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Пользователь заблокирован, для разблокировки воспользуйтесь сменой пароля'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': e})
+
+
+@auth.route('/add-user', methods=['POST'])
+@login_required
+def add_user():
+    try:
+        data = request.json
+        login = data.get('firstName')
+        pw = data.get('password')
+        pwc = data.get('confirmPassword')
+        if not all((login, pw, pwc)):
+            return {'success': False, 'message': 'Не все обязательные (*) поля заполнены'}
+        if pw != pwc:
+            return {'success': False, 'message': 'Введенные пароли не совпадают'}
+        new_user = Users(
+            fio=data.get('fio', None),
+            first_name=login,
+            password=generate_password_hash(pw),
+            is_judge=data['isJudge']
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        return {'success': True, 'message': 'Пользователь успешно добавлен'}
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'message': 'Ошибка при добавлении пользователя: ' + str(e)}

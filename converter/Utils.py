@@ -14,6 +14,7 @@ import traceback
 import shutil
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from email_validator import validate_email
 import time
 
 
@@ -29,12 +30,17 @@ def read_create_config(config_filepath=config_file):
         "csp_path": r"C:\Program Files\Crypto Pro\CSP",
         "file_storage": r"C:\fileStorage",
         "file_export_folder": r"C:\fileStorage\Export",
-        "reports_path": r"C:\fileStorage\Reports"
+        "reports_path": r"C:\fileStorage\Reports",
+        'auth_timeout': 0
     }
     if os.path.exists(config_filepath):
         try:
             with open(config_filepath, 'r') as configfile:
                 cfg = json.load(configfile)
+                for key, value in default_configuration.items():
+                    if key not in list(cfg.keys()):
+                        cfg[key] = default_configuration[key]
+
         except Exception as e:
             print(e)
             os.remove(config_filepath)
@@ -82,6 +88,7 @@ def analyze_text(text):
         matches = email_pattern.findall(text)
         matches = [match for match in matches]
         detected_addresses = matches
+        detected_addresses = [address for address in detected_addresses if validate_email(address)]
         return detected_addresses
     except Exception as e:
         print(f"An error occurred during text analysis: {str(e)}")
@@ -183,16 +190,6 @@ def export_signed_message(message):
 def report_exists(message_id):
     report_filepath = os.path.join(config['reports_path'], f'{message_id}.pdf')
     return os.path.exists(report_filepath)
-
-
-def save_file(file, attachment=False):
-    try:
-        file_extension = "." + attachment.filename.rsplit('.', 1)[-1] if attachment else '.pdf'
-        filepath = os.path.join(config['file_storage'], str(uuid4()) + file_extension)
-        file.save(filepath)
-        return filepath
-    except Exception as e:
-        raise ValueError(f'Ошибка при сохранении файла {file.filename}: {e}')
 
 
 class ReportHandler(FileSystemEventHandler):

@@ -25,6 +25,10 @@
             <label for="reports_path">Путь для отчетов, отсюда будут браться отчеты об отправке сообщения. Имя файла должно быть в виде "ИД сообщения.pdf". <br>OutlookAutosender выводит такие файлы после отправки в заданную в нем папку:</label>
             <input type="text" class="form-control" id="reports_path" name="reports_path" value="{{ default_configuration.reports_path }}">
         </div>
+        <div class="form-group" style="padding-top: 0.5rem;">
+            <label for="auth_timeout">Таймаут авторизации. Укажите время неактивности (в часах), после которого сессия пользователя будет автоматически завершена. <br>Установите 0 для отключения таймаута.</label>
+            <input type="number" class="form-control" id="auth_timeout" name="auth_timeout" value="{{ default_configuration.auth_timeout }}" min="0" step="1">
+        </div>
         <br>
         <button type="submit" class="btn btn-primary" >Сохранить настройки системы</button>
     </form>
