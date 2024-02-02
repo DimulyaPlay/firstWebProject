@@ -133,5 +133,27 @@
     </tr>
     </tbody>
   </table>
+
+<!-- Общий шаблон для модального окна -->
+<div class="modal fade" id="genericModal" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="genericModalLabel">
+                <!-- Название модального окна будут добавляться здесь -->
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Содержимое модального окна будет добавляться здесь -->
+            </div>
+            <div class="modal-footer">
+                <!-- Кнопки модального окна будут добавляться здесь -->
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>
 {% endblock content %}

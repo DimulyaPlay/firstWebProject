@@ -1,3 +1,6 @@
+import { convertUtcToLocalTime } from './modules/utils';
+import { clearModalField } from './modules/utils';
+
 $(document).ready(function () {
     $('.save-user-settings-btn').click(function() {
         var userSettings = {};
@@ -40,18 +43,6 @@ $(document).ready(function () {
         sendData('/change-password', { userId, newPassword, confirmPassword });
     });
 
-    $('.block-user-btn').click(function() {
-        var userId = $(this).data('userId');
-        sendData('/block-user', { userId });
-    });
-
-    $('[data-utc-time]').each(function() {
-        var utcTime = $(this).data('utc-time');
-        var date = new Date(utcTime + 'Z');
-        var localTime = date.toLocaleString();
-        $(this).text(localTime);
-    });
-
     function sendData(url, data) {
         $.ajax({
             url: url,
@@ -72,9 +63,11 @@ $(document).ready(function () {
         });
     }
 
-    function clearModalField(modal) {
-        modal.find('input[type="text"], input[type="password"]').val('');
-        modal.find('input[type="checkbox"], input[type="radio"]').prop('checked', false);
-    }
+    $('.block-user-btn').click(function() {
+        var userId = $(this).data('userId');
+        sendData('/block-user', { userId });
+    });
+
+    convertUtcToLocalTime();
     
 });

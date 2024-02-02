@@ -1,4 +1,4 @@
-function convertUtcToLocalTime() {
+export function convertUtcToLocalTime() {
     $('[data-utc-time]').each(function() {
         var utcTime = $(this).data('utc-time');
         // Создаем объект Date, интерпретируя исходную строку времени как UTC
@@ -8,9 +8,7 @@ function convertUtcToLocalTime() {
     });
 }
 
-
-
-// Экспортируем функцию, чтобы ее можно было использовать в других файлах
-module.exports = {
-    convertUtcToLocalTime
-};
+export function clearModalField(modal) {
+    modal.find('input[type="text"], input[type="password"]').val('');
+    modal.find('input[type="checkbox"], input[type="radio"]').prop('checked', false);
+}

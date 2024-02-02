@@ -1,3 +1,4 @@
+import { convertUtcToLocalTime } from './modules/utils';
 $(document).ready(function () {
     $.ajax({
         url: 'http://localhost:4999/get_certs',
@@ -80,7 +81,23 @@ $(document).ready(function () {
         });
     }
 
-    const { convertUtcToLocalTime } = require('./modules/utils');
+        // Обработчик клика на изображении
+    $('img[data-toggle="modal"]').on('click', function () {
+        // Получаем значение атрибута data-message-id
+        const messageId = $(this).data('message-id');
+
+        // Отправляем запрос на сервер для получения модального окна
+        $.get(`/open_modal/${messageId}`, function (data) {
+            // Вставляем полученное модальное окно в код страницы
+            $('body').append(data);
+
+            // Открываем модальное окно
+            $(`#myModal${messageId}`).modal('show');
+        }).fail(function (error) {
+            console.error('Ошибка при получении данных:', error);
+        });
+    });
+
     convertUtcToLocalTime();
 
 });
