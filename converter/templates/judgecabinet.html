@@ -98,30 +98,6 @@
     </tr>
     </tbody>
   </table>
-
-<script>
-$(document).ready(function() {
-    $.ajax({
-        url: 'http://localhost:4999/get_certs',
-        type: 'GET',
-        success: function(data) {
-            var certificates = data.certificates;
-            var lastCert = data.last_cert;
-            var $select = $('#certificateSelector');
-
-            certificates.forEach(function(cert) {
-                var isSelected = cert === lastCert ? 'selected' : '';
-                $select.append(`<option value="${cert}" ${isSelected}>${cert}</option>`);
-            });
-        },
-        error: function() {
-            alert('Не удалось получить список сертификатов. DocumentSIGner запущен?');
-        }
-    });
-
-});
-</script>
-
-
+<script src="{{ url_for('static', filename='js/judgecabinet.js') }}"></script>
 {% endblock content %}
 

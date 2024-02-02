@@ -9,7 +9,6 @@ $(document).ready(function () {
     });
     
     $('#addEmailBtn').on('click', function() {
-        // Создаем новый input
         let emailInput = $('<input>', {
             type: 'email',
             class: 'form-control',
@@ -18,7 +17,6 @@ $(document).ready(function () {
             placeholder: 'Email'
         });
     
-        // Создаем новую кнопку
         let removeButton = $('<button>', {
             class: 'btn btn-danger',
             id: 'removeEmail',
@@ -30,17 +28,14 @@ $(document).ready(function () {
             }
         });
     
-        // Создаем новый label
         let emailLabel = $('<label>', {
             id: 'emailAdresses',
             style: 'display: flex;user-select: text;'
         });
     
-        // Добавляем input и button внутрь label
         emailLabel.append(emailInput);
         emailLabel.append(removeButton);
     
-        // Вставляем новый label перед элементом с id "subject"
         emailLabel.insertBefore($("#subject"));
     });
     
@@ -75,10 +70,10 @@ $(document).ready(function () {
             data: JSON.stringify(userSettings),
             success: function(data) {
                 if (data.success) {
-                    alert(data.message); // или обработать сообщение другим способом
-                    window.location.reload(); // Перезагрузка страницы
+                    alert(data.message);
+                    window.location.reload();
                 } else {
-                    alert(data.message); // или отобразить сообщение об ошибке
+                    alert(data.message);
                 }
             },
             error: function() {
@@ -287,9 +282,7 @@ $(document).ready(function () {
     }
 
     $('#addUserModal').on('hidden.bs.modal', function () {
-        // Очистка всех текстовых полей внутри модального окна
         $(this).find('input[type="text"], input[type="password"]').val('');
-        // Если есть чекбоксы или радиокнопки, их тоже можно сбросить
         $(this).find('input[type="checkbox"], input[type="radio"]').prop('checked', false);
     });
 
@@ -458,8 +451,6 @@ $(document).ready(function () {
             confirmPassword: $('#new_user_confirm_password').val(),
             isJudge: $('#new_user_is_judge').is(':checked')
         };
-
-        // AJAX запрос на сервер для создания пользователя
         $.ajax({
             url: '/add-user',
             type: 'POST',

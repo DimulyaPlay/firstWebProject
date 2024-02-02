@@ -19,33 +19,20 @@
             {% for user in users_table %}
             <tr>
                 <td>{{ user.id }}</td>
-                <td>
-                    <input type="checkbox" class="form-check-input" name="is_judge_{{ user.id }}" {% if user.is_judge %}checked{% endif %}>
-                </td>
-                <td>
-                    <input type="text" class="form-control" name="fio_{{ user.id }}" value="{{ user.fio }}">
-                </td>
-                <td>
-                    <input type="text" class="form-control" name="first_name_{{ user.id }}" value="{{ user.first_name }}" disabled>
-                </td>
-
+                <td><input type="checkbox" class="form-check-input" name="is_judge_{{ user.id }}" {% if user.is_judge %}checked{% endif %}></td>
+                <td><input type="text" class="form-control" name="fio_{{ user.id }}" value="{{ user.fio }}"></td>
+                <td><input type="text" class="form-control" name="first_name_{{ user.id }}" value="{{ user.first_name }}" disabled></td>
                 <td data-utc-time="{{ user.createDatetime.isoformat() }}">{{ user.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>
-
                 <td data-utc-time="{{ user.last_seen.isoformat() }}">{{ user.last_seen.strftime('%d.%m.%y %H:%M') }}</td>
-
-                <td>
-                    <button type="button" class="btn btn-success change-password-button" data-bs-toggle="modal" data-bs-target="#changePasswordModal" data-user-id="{{ user.id }}">Сменить пароль</button>
-                    <button type="button" class="btn btn-danger block-user-btn"  data-user-id="{{ user.id }}">Заблокировать</button>
-                </td>
+                <td><button type="button" class="btn btn-success change-password-button" data-bs-toggle="modal" data-bs-target="#changePasswordModal" data-user-id="{{ user.id }}">Сменить пароль</button>
+                    <button type="button" class="btn btn-danger block-user-btn"  data-user-id="{{ user.id }}">Заблокировать</button></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     <br>
     <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">Добавить нового пользователя</button>
-
-    <button type="button" class="btn btn-primary" id="saveUserSettings">Сохранить настройки пользователей</button>
-
+    <button type="button" class="btn btn-primary save-user-settings-btn">Сохранить настройки пользователей</button>
 
     <!-- Модальное окно для смены пароля -->
     <div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
@@ -73,7 +60,6 @@
                 <div class="modal-header">
                     <h5 class="modal-title" id="addUserModalLabel">Добавление нового пользователя</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-
                 </div>
                 <div class="modal-body">
                     <input type="text" class="form-control mb-2" id="new_user_fio" placeholder="ФИО">
@@ -91,6 +77,6 @@
             </div>
         </div>
     </div>
-    
+<script src="{{ url_for('static', filename='js/adminpanel_users.js') }}"></script>
 
 {% endblock content %}

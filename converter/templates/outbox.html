@@ -36,12 +36,10 @@
             <tr class="table-warning" style="text-align: center;" data-toggle="modal" data-target="#myModal" data-message-id="{{ message.id }}">
             {% endif %}
 
-            <th scope="row" style="text-align: left;" data-bs-toggle="tooltip" data-bs-html="true" data-bs-original-title="{{ message.mailBody | replace('\n', '<br>')}}">{{ message.mailSubject }}</th>
+            <th scope="row" style="text-align: left;">{{ message.mailSubject }}</th>
 
             {% if message.files %}
-            <td data-bs-toggle="tooltip" data-bs-html="true" data-bs-original-title="{% for file in message.files %}{{ file.fileName }}<br>{% endfor %}">
-                {{ message.files | length }}
-            </td>
+            <td >{{ message.files | length }}</td>
             {% else %}
             <td>0</td>
             {% endif %}
@@ -135,5 +133,5 @@
     </tr>
     </tbody>
   </table>
-
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
 {% endblock content %}
