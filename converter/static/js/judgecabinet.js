@@ -1,4 +1,4 @@
-import { convertUtcToLocalTime } from './modules/utils';
+import { convertUtcToLocalTime } from './modules/utils.js';
 $(document).ready(function () {
     $.ajax({
         url: 'http://localhost:4999/get_certs',
@@ -81,18 +81,16 @@ $(document).ready(function () {
         });
     }
 
-        // Обработчик клика на изображении
-    $('img[data-toggle="modal"]').on('click', function () {
-        // Получаем значение атрибута data-message-id
+    $('img[class="modal"]').on('click', function () {
         const messageId = $(this).data('message-id');
-
-        // Отправляем запрос на сервер для получения модального окна
-        $.get(`/open_modal/${messageId}`, function (data) {
-            // Вставляем полученное модальное окно в код страницы
+        $.get(`/get_message_data/${messageId}`, function (data) {
             $('body').append(data);
+            const modalId = `#myModal${messageId}`;
+            $(modalId).modal('show');
+            $(modalId).on('hidden.bs.modal', function () {
+                $(this).remove();
+            });
 
-            // Открываем модальное окно
-            $(`#myModal${messageId}`).modal('show');
         }).fail(function (error) {
             console.error('Ошибка при получении данных:', error);
         });

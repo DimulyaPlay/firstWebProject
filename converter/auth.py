@@ -56,7 +56,7 @@ def login():
             if lite:
                 return {}, 200
             flash('Успешная авторизация', category='success')
-            return redirect(url_for('views.home')), 200
+            return redirect(url_for('views.home_redirector')), 200
         else:
             if lite:
                 return {}, 400
@@ -70,7 +70,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('views.home'))
+    return redirect(url_for('views.home_redirector'))
 
 
 @auth.route('/change-password', methods=['POST'])

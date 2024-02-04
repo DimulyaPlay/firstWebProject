@@ -12,7 +12,7 @@ if not os.path.exists(os.path.join(basedir, 'instance')):
     os.mkdir(os.path.join(basedir, 'instance'))
 
 
-def create_app():
+def create_app(config):
     if getattr(sys, 'frozen', False):
         template_folder = os.path.join(sys._MEIPASS, 'templates')
         static_folder = os.path.join(sys._MEIPASS, 'static')
@@ -32,10 +32,9 @@ def create_app():
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
-    from .Utils import start_monitoring, config, process_existing_reports
+    from .Utils import start_monitoring, process_existing_reports
     process_existing_reports(config['reports_path'], config['file_storage'],  app)
-    monitor_thread = Thread(target=start_monitoring, args = (config['reports_path'], app), daemon=True).start()
-
+    Thread(target=start_monitoring, args=(config['reports_path'], app), daemon=True).start()
 
     @login_manager.user_loader
     def load_user(userid):

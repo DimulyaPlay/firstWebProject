@@ -1,7 +1,7 @@
 import time
 import traceback
 from .auth import login
-from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash, redirect, make_response
+from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash, redirect, make_response, render_template_string
 from flask_login import current_user, login_required, logout_user
 from .models import UploadedFiles, UploadedMessages, Users
 from sqlalchemy import desc
@@ -9,7 +9,7 @@ import os
 from datetime import datetime, timedelta
 from . import db
 from uuid import uuid4
-from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_config, read_create_config, process_emails
+from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_config, read_create_config, process_emails, generate_modal
 from email_validator import validate_email
 import zipfile
 import tempfile
@@ -27,10 +27,19 @@ def before_request():
 
 
 # Главная страница
-@views.route('/', methods=['GET', 'POST'])
-def home():
-    if request.method == 'POST':
-        login()
+@views.route('/', methods=['GET'])
+def home_redirector():
+    if current_user.is_authenticated:
+        if current_user.is_judge:
+            return redirect(url_for('views.judge_cabinet'))
+        judges = Users.query.filter_by(is_judge=True)
+        return render_template('index.html', title='Отправить письмо', user=current_user, judges=judges)
+    else:
+        return render_template('login.html', title='Войти', user=current_user)
+
+
+@views.route('/create_message', methods=['GET'])
+def create_message():
     if current_user.is_authenticated:
         judges = Users.query.filter_by(is_judge=True)
         return render_template('index.html', title='Отправить письмо', user=current_user, judges=judges)
@@ -63,7 +72,7 @@ def judge_cabinet():
 @views.route('/admin', methods=['GET'])
 @login_required
 def adminpanel():
-    return render_template('adminpanel.html', user=current_user)
+    return render_template('adminpanel.html', title='Панель управления', user=current_user)
 
 
 @views.route('/adminpanel/system', methods=['GET', 'POST'])
@@ -72,6 +81,7 @@ def adminpanel_system():
     global config
     if request.method == 'GET':
         return render_template('adminpanel_system.html',
+                               title='Панель управления',
                                user=current_user,
                                default_configuration=config)
     if request.method == 'POST':
@@ -104,6 +114,7 @@ def adminpanel_users():
     if request.method == 'GET':
         users_table = Users.query.filter_by().all()
         return render_template('adminpanel_users.html',
+                               title='Панель управления',
                                user=current_user,
                                default_configuration=config,
                                users_table=users_table)
@@ -146,7 +157,8 @@ def outbox():
     total_pages = (len(filtered_messages) + per_page - 1) // per_page
     start_index_pages = page-3 if page-3 > 1 else 1
     end_index_pages = page+3 if page+3 < total_pages else total_pages
-    return render_template('outbox.html', title='Мои отправления',
+    return render_template('outbox.html',
+                           title='Мои отправления',
                            user=current_user,
                            messages=paginated_messages,
                            report_exists=report_exists,
@@ -169,14 +181,13 @@ def get_report():
         return jsonify({'error': 'File not found'})
 
 
-@views.route('/get_message_data', methods=['GET'])
+@views.route('/get_message_data/<msg_id>', methods=['GET'])
 @login_required
-def get_message_data():
-    idx = request.args.get('message_id', 1, type=int)
-    msg = UploadedMessages.query.get(idx)
-    report_filepath = os.path.join(config['file_storage'], msg.reportNameUUID)
-    if os.path.exists(report_filepath):
-        return send_file(report_filepath, as_attachment=False)
+def get_message_data(msg_id):
+    msg = UploadedMessages.query.get(msg_id)
+    if msg:
+        modal = generate_modal(msg)
+        return render_template_string(modal)
     else:
         return jsonify({'error': 'File not found'})
 
@@ -229,7 +240,7 @@ def upload_file():
             return jsonify({'error': True, 'error_message': error_message})
         try:
             new_message = UploadedMessages(toRosreestr=toRosreestr,
-                                           sigBy=judge.fio,
+                                           sigBy=judge.id,
                                            toEmails=toEmails,
                                            mailSubject=subject,
                                            mailBody=body,
@@ -331,14 +342,14 @@ def upload_file():
                 export_signed_message(new_message)
                 db.session.commit()
                 flash('Сообщение успешно отправлено.', category='success')
-                return jsonify({'success': True, 'redirect_url': url_for('views.home')})
+                return jsonify({'success': True, 'redirect_url': url_for('views.create_message')})
         except Exception as e:
             traceback.print_exc()
             error_message = f'при экспорте готового письма ({e}).'
             db.session.rollback()
             return jsonify({'error': True, 'error_message': error_message})
         flash('Сообщение передано на подпись. После подписания будет отправлено.', category='success')
-        return jsonify({'success': True, 'redirect_url': url_for('views.home')})
+        return jsonify({'success': True, 'redirect_url': url_for('views.create_message')})
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()

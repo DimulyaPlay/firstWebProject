@@ -40,9 +40,11 @@ def read_create_config(config_filepath=config_file):
                 for key, value in default_configuration.items():
                     if key not in list(cfg.keys()):
                         cfg[key] = default_configuration[key]
-
+                for fp in ("file_storage", "file_export_folder", "reports_path"):
+                    if not os.path.exists(cfg[fp]):
+                        os.mkdir(cfg[fp])
         except Exception as e:
-            print(e)
+            traceback.print_exc()
             os.remove(config_filepath)
             cfg = default_configuration
             with open(config_filepath, 'w') as configfile:
@@ -78,7 +80,7 @@ def analyze_file(file):
             return []  # Неподдерживаемый формат файла
         return detected_addresses
     except Exception as e:
-        print(f"An error occurred during file analysis: {str(e)}")
+        traceback.print_exc()
         return []
 
 
@@ -91,7 +93,7 @@ def analyze_text(text):
         detected_addresses = [address for address in detected_addresses if validate_email(address)]
         return detected_addresses
     except Exception as e:
-        print(f"An error occurred during text analysis: {str(e)}")
+        traceback.print_exc()
         return []
 
 
@@ -245,3 +247,25 @@ def process_existing_reports(directory, file_storage, app):
                 message.reportFilepath = new_filepath
                 message.reportFilename = new_filename
                 db.session.commit()
+
+
+def generate_modal(message):
+    modal = f"""
+    <div class="modal fade" id="myModal{message.id}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel{message.id}" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="myModalLabel{message.id}">Сообщение {message.id}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Здесь размещаем содержимое сообщения -->
+                </div>
+                <div class="modal-footer">
+                    <!-- Здесь размещаем подвал сообщения -->
+                </div>
+            </div>
+        </div>
+    </div>
+    """
+    return modal

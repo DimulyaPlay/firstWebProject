@@ -1,5 +1,4 @@
-import { convertUtcToLocalTime } from './modules/utils';
-import { clearModalField } from './modules/utils';
+import { convertUtcToLocalTime, clearModalField } from './modules/utils.js';
 
 $(document).ready(function () {
     $('.save-user-settings-btn').click(function() {

@@ -23,7 +23,7 @@
             {% if file.sigPath %}
             <tr class="table-success" style="text-align: center;" >
             {% else %}
-            <tr class="table-warning" style="text-align: center;" data-toggle="modal" data-target="#myModal" data-message-id="{{ file.message_id }}">
+            <tr class="table-warning" style="text-align: center;" >
             {% endif %}
 
             <th scope="row" style="text-align: left;" >{{ file.fileName }}</th>
@@ -37,7 +37,7 @@
             </td>    
 
             <td>
-                <img src="static/img/email-icon.png" alt="OpenLetter" data-bs-toggle="modal" data-bs-target="#myModal" data-message-id="{{ file.message_id }}">
+                <img src="static/img/email-icon.png" alt="OpenLetter" class="modal" data-message-id="{{ file.message_id }}">
             </td>   
 
             <td><button class="btn btn-primary btn-sign-file" data-file-id="{{ file.id }}" data-file-name="{{ file.fileName }}" {% if file.sigPath %}disabled{% endif %}>Подписать</button></td>
@@ -98,6 +98,6 @@
     </tr>
     </tbody>
   </table>
-<script src="{{ url_for('static', filename='js/judgecabinet.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/judgecabinet.js') }}"></script>
 {% endblock content %}
 

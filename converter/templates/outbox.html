@@ -55,21 +55,21 @@
             {% endif %}
 
             {% if message.toEmails %}
-            <td><img src="static/img/email-icon.png" alt="Email" data-bs-toggle="tooltip" data-bs-html="true" data-bs-original-title="{{ message.toEmails | replace(';', '<br>') }}"></td> 
+            <td><img src="static/img/email-icon.png" alt="Email" data-message-id="{{ message.id }}"></td> 
             {% else %}
-            <td><img src="static/img/no-email-icon.png" alt="No Email"></td> 
+            <td><img src="static/img/no-email-icon.png" alt="No Email" data-message-id="{{ message.id }}"></td> 
             {% endif %}
 
             {% if message.reportDatetime %}
             <td>
-                <a href="{{ url_for('views.get_report', message_id=message.id) }}" target="_blank">
+                <a href="{{ url_for('views.get_report', message_id=message.id) }}" target="_blank" class="no-modal" style="cursor: pointer;">
                     <img src="static/img/report-icon.png" alt="Report">
                 </a>
             </td>
             {% else %}
-            <td><img src="static/img/no-report-icon.png" alt="No Report"></td>
+            <td><img src="static/img/no-report-icon.png" alt="No Report" class="no-modal"></td>
             {% endif %}
-            <td><img src="static/img/email-forward.png" style="text-align: center;" alt="Forward"></td>
+            <td><img src="static/img/email-forward.png" style="text-align: center;" alt="Forward" class="no-modal"></td>
         {% endfor %}
          
     {% else %}
@@ -154,6 +154,5 @@
     </div>
 </div>
 
-
-<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/outbox.js') }}"></script>
 {% endblock content %}

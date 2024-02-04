@@ -20,7 +20,7 @@ class UploadedMessages(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # ID
     createDatetime = db.Column(db.DateTime, default=datetime.utcnow)  # время создания письма
     signed = db.Column(db.Boolean, default=False)  # подписано ли
-    sigBy = db.Column(db.String(120), default=None)  # Подписано кем ФИО
+    sigBy = db.Column(db.Integer, default=None)  # Подписано кем ФИО
     reportDatetime = db.Column(db.DateTime, default=None)  # время подгрузки отчета
     reportNameUUID = db.Column(db.String(255), default=None)  # путь к файлу отчета
     reportName = db.Column(db.String(255), default=None)  # имя файла отчета
@@ -40,7 +40,7 @@ class UploadedFiles(db.Model):
     sigPages = db.Column(db.String(120), default=None)  # Предложенные страницы для размещения штампа
     sigNameUUID = db.Column(db.String(255), unique=True, default=None)  # Путь к сохраненной подписи
     sigName = db.Column(db.String(255), default=None)  # Название файла подписи
-    sigBy = db.Column(db.String(120), default=None)  # Подписано кем ФИО, если None, то подписи не требует (аттачмент)
+    sigBy = db.Column(db.Integer, default=None)  # Подписано кем ФИО, если None, то подписи не требует (аттачмент)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # связь файла с пользователем по ИД
     message_id = db.Column(db.Integer, db.ForeignKey('uploaded_messages.id'))  # внешний ключ для UploadedMessages.id
     message = db.relationship('UploadedMessages', backref='files', lazy=True)
