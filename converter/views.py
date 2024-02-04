@@ -26,7 +26,6 @@ def before_request():
         db.session.commit()
 
 
-# Главная страница
 @views.route('/', methods=['GET'])
 def home_redirector():
     if current_user.is_authenticated:
@@ -240,7 +239,8 @@ def upload_file():
             return jsonify({'error': True, 'error_message': error_message})
         try:
             new_message = UploadedMessages(toRosreestr=toRosreestr,
-                                           sigBy=judge.id,
+                                           sigById=judge.id,
+                                           sigByName=judgeFio,
                                            toEmails=toEmails,
                                            mailSubject=subject,
                                            mailBody=body,
@@ -302,7 +302,8 @@ def upload_file():
                             sigName=sigName,
                             user_id=current_user.id,
                             message_id=message_id,
-                            sigBy=judge.id)
+                            sigById=judge.id,
+                            sigByName=judgeFio)
                         db.session.add(newFile)
                     except Exception as e:
                         traceback.print_exc()
