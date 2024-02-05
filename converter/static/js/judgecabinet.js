@@ -1,5 +1,21 @@
 import { convertUtcToLocalTime } from './modules/utils.js';
 $(document).ready(function () {
+    $('img[data-toggle="modal"]').on('click', function () {
+        const messageId = $(this).data('message-id');
+        $.get(`/get_message_data/${messageId}`, function (data) {
+            $('body').append(data);
+            const modalId = `#myModal${messageId}`;
+            convertUtcToLocalTime()
+            $(modalId).modal('show');
+            $(modalId).on('hidden.bs.modal', function () {
+                $(this).remove();
+            });
+
+        }).fail(function (error) {
+            console.error('Ошибка при получении данных:', error);
+        });
+    });
+    
     $.ajax({
         url: 'http://localhost:4999/get_certs',
         type: 'GET',
@@ -80,21 +96,6 @@ $(document).ready(function () {
             console.error('Ошибка при отправке подписанных файлов:', error);
         });
     }
-
-    $('img[class="modal"]').on('click', function () {
-        const messageId = $(this).data('message-id');
-        $.get(`/get_message_data/${messageId}`, function (data) {
-            $('body').append(data);
-            const modalId = `#myModal${messageId}`;
-            $(modalId).modal('show');
-            $(modalId).on('hidden.bs.modal', function () {
-                $(this).remove();
-            });
-
-        }).fail(function (error) {
-            console.error('Ошибка при получении данных:', error);
-        });
-    });
 
     convertUtcToLocalTime();
 

@@ -10,6 +10,7 @@ $(document).ready(function () {
         $.get(`/get_message_data/${messageId}`, function (data) {
             $('body').append(data);
             const modalId = `#myModal${messageId}`;
+            convertUtcToLocalTime()
             $(modalId).modal('show');
             $(modalId).on('hidden.bs.modal', function () {
                 $(this).remove();

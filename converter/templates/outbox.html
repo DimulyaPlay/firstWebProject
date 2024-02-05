@@ -36,17 +36,17 @@
             <tr class="table-warning" style="text-align: center;" data-toggle="modal" data-target="#myModal" data-message-id="{{ message.id }}">
             {% endif %}
 
-            <th scope="row" style="text-align: left;">{{ message.mailSubject }}</th>
+            <th class="align-middle" scope="row" style="text-align: left;">{{ message.mailSubject }}</th>
 
             {% if message.files %}
-            <td >{{ message.files | length }}</td>
+            <td class="align-middle">{{ message.files | length }}</td>
             {% else %}
-            <td>0</td>
+            <td class="align-middle">0</td>
             {% endif %}
 
-            <td>{{ message.sigByName }}</td>
+            <td class="align-middle">{{ message.sigByName }}</td>
 
-            <td data-utc-time="{{ message.createDatetime.isoformat() }}">{{ message.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>
+            <td class="align-middle" data-utc-time="{{ message.createDatetime.isoformat() }}">{{ message.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>
 
             {% if message.toRosreestr %}
             <td><img src="static/img/rosreestr-icon.png" alt="Rosreestr"></td>
@@ -91,7 +91,7 @@
 <nav aria-label="Page navigation" class="d-flex justify-content-center">
   <ul class="pagination">
 
-      <li class="page-item {% if total_pages == 0 %}disabled{% endif %}">
+      <li class="page-item {% if total_pages == 1 %}disabled{% endif %}">
         <a class="page-link" href="{{ url_for('views.outbox', page=1, search=search_query) }}" tabindex="-1" aria-disabled="true">В начало</a>
       </li>
       <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
@@ -107,7 +107,7 @@
       <li class="page-item {% if current_page + 1 > total_pages %}disabled{% endif %}">
         <a class="page-link" href="{{ url_for('views.outbox', page=current_page+1 , search=search_query) }}" tabindex="-1" aria-disabled="true">Вперед</a>
       </li>
-      <li class="page-item {% if total_pages == 0 %}disabled{% endif %}">
+      <li class="page-item {% if total_pages == 1 %}disabled{% endif %}">
         <a class="page-link" href="{{ url_for('views.outbox', page=total_pages , search=search_query) }}" tabindex="-1" aria-disabled="true">В конец</a>
       </li>
   </ul>

@@ -233,6 +233,9 @@ $(document).ready(function () {
             alert('Ошибка: Превышен максимально допустимый размер файлов (25 МБ)');
             return;
         }
+            // Показываем индикатор загрузки и отключаем кнопку отправки
+        $('#loadingSpinner').show();
+        $('button[type="submit"]').prop('disabled', true);
 
         $.ajax({
             type: 'POST',
@@ -244,6 +247,8 @@ $(document).ready(function () {
             success: function(response) {
                 if (response.error) {
                     alert('Ошибка: ' + response.error_message);
+                    $('#loadingSpinner').hide();
+                    $('button[type="submit"]').prop('disabled', false);
                 } else {
                     if (response.redirect_url) {
                         window.location.href = response.redirect_url;

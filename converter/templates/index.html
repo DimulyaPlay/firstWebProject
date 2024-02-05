@@ -84,9 +84,11 @@
             <textarea class="form-control" style="width: 500px; margin-bottom: 10px;user-select: text;" rows="3" placeholder="Текст письма" name="body"></textarea>
             <button class="btn btn-secondary" id="addEmailBtn" type="button">Добавить еще email</button><br>
         </div>
-        <div class="pt-3 pb-3">
-        <button class="btn btn-primary" type="submit">Отправить письмо</button><br>
+        <div class="d-flex align-items-center" style="min-height: 50px;">
+            <button class="btn btn-primary" type="submit" id="submitButton">Отправить письмо</button>
+        <div class="spinner-border text-primary" role="status" id="loadingSpinner" style="display: none;margin-left: 10px;"></div>
         </div>
+
     </form>
 </div>
 <script type="module" src="{{ url_for('static', filename='js/index.js') }}"></script>

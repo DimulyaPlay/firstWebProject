@@ -26,21 +26,20 @@
             <tr class="table-warning" style="text-align: center;" >
             {% endif %}
 
-            <th scope="row" style="text-align: left;" >{{ file.fileName }}</th>
+            <th class="align-middle" scope="row" style="text-align: left;" >{{ file.fileName }}</th>
 
-            <td data-utc-time="{{ file.createDatetime.isoformat() }}">{{ file.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>       
+            <td class="align-middle" data-utc-time="{{ file.createDatetime.isoformat() }}">{{ file.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>       
 
-            <td>
+            <td class="align-middle">
                 <a href="{{ url_for('views.get_file', file_id=file.id) }}" target="_blank">
                     <img src="static/img/file-icon.png" alt="OpenFile">
                 </a>
-            </td>    
-
-            <td>
-                <img src="static/img/email-icon.png" alt="OpenLetter" class="modal" data-message-id="{{ file.message_id }}">
+            </td>  
+            <td class="align-middle">
+                <img src="static/img/email-icon.png" alt="OpenLetter" data-toggle="modal" data-message-id="{{ file.message_id }}" style="cursor: pointer;">
             </td>   
 
-            <td><button class="btn btn-primary btn-sign-file" data-file-id="{{ file.id }}" data-file-name="{{ file.fileName }}" {% if file.sigPath %}disabled{% endif %}>Подписать</button></td>
+            <td class="align-middle"><button class="btn btn-primary btn-sign-file" data-file-id="{{ file.id }}" data-file-name="{{ file.fileName }}" {% if file.sigPath %}disabled{% endif %}>Подписать</button></td>
         {% endfor %}
          
     {% else %}
@@ -59,24 +58,24 @@
 <nav aria-label="Page navigation" class="d-flex justify-content-center">
   <ul class="pagination">
 
-      <li class="page-item {% if total_pages == 0 %}disabled{% endif %}">
-        <a class="page-link" href="{{ url_for('views.outbox', page=1, search=search_query) }}" tabindex="-1" aria-disabled="true">В начало</a>
+      <li class="page-item {% if total_pages == 1 %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('views.judge_cabinet', page=1, search=search_query) }}" tabindex="-1" aria-disabled="true">В начало</a>
       </li>
       <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
-        <a class="page-link" href="{{ url_for('views.outbox', page=current_page-1 , search=search_query) }}" tabindex="-1" aria-disabled="true">Назад</a>
+        <a class="page-link" href="{{ url_for('views.judge_cabinet', page=current_page-1 , search=search_query) }}" tabindex="-1" aria-disabled="true">Назад</a>
       </li>
 
       {% for page_num in range(start_index_pages, end_index_pages+1) %}
           <li class="page-item {% if page_num == current_page %}active{% endif %}">
-              <a class="page-link" href="{{ url_for('views.outbox', page=page_num, search=search_query) }}">{{ page_num }}</a>
+              <a class="page-link" href="{{ url_for('views.judge_cabinet', page=page_num, search=search_query) }}">{{ page_num }}</a>
           </li>
       {% endfor %}
 
       <li class="page-item {% if current_page + 1 > total_pages %}disabled{% endif %}">
-        <a class="page-link" href="{{ url_for('views.outbox', page=current_page+1 , search=search_query) }}" tabindex="-1" aria-disabled="true">Вперед</a>
+        <a class="page-link" href="{{ url_for('views.judge_cabinet', page=current_page+1 , search=search_query) }}" tabindex="-1" aria-disabled="true">Вперед</a>
       </li>
-      <li class="page-item {% if total_pages == 0 %}disabled{% endif %}">
-        <a class="page-link" href="{{ url_for('views.outbox', page=total_pages , search=search_query) }}" tabindex="-1" aria-disabled="true">В конец</a>
+      <li class="page-item {% if total_pages == 1 %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('views.judge_cabinet', page=total_pages , search=search_query) }}" tabindex="-1" aria-disabled="true">В конец</a>
       </li>
   </ul>
 </nav>

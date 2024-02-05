@@ -250,22 +250,46 @@ def process_existing_reports(directory, file_storage, app):
 
 
 def generate_modal(message):
+    # Формирование списка файлов для данного сообщения
+    files_list_html = ""
+    for file in message.files:
+        download_link = f'<a href="/get_file?file_id={file.id}" target="_blank">{file.fileName}</a>'
+        files_list_html += f"<li>{download_link}</li>"
+
+    # Форматирование даты и времени
+    created_at = message.createDatetime.strftime("%Y-%m-%d %H:%M:%S")
+    report_datetime = message.reportDatetime.strftime("%Y-%m-%d %H:%M:%S") if message.reportDatetime else "Нет"
+
     modal = f"""
     <div class="modal fade" id="myModal{message.id}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel{message.id}" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="myModalLabel{message.id}">Сообщение {message.id}</h5>
+                    <h5 class="modal-title" id="myModalLabel{message.id}">Письмо №{message.id}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Здесь размещаем содержимое сообщения -->
+                    <p>Создано: <span data-utc-time="{message.createDatetime}">{created_at}</span></p>
+                    <div class="mb-3">
+                        <label for="mailBody" class="form-label">Тема:</label>
+                        <div id="mailBody" class="form-control" style="height: auto; white-space: pre-wrap;">{message.mailSubject}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mailBody" class="form-label">Содержание:</label>
+                        <div id="mailBody" class="form-control" style="height: auto; white-space: pre-wrap;">{message.mailBody}</div>
+                    </div>
+                    <p>Отправлять в Росреестр: {"Да" if message.toRosreestr else "Нет"}</p>
+                    <p>Отправлять по email: {message.toEmails if message.toEmails else "Нет"}</p>
+                    <p>Время подгрузки отчета: <span data-utc-time="{message.reportDatetime}">{report_datetime}</span></p>
+                    <h6>Файлы:</h6>
+                    <ul>{files_list_html}</ul>
                 </div>
                 <div class="modal-footer">
-                    <!-- Здесь размещаем подвал сообщения -->
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
                 </div>
             </div>
         </div>
     </div>
     """
     return modal
+

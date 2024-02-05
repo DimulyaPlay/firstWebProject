@@ -34,7 +34,7 @@ def registration():
                 user = Users.query.filter_by(first_name=first_name).first()
                 login_user(user, remember=True)
                 flash('Аккаунт успешно создан', category='success')
-                return redirect(url_for('views.home'))
+                return redirect(url_for('views.home_redirector'))
             except:
                 traceback.print_exc()
                 flash('Ошибка при регистрации', category='error')

@@ -52,7 +52,7 @@ def judge_cabinet():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     filtered_files = (UploadedFiles.query
-                         .filter(UploadedFiles.sigBy == current_user.id)
+                         .filter(UploadedFiles.sigById == current_user.id)
                          .order_by(desc(UploadedFiles.createDatetime)).all())
     start_index = (page - 1) * per_page
     end_index = start_index + per_page
@@ -313,7 +313,6 @@ def upload_file():
         if attachments:
             for attachment in attachments:
                 try:
-                    filepath = save_file(attachment)
                     file_name = attachment.filename
                     file_type = os.path.splitext(file_name)[1][1:]
                     file_name_uuid = str(uuid4()) + '.' + file_type
