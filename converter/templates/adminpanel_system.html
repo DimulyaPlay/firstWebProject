@@ -29,6 +29,10 @@
             <label for="auth_timeout">Таймаут авторизации. Укажите время неактивности (в часах), после которого сессия пользователя будет автоматически завершена. <br>Установите 0 для отключения таймаута.</label>
             <input type="number" class="form-control" id="auth_timeout" name="auth_timeout" value="{{ default_configuration.auth_timeout }}" min="0" step="1">
         </div>
+        <div class="form-group" style="padding-top: 0.5rem;">
+            <label for="hwid" style="user-select: text";>Отправьте этот ID оборудования для активации полного функционала сервиса: {{hwid}}</label>
+            <input type="text" class="form-control" id="hwid" name="hwid" value="{{ default_configuration.l_key }}" placeholder="Введите сюда полученный ключ">
+        </div>
         <br>
         <button type="submit" class="btn btn-primary" >Сохранить настройки системы</button>
     </form>

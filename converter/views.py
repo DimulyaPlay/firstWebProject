@@ -9,7 +9,7 @@ import os
 from datetime import datetime, timedelta
 from . import db
 from uuid import uuid4
-from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_config, read_create_config, process_emails, generate_modal
+from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_config, read_create_config, process_emails, generate_modal, hwid
 from email_validator import validate_email
 import zipfile
 import tempfile
@@ -82,7 +82,8 @@ def adminpanel_system():
         return render_template('adminpanel_system.html',
                                title='Панель управления',
                                user=current_user,
-                               default_configuration=config)
+                               default_configuration=config,
+                               hwid=hwid)
     if request.method == 'POST':
         try:
             sig_check = request.form.get('sig_check') == 'on'  # Преобразование в boolean
@@ -91,12 +92,14 @@ def adminpanel_system():
             file_export_folder = request.form.get('file_export_folder')
             reports_path = request.form.get('reports_path')
             auth_timeout = request.form.get('auth_timeout')
+            l_key = request.form.get('l_key')
             config['sig_check'] = sig_check
             config['csp_path'] = csp_path
             config['file_storage'] = file_storage
             config['file_export_folder'] = file_export_folder
             config['reports_path'] = reports_path
             config['auth_timeout'] = auth_timeout
+            config['l_key'] = l_key
             save_config()
             flash('Параметры успешно сохранены', category='success')
         except:

@@ -16,6 +16,12 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from email_validator import validate_email
 import time
+from wmi import WMI
+try:
+    hwid = WMI().Win32_ComputerSystemProduct()[0].UUID
+    print('Ваш HWID:', hwid)
+except:
+    print('Не удалось получить ваш HWID')
 
 
 config_path = os.path.dirname(sys.argv[0])
@@ -31,7 +37,8 @@ def read_create_config(config_filepath=config_file):
         "file_storage": r"C:\fileStorage",
         "file_export_folder": r"C:\fileStorage\Export",
         "reports_path": r"C:\fileStorage\Reports",
-        'auth_timeout': 0
+        'auth_timeout': 0,
+        'l_key': ""
     }
     if os.path.exists(config_filepath):
         try:
