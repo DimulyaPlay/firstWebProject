@@ -7,9 +7,10 @@ from .models import UploadedFiles, UploadedMessages, Users
 from sqlalchemy import desc
 import os
 from datetime import datetime, timedelta
-from . import db
+from . import db, free_mails_limit
 from uuid import uuid4
-from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, save_config, read_create_config, process_emails, generate_modal, hwid
+from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, \
+    save_config, read_create_config, process_emails, generate_modal, hwid, sent_mails_in_current_session, is_valid
 from email_validator import validate_email
 import zipfile
 import tempfile
@@ -40,6 +41,8 @@ def home_redirector():
 @views.route('/create_message', methods=['GET'])
 def create_message():
     if current_user.is_authenticated:
+        if not is_valid and len(sent_mails_in_current_session) > free_mails_limit:
+            flash('Лимит сообщений исчерпан, новые сообщения отправляться не будут.', 'error')
         judges = Users.query.filter_by(is_judge=True)
         return render_template('index.html', title='Отправить письмо', user=current_user, judges=judges)
     else:
@@ -91,15 +94,22 @@ def adminpanel_system():
             file_storage = request.form.get('file_storage')
             file_export_folder = request.form.get('file_export_folder')
             reports_path = request.form.get('reports_path')
-            auth_timeout = request.form.get('auth_timeout')
+            if sig_check:
+                if not os.path.exists(csp_path):
+                    flash('Параметры не были сохранены, недействительный путь к Крипто Про', category='error')
+                    return redirect(url_for('views.adminpanel_system'))
+            if not all((os.path.exists(file_storage), os.path.exists(file_export_folder), os.path.exists(reports_path))):
+                flash('Параметры не были сохранены, один или несколько из путей для хранения недоступны', category='error')
+                return redirect(url_for('views.adminpanel_system'))
             l_key = request.form.get('l_key')
             config['sig_check'] = sig_check
             config['csp_path'] = csp_path
             config['file_storage'] = file_storage
             config['file_export_folder'] = file_export_folder
             config['reports_path'] = reports_path
-            config['auth_timeout'] = auth_timeout
+            config['auth_timeout'] = request.form.get('auth_timeout')
             config['l_key'] = l_key
+            config['restricted_emails'] = request.form.get('restricted_emails')
             save_config()
             flash('Параметры успешно сохранены', category='success')
         except:
@@ -214,7 +224,12 @@ def get_file():
 @views.post('/uploadMessage')
 @login_required
 def upload_file():
+    global sent_mails_in_current_session
     try:
+        if not is_valid and len(sent_mails_in_current_session) > free_mails_limit:
+            error_message = 'Лимит сообщений исчерпан.'
+            db.session.rollback()
+            return jsonify({'error': True, 'error_message': error_message})
         files_data = request.files.lists()
         new_files_data = {}
         for key, value in files_data:
@@ -288,10 +303,11 @@ def upload_file():
                         sig_path_to_save = os.path.join(config['file_storage'], sigNameUUID)
                         sigName = sigfile[0].filename
                         sigfile[0].save(sig_path_to_save)
-                        sig_valid = check_sig(filepath_to_save, sig_path_to_save)
-                        if not sig_valid:
-                            db.session.rollback()
-                            return jsonify({'error': True, 'error_message': f'Прикрепленная к файлу {value.filename} подпись не прошла проверку, отправка отменена'})
+                        if config['sig_check']:
+                            sig_valid = check_sig(filepath_to_save, sig_path_to_save)
+                            if not sig_valid:
+                                db.session.rollback()
+                                return jsonify({'error': True, 'error_message': f'Прикрепленная к файлу {value.filename} подпись не прошла проверку, отправка отменена'})
                     else:
                         sigNameUUID = None
                         sigName = None
@@ -344,6 +360,7 @@ def upload_file():
                 new_message.signed = True
                 export_signed_message(new_message)
                 db.session.commit()
+                sent_mails_in_current_session += "1"
                 flash('Сообщение успешно отправлено.', category='success')
                 return jsonify({'success': True, 'redirect_url': url_for('views.create_message')})
         except Exception as e:
@@ -351,6 +368,7 @@ def upload_file():
             error_message = f'при экспорте готового письма ({e}).'
             db.session.rollback()
             return jsonify({'error': True, 'error_message': error_message})
+        sent_mails_in_current_session += "1"
         flash('Сообщение передано на подпись. После подписания будет отправлено.', category='success')
         return jsonify({'success': True, 'redirect_url': url_for('views.create_message')})
     except Exception as e:

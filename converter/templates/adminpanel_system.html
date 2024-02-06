@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div style="margin-top: 50px;">
+<div style="margin-top: 15px;">
     <h2>Настройки системы</h2>
     <form id="settings-form" method="POST">
         <!-- Поле для sig_check -->
@@ -28,6 +28,10 @@
         <div class="form-group" style="padding-top: 0.5rem;">
             <label for="auth_timeout">Таймаут авторизации. Укажите время неактивности (в часах), после которого сессия пользователя будет автоматически завершена. <br>Установите 0 для отключения таймаута.</label>
             <input type="number" class="form-control" id="auth_timeout" name="auth_timeout" value="{{ default_configuration.auth_timeout }}" min="0" step="1">
+        </div>
+                <div class="form-group" style="padding-top: 0.5rem;">
+            <label for="restricted_emails" style="user-select: text";>Черный список email адресов для пропуска при распознавании и отправке через ";"</label>
+            <input type="text" class="form-control" id="restricted_emails" name="restricted_emails" value="{{ default_configuration.restricted_emails }}" placeholder="example@example.com;test@tset.ru">
         </div>
         <div class="form-group" style="padding-top: 0.5rem;">
             <label for="hwid" style="user-select: text";>Отправьте этот ID оборудования для активации полного функционала сервиса: {{hwid}}</label>

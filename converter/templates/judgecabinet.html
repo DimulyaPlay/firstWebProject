@@ -1,7 +1,7 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-<br>
+<h2 style="margin-top: 15px;">Кабинет судьи</h2>
 <select id="certificateSelector" class="form-select"></select>
 <br>
 
@@ -20,7 +20,7 @@
     {% if files %}
     
         {% for file in files %}
-            {% if file.sigPath %}
+            {% if file.sigNameUUID %}
             <tr class="table-success" style="text-align: center;" >
             {% else %}
             <tr class="table-warning" style="text-align: center;" >

@@ -10,6 +10,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 database_path = os.path.join(basedir, 'instance', 'database.db')
 if not os.path.exists(os.path.join(basedir, 'instance')):
     os.mkdir(os.path.join(basedir, 'instance'))
+free_mails_limit = 20
 
 
 def create_app(config):

@@ -17,12 +17,18 @@ from watchdog.events import FileSystemEventHandler
 from email_validator import validate_email
 import time
 from wmi import WMI
+import jwt
+
+
 try:
     hwid = WMI().Win32_ComputerSystemProduct()[0].UUID
+    sk = 'Ваш hwid:'
     print('Ваш HWID:', hwid)
+
 except:
     print('Не удалось получить ваш HWID')
 
+sent_mails_in_current_session = ''
 
 config_path = os.path.dirname(sys.argv[0])
 if not os.path.exists(config_path):
@@ -32,13 +38,14 @@ config_file = os.path.join(config_path, 'config.json')
 
 def read_create_config(config_filepath=config_file):
     default_configuration = {
-        "sig_check": True,
+        "sig_check": False,
         "csp_path": r"C:\Program Files\Crypto Pro\CSP",
         "file_storage": r"C:\fileStorage",
         "file_export_folder": r"C:\fileStorage\Export",
         "reports_path": r"C:\fileStorage\Reports",
         'auth_timeout': 0,
-        'l_key': ""
+        'l_key': "",
+        'restricted_emails':''
     }
     if os.path.exists(config_filepath):
         try:
@@ -63,7 +70,21 @@ def read_create_config(config_filepath=config_file):
     return cfg
 
 
+def verify_license_key(license_key, current_hwid):
+    try:
+        decoded = jwt.decode(license_key, sk, algorithms=["HS256"])
+        if decoded["hwid"] != current_hwid:
+            return False, "HWID or Email does not match"
+        return True, "License is valid"
+    except jwt.ExpiredSignatureError:
+        return False, "License has expired"
+    except jwt.InvalidTokenError:
+        return False, "Invalid license key"
+
+
 config = read_create_config(config_file)
+is_valid, message = verify_license_key(config['l_key'], hwid)
+print(message)
 
 
 def save_config():
@@ -93,11 +114,12 @@ def analyze_file(file):
 
 def analyze_text(text):
     try:
-        email_pattern = re.compile(r'\[([^\]]+@[^\]]+)\]')
+        email_pattern = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
         matches = email_pattern.findall(text)
         matches = [match for match in matches]
         detected_addresses = matches
         detected_addresses = [address for address in detected_addresses if validate_email(address)]
+        detected_addresses = [address for address in detected_addresses if not address.lower() in config['restricted_emails'].split(';')]
         return detected_addresses
     except Exception as e:
         traceback.print_exc()
@@ -107,7 +129,7 @@ def analyze_text(text):
 def process_emails(request_form):
     toEmails = True if request_form.get('sendByEmail') == 'on' else None
     if toEmails:
-        emails = '; '.join([email for email in request_form.getlist('email') if validate_email(email)])
+        emails = '; '.join([email for email in request_form.getlist('email') if validate_email(email) and email.lower() not in config['restricted_emails'].split(';')])
         return emails if emails else None
     return None
 
@@ -161,13 +183,14 @@ def check_sig(fp, sp):
 def export_signed_message(message):
     zip_filename = os.path.join(config['file_export_folder'],
                                 f'Export_msg_id_{message.id}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip')
+    zip_filename_part = zip_filename + '.part'
 
     files = UploadedFiles.query.filter_by(message_id=message.id).all()
-    filepaths = [f.filePath for f in files]
+    filepaths = [os.path.join(config['file_storage'], f.fileNameUUID) for f in files]
     filenames = [f.fileName for f in files]
     filenames = [f'file_{i}' if filenames.count(f) > 1 else f for i, f in enumerate(filenames)]
 
-    sigpaths = [f.sigPath for f in files if f.sigPath]
+    sigpaths = [os.path.join(config['file_storage'], f.sigNameUUID) for f in files if f.sigNameUUID]
     signames = [f.sigName for f in files]
     signames = [f'file_{i}' if signames.count(f) > 1 else f for i, f in enumerate(signames)]
     fileNames = filenames.copy()
@@ -182,7 +205,7 @@ def export_signed_message(message):
         'body': message.mailBody,
         'fileNames': fileNames
     }
-    with zipfile.ZipFile(zip_filename, 'w') as zip_file:
+    with zipfile.ZipFile(zip_filename_part, 'w') as zip_file:
         for file_path, file_name in zip(filepaths, filenames):
             zip_file.write(file_path, arcname=file_name)
         if sigpaths:
@@ -193,6 +216,7 @@ def export_signed_message(message):
             json.dump(meta, meta_file)
         zip_file.write(meta_filename, arcname=meta_filename)
     os.remove(meta_filename)
+    os.rename(zip_filename_part, zip_filename)
     return zip_filename
 
 
@@ -206,20 +230,31 @@ class ReportHandler(FileSystemEventHandler):
         self.app = app
 
     def on_created(self, event):
+        global config
         if event.is_directory:
             return
         with self.app.app_context():
             filename = os.path.basename(event.src_path)
+            if filename == 'SOEDkey.txt':
+                time.sleep(1)
+                with open(event.src_path) as file:
+                    l_key = file.readline()
+                    res, msg = verify_license_key(license_key=l_key, current_hwid=hwid)
+                    if res:
+                        config['l_key'] = l_key
+                save_config()
+                os.remove(event.src_path)
+                return
             message_id = filename.split('.')[0]  # функция для извлечения ID из названия файла
             new_filename = str(uuid4()) + '.pdf'
             new_filepath = os.path.join(config['file_storage'], new_filename)
-            time.sleep(1)
+            time.sleep(2)
             shutil.move(event.src_path, new_filepath)
             message = UploadedMessages.query.get(message_id)
             if message:
                 message.reportDatetime = datetime.utcnow()
-                message.reportFilepath = new_filepath
-                message.reportFilename = new_filename
+                message.reportNameUUID = new_filename
+                message.reportName = filename
                 db.session.commit()
 
 
@@ -251,8 +286,8 @@ def process_existing_reports(directory, file_storage, app):
             message = UploadedMessages.query.get(message_id)
             if message:
                 message.reportDatetime = datetime.utcnow()
-                message.reportFilepath = new_filepath
-                message.reportFilename = new_filename
+                message.reportNameUUID = new_filename
+                message.reportName = filename
                 db.session.commit()
 
 
