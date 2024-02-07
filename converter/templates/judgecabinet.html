@@ -28,7 +28,7 @@
 
             <th class="align-middle" scope="row" style="text-align: left;" >{{ file.fileName }}</th>
 
-            <td class="align-middle" data-utc-time="{{ file.createDatetime.isoformat() }}">{{ file.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>       
+            <td class="align-middle" data-utc-time="{{ file.createDatetime.isoformat() }}"></td>       
 
             <td class="align-middle">
                 <a href="{{ url_for('views.get_file', file_id=file.id) }}" target="_blank">

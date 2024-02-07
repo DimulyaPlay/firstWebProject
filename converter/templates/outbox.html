@@ -2,7 +2,7 @@
 
 {% block content %}
 <h2 style="margin-top: 15px;">Мои отправления</h2>
-<form method="GET" action="{{ url_for('views.outbox') }}" class="form-inline mb-2" style="margin-top: 10px;user-select: text;">
+<form method="GET" action="{{ url_for('views.outbox') }}" class="form-inline mb-2" style="margin-top: 15px;user-select: text;">
   <div class="input-group">
       <input type="text" name="search" class="form-control rounded-0" placeholder="Поиск по теме" value="{{ search_query }}">
       <div class="input-group-append">
@@ -46,7 +46,7 @@
 
             <td class="align-middle">{{ message.sigByName }}</td>
 
-            <td class="align-middle" data-utc-time="{{ message.createDatetime.isoformat() }}">{{ message.createDatetime.strftime('%d.%m.%y %H:%M') }}</td>
+            <td class="align-middle" data-utc-time="{{ message.createDatetime.isoformat() }}"></td>
 
             {% if message.toRosreestr %}
             <td><img src="static/img/rosreestr-icon.png" alt="Rosreestr"></td>

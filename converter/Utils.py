@@ -16,17 +16,24 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from email_validator import validate_email
 import time
-from wmi import WMI
 import jwt
 
-
+sk = 'Ваш hwid:'
 try:
-    hwid = WMI().Win32_ComputerSystemProduct()[0].UUID
-    sk = 'Ваш hwid:'
-    print('Ваш HWID:', hwid)
-
-except:
-    print('Не удалось получить ваш HWID')
+    if os.name == 'nt':
+        from wmi import WMI
+        hwid = WMI().Win32_ComputerSystemProduct()[0].UUID
+    elif os.name == 'posix':
+        process = subprocess.Popen(['sudo', 'dmidecode', '-s', 'system-serial-number'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = process.communicate()
+        hwid = out.strip().decode()  # Преобразуем bytes в str и удаляем лишние пробелы
+    else:
+        hwid = 'Ваша операционная система не поддерживается.'
+    if hwid:
+        print('Ваш HWID:', hwid)
+except Exception as e:
+    hwid = 'Ошибка.'
+    print('Не удалось получить ваш HWID:', e)
 
 sent_mails_in_current_session = ''
 
@@ -299,7 +306,6 @@ def generate_modal(message):
         files_list_html += f"<li>{download_link}</li>"
 
     # Форматирование даты и времени
-    created_at = message.createDatetime.strftime("%Y-%m-%d %H:%M:%S")
     report_datetime = message.reportDatetime.strftime("%Y-%m-%d %H:%M:%S") if message.reportDatetime else "Нет"
 
     modal = f"""
@@ -311,7 +317,7 @@ def generate_modal(message):
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Создано: <span data-utc-time="{message.createDatetime}">{created_at}</span></p>
+                    <p>Создано: <span data-utc-time="{message.createDatetime}"></span></p>
                     <div class="mb-3">
                         <label for="mailBody" class="form-label">Тема:</label>
                         <div id="mailBody" class="form-control" style="height: auto; white-space: pre-wrap;">{message.mailSubject}</div>
