@@ -55,8 +55,8 @@ def judge_cabinet():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     filtered_files = (UploadedFiles.query
-                         .filter(UploadedFiles.sigById == current_user.id)
-                         .order_by(desc(UploadedFiles.createDatetime)).all())
+                      .filter(UploadedFiles.sigById == current_user.id)
+                      .order_by(desc(UploadedFiles.createDatetime)).all())
     start_index = (page - 1) * per_page
     end_index = start_index + per_page
     paginated_files = filtered_files[start_index:end_index]
@@ -69,6 +69,40 @@ def judge_cabinet():
                            current_page=page,
                            start_index_pages=start_index_pages,
                            end_index_pages=end_index_pages)
+
+
+@views.route('/api/judge-files', methods=['GET'])
+@login_required
+def get_judge_files():
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    filtered_files = (UploadedFiles.query
+                      .filter(UploadedFiles.sigById == current_user.id)
+                      .order_by(desc(UploadedFiles.createDatetime)).all())
+    total_files = len(filtered_files)
+    start_index = (page - 1) * per_page
+    end_index = start_index + per_page
+    paginated_files = filtered_files[start_index:end_index]
+
+    files_data = []
+    for file in paginated_files:
+        files_data.append({
+            'fileName': file.fileName,
+            'createDatetime': file.createDatetime.isoformat(),
+            'id': file.id,
+            'sigNameUUID': bool(file.sigNameUUID),
+            'message_id': file.message_id
+        })
+    total_pages = (total_files + per_page - 1) // per_page
+    start_index_pages = page - 3 if page - 3 > 1 else 1
+    end_index_pages = page + 3 if page + 3 < total_pages else total_pages
+    return jsonify({
+        'files': files_data,
+        'total_pages': total_pages,
+        'current_page': page,
+        "start_index_pages": start_index_pages,
+        "end_index_pages": end_index_pages
+    })
 
 
 @views.route('/admin', methods=['GET'])
