@@ -52,7 +52,7 @@ def read_create_config(config_filepath=config_file):
         "reports_path": r"C:\fileStorage\Reports",
         'auth_timeout': 0,
         'l_key': "",
-        'restricted_emails':''
+        'restricted_emails': ''
     }
     if os.path.exists(config_filepath):
         try:
@@ -112,9 +112,9 @@ def analyze_file(file):
                 content += pdf_reader.pages[page_num].extract_text().lower().replace(' ', '')
             detected_addresses = analyze_text(content)
         else:
-            return []  # Неподдерживаемый формат файла
+            return []
         return detected_addresses
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
         return []
 
@@ -124,9 +124,7 @@ def analyze_text(text):
         email_pattern = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
         matches = email_pattern.findall(text)
         matches = [match for match in matches]
-        detected_addresses = matches
-        detected_addresses = [address for address in detected_addresses if validate_email(address)]
-        detected_addresses = [address for address in detected_addresses if not address.lower() in config['restricted_emails'].split(';')]
+        detected_addresses = [address for address in matches if not address.lower() in config['restricted_emails'].split(';')]
         return detected_addresses
     except Exception as e:
         traceback.print_exc()
@@ -225,11 +223,6 @@ def export_signed_message(message):
     os.remove(meta_filename)
     os.rename(zip_filename_part, zip_filename)
     return zip_filename
-
-
-def report_exists(message_id):
-    report_filepath = os.path.join(config['reports_path'], f'{message_id}.pdf')
-    return os.path.exists(report_filepath)
 
 
 class ReportHandler(FileSystemEventHandler):

@@ -2,226 +2,100 @@ $(document).ready(function () {
     const MAX_FILE_SIZE = 25 * 1024 * 1024; // Максимальный размер файла (25 МБ)
 
     // Обработчик для отображения секции email при изменении чекбокса
-    $('#sendByEmail').on('change', function() {
+    $('#sendByEmail').on('change', function () {
         $('#emailSection').toggle(this.checked);
     });
 
-    // Обработчик для добавления полей email
-    $('#addEmailBtn').on('click', function() {
-        const emailInput = $('<input>', {
-            type: 'email',
-            class: 'form-control mb-2',
-            style: 'width: 500px; margin-bottom: 10px;',
-            name: 'email',
-            placeholder: 'Email'
-        });
+    // Функция для создания нового блока
+    function createSignatureFileBlock(index) {
+        return `
+            <div class="signature-file-block bg-secondary bg-opacity-25 rounded p-1 m-1" data-file-index="${index}">
+                <div class="row">
+                    <div class="col-md-6 mb-0 mt-2">
+                        <label class="form-label">Файл на подпись:
+                            <input type="file" class="form-control btn btn-primary"  id="formFile${index}" name="file${index}" accept=".pdf" />
+                        </label>
+                    </div>
+                    <div class="col-md-6 mb-0 mt-2">
+                        <label class="form-label">Выберите подпись, если файл подписан:
+                            <input type="file" class="form-control btn btn-secondary" name="sig${index}" accept=".sig" />
+                        </label>
+                    </div>
+                </div>
+                <div class="form-check mb-0">
+                    <label class="form-check-label">Добавить штамп (только для PDF файлов)
+                        <input class="form-check-input addStampCheckbox" type="checkbox" name="addStamp${index}">
+                    </label>
+                </div>
+                <div class="stamp-options" style="display: none;">
+                    <div class="form-check">
+                        <label class="form-check-label">Первая страница
+                            <input class="form-check-input" type="checkbox" name="firstPage${index}">
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <label class="form-check-label">Последняя страница
+                            <input class="form-check-input" type="checkbox" name="lastPage${index}">
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <label class="form-check-label">Все страницы
+                            <input class="form-check-input" type="checkbox" name="allPages${index}">
+                        </label>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">Страницы по выбору:
+                            <input type="text" class="form-control" name="customPages${index}"
+                                placeholder="Введите номера страниц">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 
-        const removeButton = $('<button>', {
-            class: 'btn btn-danger',
-            type: 'button',
-            style: 'margin-left: 10px; margin-bottom: 10px;',
-            text: 'X',
-            click: function () {
-                $(this).closest('label').remove();
-            }
-        });
-
-        const emailLabel = $('<label>', {
-            style: 'display: flex;user-select: text;'
-        });
-
-        emailLabel.append(emailInput).append(removeButton);
-        emailLabel.insertBefore($("#subject"));
+    // Делегирование события change для динамически добавляемых чекбоксов
+    $(document).on('change', '.addStampCheckbox', function () {
+        $(this).closest('.signature-file-block').find('.stamp-options').toggle(this.checked);
     });
 
-    // Обработчик для отображения опций штампа при изменении чекбокса
-    $('.addStampCheckbox').on('change', function () {
-        const stampOptions = $(this).closest('.signature-file-block').find('.stamp-options');
-        stampOptions.toggle(this.checked);
+    // Обработчик клика по кнопке "Добавить еще файл на подпись"
+    $('.addSignatureFileBtn').click(function () {
+        // Определение текущего индекса
+        const index = $('#signatureFilesContainer .signature-file-block').length + 1;
+        // Создание и добавление нового блока
+        $('#signatureFilesContainer').append(createSignatureFileBlock(index));
     });
 
-    $('.addSignatureFileBtn').on('click', function () {
-        const container = $('#signatureFilesContainer');
-        const currentIndex = container.children('.signature-file-block').length + 1;
-    
-        const newBlock = $('<div>', {
-            class: 'signature-file-block',
-            'data-file-index': currentIndex
-        });
-    
-        const label = $('<label>', {
-            text: 'Файл на подпись:'
-        });
-    
-        const fileInput = $('<input>', {
-            class: 'btn btn-primary',
-            type: 'file',
-            name: 'file' + currentIndex,
-            id: 'formFile' + currentIndex,
-            accept: '.pdf',
-            required: true
-        });
-    
-        const deleteButton = $('<button>', {
-            class: 'btn btn-danger deleteSignatureFileBtn',
-            text: 'X',
-            style: 'margin-left:10px;'
-        });
-    
-        deleteButton.on('click', function () {
-            $(this).closest('.signature-file-block').remove();
-        });
-    
-        label.append('<br>').append(fileInput).append(deleteButton).append('<br>');
-    
-        const labelSig = $('<label>', {
-            text: 'Выберите подпись, если файл подписан:'
-        });
-    
-        const fileInputSig = $('<input>', {
-            class: 'btn btn-secondary',
-            type: 'file',
-            name: 'sig' + currentIndex,
-            id: 'formFileSignature' + currentIndex,
-            accept: '.sig'
-        });
-    
-        labelSig.append('<br>').append(fileInputSig);
-    
-        const addStampCheckbox = $('<div>', {
-            class: 'form-check'
-        });
-    
-        const stampCheckbox = $('<input>', {
-            class: 'form-check-input addStampCheckbox',
-            type: 'checkbox',
-            id: 'addStamp' + currentIndex,
-            name: 'addStamp' + currentIndex
-        });
-    
-        addStampCheckbox.append($('<label>', {
-            class: 'form-check-label',
-            style: 'margin-top: 10px;',
-            text: 'Добавить штамп (только для PDF файлов)'
-        })).append(stampCheckbox);
-    
-        const stampOptions = $('<div>', {
-            class: 'stamp-options',
-            id: 'stampOptions' + currentIndex,
-            style: 'display: none;'
-        });
-    
-        const checkboxes = ['Первая страница', 'Последняя страница', 'Все страницы'];
-    
-        checkboxes.forEach(function (text) {
-            const checkbox = $('<input>', {
-                class: 'form-check-input',
-                type: 'checkbox',
-                name: text.toLowerCase() + currentIndex
-            });
-    
-            const label = $('<label>', {
-                class: 'form-check-label',
-                text: text
-            });
-    
-            const checkboxDiv = $('<div>', {
-                class: 'form-check'
-            });
-    
-            checkboxDiv.append(label).append(checkbox);
-            stampOptions.append(checkboxDiv);
-        });
-    
-        const customPagesInput = $('<div>', {
-            class: 'form-group'
-        }).append($('<label>', {
-            text: 'Страницы по выбору:'
-        })).append($('<input>', {
-            type: 'text',
-            class: 'form-control',
-            name: 'customPages' + currentIndex,
-            placeholder: 'Введите номера страниц',
-            style: 'width: 300px;'
-        }));
-    
-        stampOptions.append(customPagesInput);
-    
-        newBlock.append('<br>')
-            .append(label)
-            .append('<br>')
-            .append(labelSig)
-            .append(addStampCheckbox)
-            .append(stampOptions);
-    
-        container.append(newBlock);
-    
-        newBlock.find('.addStampCheckbox').on('change', function () {
-            const stampOptions = $(this).closest('.signature-file-block').find('.stamp-options');
-            stampOptions.toggle(this.checked);
-        });
-    });
-    
 
-    // Обработчик для удаления файлов
-    $('#signatureFilesContainer').on('click', '.deleteSignatureFileBtn', function () {
-        $(this).closest('.signature-file-block').remove();
-    });
 
-    // Обработчик для анализа загружаемого файла
     $('#signatureFilesContainer').on('change', '[id^="formFile"]', function () {
         const formData = new FormData();
         formData.append('file', $(this)[0].files[0]);
-
         $.ajax({
             type: 'POST',
-            url: '/analyzeFile',
+            url: '/api/analyze-file',
             data: formData,
             contentType: false,
             processData: false,
-            success: function(data) {
+            success: function (data) {
                 $('#sendByEmail').prop('checked', true);
-                data.detectedAddresses.forEach(function(address) {
-                    const emailInput = $('<input>', {
-                        type: 'email',
-                        class: 'form-control mb-2',
-                        style: 'width: 500px; margin-bottom: 10px;',
-                        name: 'email',
-                        placeholder: 'Email',
-                        value: address
-                    });
-
-                    const removeButton = $('<button>', {
-                        class: 'btn btn-danger',
-                        type: 'button',
-                        style: 'margin-left: 10px; margin-bottom: 10px;',
-                        text: 'X',
-                        click: function () {
-                            $(this).closest('label').remove();
-                        }
-                    });
-
-                    const emailLabel = $('<label>', {
-                        style: 'display: flex;'
-                    });
-
-                    emailLabel.append(emailInput).append(removeButton);
-                    emailLabel.insertBefore($("#subject"));
+                data.detectedAddresses.forEach(function (address) {
+                    var tag = $('<div class="email-tag" name="email">' + address + '<span class="remove-tag">&times;</span></div>');
+                $('#emailTags').append(tag);
                 });
-
                 $('#emailSection').show()
             },
-            error: function(error) {
+            error: function (error) {
                 console.log('Error:', error);
             }
         });
     });
 
     // Обработчик для отправки формы
-    $('#fileForm').submit(function(e) {
+    $('#fileForm').submit(function (e) {
         e.preventDefault();
         const formData = new FormData(this);
-
         let totalSize = 0;
         for (let pair of formData.entries()) {
             if (pair[1] instanceof File) {
@@ -233,7 +107,7 @@ $(document).ready(function () {
             alert('Ошибка: Превышен максимально допустимый размер файлов (25 МБ)');
             return;
         }
-            // Показываем индикатор загрузки и отключаем кнопку отправки
+        // Показываем индикатор загрузки и отключаем кнопку отправки
         $('#loadingSpinner').show();
         $('button[type="submit"]').prop('disabled', true);
 
@@ -244,7 +118,7 @@ $(document).ready(function () {
             contentType: false,
             cache: false,
             processData: false,
-            success: function(response) {
+            success: function (response) {
                 if (response.error) {
                     alert('Ошибка: ' + response.error_message);
                     $('#loadingSpinner').hide();
@@ -255,9 +129,24 @@ $(document).ready(function () {
                     }
                 }
             },
-            error: function(error) {
+            error: function (error) {
                 console.log('Ошибка AJAX-запроса:', error);
             }
         });
+    });
+    $('#emailInput').on('keypress', function (e) {
+        if (e.which === 13) { // Код клавиши Enter
+            e.preventDefault(); // Предотвращаем отправку формы
+            var email = $(this).val().trim();
+            if (email) { // Проверяем, не пустой ли email
+                var tag = $('<div class="email-tag" name="email">' + email + '<span class="remove-tag">&times;</span></div>');
+                $('#emailTags').append(tag);
+                $(this).val(''); // Очищаем поле ввода
+            }
+        }
+    });
+
+    $(document).on('click', '.remove-tag', function () {
+        $(this).parent().remove(); // Удаляем тег
     });
 });

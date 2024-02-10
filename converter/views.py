@@ -1,6 +1,5 @@
 import time
 import traceback
-from .auth import login
 from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash, redirect, make_response, render_template_string
 from flask_login import current_user, login_required, logout_user
 from .models import UploadedFiles, UploadedMessages, Users
@@ -9,22 +8,13 @@ import os
 from datetime import datetime, timedelta
 from . import db, free_mails_limit
 from uuid import uuid4
-from .Utils import analyze_file, generate_sig_pages, check_sig, config, export_signed_message, report_exists, \
+from .Utils import generate_sig_pages, check_sig, config, export_signed_message,\
     save_config, read_create_config, process_emails, generate_modal, hwid, sent_mails_in_current_session, is_valid
 from email_validator import validate_email
 import zipfile
 import tempfile
 
 views = Blueprint('views', __name__)
-
-
-@views.before_request
-def before_request():
-    if current_user.is_authenticated:
-        if int(config['auth_timeout']) and (current_user.last_seen < datetime.utcnow() - timedelta(hours=int(config['auth_timeout']))):  # 2 часа неактивности
-            logout_user()
-        current_user.last_seen = datetime.utcnow()
-        db.session.commit()
 
 
 @views.route('/', methods=['GET'])
@@ -49,60 +39,10 @@ def create_message():
         return render_template('login.html', title='Войти', user=current_user)
 
 
-@views.route('/judge', methods=['GET'])
+@views.route('/judge_cabinet', methods=['GET'])
 @login_required
 def judge_cabinet():
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-    filtered_files = (UploadedFiles.query
-                      .filter(UploadedFiles.sigById == current_user.id)
-                      .order_by(desc(UploadedFiles.createDatetime)).all())
-    start_index = (page - 1) * per_page
-    end_index = start_index + per_page
-    paginated_files = filtered_files[start_index:end_index]
-    total_pages = (len(filtered_files) + per_page - 1) // per_page
-    start_index_pages = page - 3 if page - 3 > 1 else 1
-    end_index_pages = page + 3 if page + 3 < total_pages else total_pages
-    return render_template('judgecabinet.html', title='Кабинет судьи', user=current_user,
-                           files=paginated_files,
-                           total_pages=total_pages,
-                           current_page=page,
-                           start_index_pages=start_index_pages,
-                           end_index_pages=end_index_pages)
-
-
-@views.route('/api/judge-files', methods=['GET'])
-@login_required
-def get_judge_files():
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-    filtered_files = (UploadedFiles.query
-                      .filter(UploadedFiles.sigById == current_user.id)
-                      .order_by(desc(UploadedFiles.createDatetime)).all())
-    total_files = len(filtered_files)
-    start_index = (page - 1) * per_page
-    end_index = start_index + per_page
-    paginated_files = filtered_files[start_index:end_index]
-
-    files_data = []
-    for file in paginated_files:
-        files_data.append({
-            'fileName': file.fileName,
-            'createDatetime': file.createDatetime.isoformat(),
-            'id': file.id,
-            'sigNameUUID': bool(file.sigNameUUID),
-            'message_id': file.message_id
-        })
-    total_pages = (total_files + per_page - 1) // per_page
-    start_index_pages = page - 3 if page - 3 > 1 else 1
-    end_index_pages = page + 3 if page + 3 < total_pages else total_pages
-    return jsonify({
-        'files': files_data,
-        'total_pages': total_pages,
-        'current_page': page,
-        "start_index_pages": start_index_pages,
-        "end_index_pages": end_index_pages
-    })
+    return render_template('judgecabinet.html', title='Кабинет судьи', user=current_user)
 
 
 @views.route('/admin', methods=['GET'])
@@ -183,36 +123,9 @@ def adminpanel_users():
 @views.route('/outbox', methods=['GET'])
 @login_required
 def outbox():
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-    search_query = request.args.get('search', '')
-    if current_user.first_name != 'admin':
-        filtered_messages = (UploadedMessages.query
-                             .filter(UploadedMessages.user == current_user,
-                                     UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
-                             .order_by(desc(UploadedMessages.createDatetime))  # Сортировка по убыванию времени создания
-                             .all())
-    else:
-        filtered_messages = (UploadedMessages.query
-                             .filter(UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
-                             .order_by(desc(UploadedMessages.createDatetime))  # Сортировка по убыванию времени создания
-                             .all())
-    start_index = (page - 1) * per_page
-    end_index = start_index + per_page
-    paginated_messages = filtered_messages[start_index:end_index]
-    total_pages = (len(filtered_messages) + per_page - 1) // per_page
-    start_index_pages = page-3 if page-3 > 1 else 1
-    end_index_pages = page+3 if page+3 < total_pages else total_pages
     return render_template('outbox.html',
                            title='Мои отправления',
-                           user=current_user,
-                           messages=paginated_messages,
-                           report_exists=report_exists,
-                           search_query=search_query,
-                           total_pages=total_pages,
-                           current_page=page,
-                           start_index_pages=start_index_pages,
-                           end_index_pages=end_index_pages)
+                           user=current_user)
 
 
 @views.route('/get_report', methods=['GET'])
@@ -455,15 +368,4 @@ def upload_signed_file():
         traceback.print_exc()
         db.session.rollback()
         return jsonify({'success': False, 'message': e})
-
-
-@views.route('/analyzeFile', methods=['POST'])
-@login_required
-def analyzeFile():
-    file = request.files['file']
-    detected_addresses = analyze_file(file)
-    if detected_addresses:
-        return jsonify(detectedAddresses=detected_addresses)
-    else:
-        return jsonify(error='No addresses detected in the file'), 400
 

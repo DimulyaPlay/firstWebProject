@@ -39,31 +39,29 @@ def registration():
                 traceback.print_exc()
                 flash('Ошибка при регистрации', category='error')
 
-    return render_template('registration.html', title='Регистрация', user=current_user)
+    return render_template('registration.html', title='Зарегистрироваться', user=current_user)
 
 
 # Страница входа
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
-    data = request.form
-    first_name = data.get('first_name')
-    password = data.get('password')
-    lite = data.get('lite', False)  # Флаг для толстого клиента, чтобы не генерировать страницы.
-    user = Users.query.filter_by(first_name=first_name).first()
-    if user:
-        if check_password_hash(user.password, password):
-            login_user(user, remember=True)
-            if lite:
-                return {}, 200
-            flash('Успешная авторизация', category='success')
-            return redirect(url_for('views.home_redirector')), 200
-        else:
-            if lite:
-                return {}, 400
-            flash('Неверный пароль', category='error')
+    if request.method == 'GET':
+        return render_template('login.html', title='Войти', user=current_user)
     else:
-        flash('Пользователь с таким именем отсутствует', category='error')
-    return render_template('login.html', title='Вход', user=current_user), 400
+        data = request.form
+        first_name = data.get('first_name')
+        password = data.get('password')
+        user = Users.query.filter_by(first_name=first_name).first()
+        if user:
+            if check_password_hash(user.password, password):
+                login_user(user, remember=True)
+                flash('Успешная авторизация', category='success')
+                return redirect(url_for('views.home_redirector'))
+            else:
+                flash('Неверный пароль', category='error'), 400
+        else:
+            flash('Пользователь с таким именем отсутствует', category='error')
+        return render_template('login.html', title='Войти', user=current_user), 400
 
 
 @auth.route('/logout')
@@ -81,24 +79,15 @@ def change_password():
         user_id = data.get('userId')
         new_password = data.get('newPassword')
         confirm_password = data.get('confirmPassword')
-
-        # Проверка на существование данных
         if not all([user_id, new_password, confirm_password]):
             return jsonify({'success': False, 'message': 'Не все поля заполнены.'})
-
-        # Проверка совпадения паролей
         if new_password != confirm_password:
             return jsonify({'success': False, 'message': 'Пароли не совпадают.'})
-
-        # Найти пользователя по ID
         user = Users.query.get(user_id)
         if not user:
             return jsonify({'success': False, 'message': 'Пользователь не найден.'})
-
-        # Обновление пароля
         user.password = generate_password_hash(new_password)
         db.session.commit()
-
         return jsonify({'success': True, 'message': 'Пароль успешно изменен.'})
     except Exception as e:
         db.session.rollback()

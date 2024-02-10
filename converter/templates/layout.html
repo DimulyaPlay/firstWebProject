@@ -7,6 +7,7 @@
     <script src="{{ url_for('static', filename='js/frameworks/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/frameworks/bootstrap.bundle.min.js') }}"></script>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
     <title>{{ title if title else ' Project X '}}</title>
     <style>
         * {
@@ -15,23 +16,23 @@
     </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="navbar-nav" style="margin-left: 30px;" id="navbar">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="nav nav-pills" style="margin-left:0.5rem">
         <div class="navbar-nav">
             {% if user.is_authenticated %}
             <a class="nav-item nav-link" id="welcomeUser">Добро пожаловать, {{ user.first_name }}</a>
-            <a class="nav-item nav-link" id="home" href="/create_message">Отправить письмо</a>
-            <a class="nav-item nav-link" id="outbox" href="/outbox">Мои отправления</a>
+            <a class="nav-item nav-link {{ 'active' if title=='Отправить письмо' else '' }}" id="home" href="/create_message">Отправить письмо</a>
+            <a class="nav-item nav-link {{ 'active' if title=='Мои отправления' else '' }}" id="outbox" href="/outbox">Мои отправления</a>
             {% if user.is_judge == True %}
-            <a class="nav-item nav-link" id="judgeCabinet" href="/judge">Кабинет судьи</a>
+            <a class="nav-item nav-link {{ 'active' if title=='Кабинет судьи' else '' }}" id="judgeCabinet" href="/judge_cabinet">Кабинет судьи</a>
             {% endif %}
             {% if user.first_name == 'admin' %}
-            <a class="nav-item nav-link" id="adminPanel" href="/admin">Панель управления</a>
+            <a class="nav-item nav-link {{ 'active' if title=='Панель управления' else '' }}" id="adminPanel" href="/admin">Панель управления</a>
             {% endif %}
             <a class="nav-item nav-link" id="logout" href="/logout">Выйти</a>
             {% else %}
-            <a class="nav-item nav-link" id="login" href="/login">Войти</a>
-            <a class="nav-item nav-link" id="register" href="/register">Зарегистрироваться</a>
+            <a class="nav-item nav-link {{ 'active' if title=='Войти' else '' }}" id="login" href="/login">Войти</a>
+            <a class="nav-item nav-link {{ 'active' if title=='Зарегистрироваться' else '' }}" id="register" href="/register">Зарегистрироваться</a>
             {% endif %}
         </div>
     </div>

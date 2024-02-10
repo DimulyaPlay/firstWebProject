@@ -1,95 +1,103 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-<h2 style="margin-top: 15px;">Отправить письмо</h2>
-<div style="margin-top: 15px;">
+<div class="container mt-3 mx-auto" style="max-width: 900px; ">
     <form id="fileForm" action="/uploadMessage" method="post" enctype="multipart/form-data">
-    <div id="signatureFilesContainer" style="width: max-content;background-color: #dedede6d;padding: 0.5rem;border-radius: 0.5rem;">
-        <!-- Блок с файлом на подпись -->
-        <div class="signature-file-block" data-file-index="1">
-            <label>Файл на подпись:<br>
-                <input class="btn btn-primary" type="file" name="file1" id="formFile1" accept=".pdf"/>
-            </label>
-            <br><!-- Новый input для файлов подписи для файлов на подпись -->
-            <label>Выберите подпись, если файл подписан:<br>
-                <input class="btn btn-secondary" type="file" name="sig1" id="formFileSignature1" accept=".sig"/>
-            </label>
-            <!-- Чекбокс и виджеты для добавления штампа -->
-            <div class="form-check">
-                <label class="form-check-label" style="margin-top: 10px;">
-                <input class="form-check-input addStampCheckbox" type="checkbox" id="addStamp1" name="addStamp1">
-                Добавить штамп (только для PDF файлов)</label>
-            </div>
-            <!-- Блок с виджетами, который будет отображаться при выборе чекбокса -->
-            <div class="stamp-options" id="stampOptions" style="display: none;">
-                <div class="form-check">
-                    <label class="form-check-label">
-                    <input class="form-check-input" type="checkbox" name="firstPage1">
-                    Первая страница</label>
+        <div class="signature-files-container" id="signatureFilesContainer">
+            <div class="signature-file-block bg-secondary bg-opacity-25 rounded p-1 m-1" data-file-index=0>
+                <div class="row">
+                    <div class="col-md-6 mb-0">
+                        <label class="form-label">Файл на подпись:
+                            <input type="file" class="form-control btn btn-primary" id="formFile1" name="file1" accept=".pdf" />
+                        </label>
+                    </div>
+                    <div class="col-md-6 mb-0">
+                        <label class="form-label">Выберите подпись, если файл подписан:
+                            <input type="file" class="form-control btn btn-secondary" name="sig1" accept=".sig" />
+                        </label>
+                    </div>
                 </div>
-
-                <div class="form-check"><label class="form-check-label">
-                    <input class="form-check-input" type="checkbox" name="lastPage1">
-                    Последняя страница</label>
-                </div>
-
-                <div class="form-check">
-                    <label class="form-check-label">
-                    <input class="form-check-input" type="checkbox" name="allPages1">
-                    Все страницы</label>
-                </div>
-
-                <div class="form-group">
-                    <label>Страницы по выбору:
-                    <input type="text" class="form-control" name="customPages1" placeholder="Введите номера страниц" style="width: 300px;user-select: text;">
+                <div class="form-check mb-1">
+                    <label class="form-check-label">Добавить штамп (только для PDF файлов)
+                        <input class="form-check-input addStampCheckbox" type="checkbox" id="addStamp1"
+                            name="addStamp1">
                     </label>
                 </div>
+                <div class="stamp-options" id="stampOptions" style="display: none;">
+                    <div class="form-check">
+                        <label class="form-check-label">Первая страница
+                            <input class="form-check-input" type="checkbox" name="firstPage1" id="firstPage1">
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <label class="form-check-label">Последняя страница
+                            <input class="form-check-input" type="checkbox" name="lastPage1" id="lastPage1">
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <label class="form-check-label">Все страницы
+                            <input class="form-check-input" type="checkbox" name="allPages1" id="allPages1">
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <label class="form-label">Страницы по выбору:
+                            <input type="text" class="form-control" name="customPages1"
+                                placeholder="Введите номера страниц">
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-<br>
-    <!-- Кнопка для добавления еще одного файла на подпись -->
-    <button class="btn btn-primary addSignatureFileBtn" type="button">Добавить еще файл на подпись</button><br>
-
-    <!-- Новый input для файлов, не требующих подписи -->
-    <label style="padding-top: 1rem;">Файлы, не требующие подписи:<br>
-        <input class="btn btn-secondary" type="file" name="attachments" id="formFileNoSignature" multiple/><br><br>
-    </label>
-    <div class="form-group" style="width: 500px;">
-        <label for="judgeComboBox">Выберите подписанта:</label>
-        <select class="form-select" name="judge" id="judgeComboBox" required>
-            {% for judge in judges %}
-            <option value="{{ judge.fio }}" {% if user.last_judge|string == judge.id|string %}selected{% endif %}>
-                {{ judge.fio }}
-            </option>
-            {% endfor %}
-        </select>
+        <div class="p-1 m-1">
+            <button class="btn btn-primary addSignatureFileBtn mb-2 mt-2" type="button">Добавить еще файл на
+                подпись</button>
+            <div class="mb-2">
+                <label class="form-label">Файлы, не требующие подписи:<br>
+                    <input type="file" class="form-control btn btn-secondary" name="attachments" multiple />
+                </label>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Выберите подписанта:</label>
+                <select class="form-select" name="judge" id="judgeComboBox" required>
+                    {% for judge in judges %}
+                    <option value="{{ judge.fio }}" {% if user.last_judge|string==judge.id|string %}selected{% endif %}>
+                        {{ judge.fio }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-0">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="sendByEmail" id="sendByEmail">
+                        <label class="form-check-label" for="sendByEmail">
+                            Отправить по эл. почте
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-0">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="sendToRosreestr" id="sendToRosreestr">
+                        <label class="form-check-label" for="sendToRosreestr">
+                            Отправить в Росреестр
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div id="emailSection" class="mb-2" style="display: none;">
+                <div class="tags-input-wrapper mb-2">
+                    <div id="emailTags" class="tags-container">
+                    </div>
+                </div>
+                <input type="email" id="emailInput" class="form-control"
+                    placeholder="Введите адрес электронной почты и нажмите Enter">
+                <input type="text" class="form-control mt-2" name="subject" placeholder="Тема письма">
+                <textarea class="form-control mt-2" rows="3" name="body" placeholder="Текст письма"></textarea>
+            </div>
+            
+            <button class="btn btn-primary p-2" type="submit" id="submitButton">Отправить письмо</button>
+            <div class="spinner-border text-primary" role="status" id="loadingSpinner" style="display: none;"></div>
         </div>
-        <div class="form-check">
-            <label class="form-check-label" style="padding-top: 0.5rem;">
-                <input class="form-check-input" type="checkbox" name="sendToRosreestr" />
-                Отправить в Росреестр
-            </label>
-        </div>
-        <div class="form-check">
-            <label class="form-check-label" style="padding-top: 0.5rem;padding-bottom: 0.5rem;">
-                <input class="form-check-input" type="checkbox" name="sendByEmail" id="sendByEmail"/>
-                Отправить по эл. почте
-            </label>
-        </div>
-        <div id="emailSection" style="display: none;">
-            <label id="emailAdresses" style="display: flex;user-select: text;">
-                <input type="email" class="form-control" style="width: 500px; margin-bottom: 10px;" name="email" id="email" placeholder="Email">
-            </label>
-            <input type="subject" class="form-control" style="width: 500px;margin-bottom: 10px;user-select: text;" name="subject" id="subject" placeholder="Тема письма">
-            <textarea class="form-control" style="width: 500px; margin-bottom: 10px;user-select: text;" rows="3" placeholder="Текст письма" name="body"></textarea>
-            <button class="btn btn-secondary" id="addEmailBtn" type="button">Добавить еще email</button><br>
-        </div>
-        <div class="d-flex align-items-center" style="min-height: 50px;">
-            <button class="btn btn-primary" type="submit" id="submitButton">Отправить письмо</button>
-        <div class="spinner-border text-primary" role="status" id="loadingSpinner" style="display: none;margin-left: 10px;"></div>
-        </div>
-
     </form>
 </div>
 <script type="module" src="{{ url_for('static', filename='js/index.js') }}"></script>

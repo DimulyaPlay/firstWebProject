@@ -2,24 +2,22 @@
 
 {% block content %}
 
-<div style="margin-top: 50px; width: max-content; margin-left: auto; margin-right: auto;">
-    <form method="post">
-        <h3 align="center">Авторизация пользователя</h3>
-        <div class="form-group">
-            <label for="first_name">Имя пользователя</label>
-            <input class="form-control" id="first_name" name="first_name"
-                   placeholder="Введите имя пользователя">
+<div class="mt-5 mx-auto" style="width: max-content;">
+    <form method="post" action="/login">
+        <h3 class="text-center">Авторизация пользователя</h3>
+        <div class="mb-1">
+            <label for="first_name" class="form-label mb-0">Имя пользователя</label>
+            <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Введите имя пользователя">
         </div>
-        <div class="form-group">
-            <label for="password">Пароль</label>
-            <input type="password" class="form-control" id="password" name="password"
-                   placeholder="Введите пароль">
+        <div class="mb-1">
+            <label for="password" class="form-label mb-0">Пароль</label>
+            <input type="password" class="form-control" id="password" name="password" placeholder="Введите пароль">
         </div>
-        <br>
-        <div style="display: flex; flex-direction: row-reverse;">
-        <button class="btn btn-primary" type="submit">Войти</button>
+        <div class="d-flex justify-content-end mt-3">
+            <button class="btn btn-primary" type="submit">Войти</button>
         </div>
     </form>
 </div>
+
 
 {% endblock content %}

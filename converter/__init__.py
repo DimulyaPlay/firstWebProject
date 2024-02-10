@@ -1,9 +1,10 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user, logout_user
 import os
 import sys
 from threading import Thread
+from datetime import datetime, timedelta
 
 db = SQLAlchemy()
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -26,8 +27,10 @@ def create_app(config):
     db.init_app(app)
     from .views import views
     from .auth import auth
+    from .api import api
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(auth, url_prefix='/')
+    app.register_blueprint(api, url_prefix='/api/')
     from .models import Users, UploadedFiles
     create_db(app)
     login_manager = LoginManager()
@@ -40,6 +43,15 @@ def create_app(config):
     @login_manager.user_loader
     def load_user(userid):
         return Users.query.get(int(userid))
+
+    @app.before_request
+    def before_request():
+        if current_user.is_authenticated:
+            if int(config['auth_timeout']) and (current_user.last_seen < datetime.utcnow() - timedelta(
+                    hours=int(config['auth_timeout']))):  # 2 часа неактивности
+                logout_user()
+            current_user.last_seen = datetime.utcnow()
+            db.session.commit()
     return app
 
 

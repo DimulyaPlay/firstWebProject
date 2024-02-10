@@ -1,7 +1,7 @@
-import { convertUtcToLocalTime } from './modules/utils.js';
+import { convertUtcToLocalTime ,updatePagination } from './modules/utils.js';
 $(document).ready(function () {
 
-    $('tbody').on('click', 'img[data-toggle="modal"]', function () {
+    $('#fileList').on('click', 'img[data-toggle="modal"]', function () {
         const messageId = $(this).data('message-id');
         $.get(`/get_message_data/${messageId}`, function (data) {
             $('body').append(data);
@@ -31,7 +31,8 @@ $(document).ready(function () {
             });
         },
         error: function() {
-            alert('Не удалось получить список сертификатов. DocumentSIGner запущен?');
+            console.log('Не удалось получить список сертификатов. DocumentSIGner запущен?')
+            //alert('Не удалось получить список сертификатов. DocumentSIGner запущен?');
         }
     });
 
@@ -105,18 +106,17 @@ $(document).ready(function () {
         });
     }
 
-    convertUtcToLocalTime();
-
 
     $('body').on('click', '.page-link', function(e) {
         e.preventDefault(); // Предотвратить переход по ссылке
         var pageNumber = $(this).data('page');
-        updateTable(pageNumber);
+        updateJudgeTable(pageNumber);
     });
 
-    function updateTable(page) {
+
+    function updateJudgeTable(page) {
         $.ajax({
-            url: `/api/judge-files?page=${page}`, // Указываем URL вашего API для получения файлов по страницам
+            url: `/api/judge-files?page=${page}`,
             type: 'GET',
             dataType: 'json',
             success: function(response) {
@@ -148,38 +148,17 @@ $(document).ready(function () {
                 } else {
                     $tbody.append('<tr><td colspan="5" class="text-center">Файлы не найдены</td></tr>');
                 }
-                var total_pages = response.total_pages;
-                var current_page = response.current_page;
-                var start_index_pages = response.start_index_pages;
-                var end_index_pages = response.end_index_pages;
-                var $pagination = $('.pagination');
-                $pagination.empty();
-                $pagination.append(`<li class="page-item ${total_pages <= 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="1">В начало</a>
-                </li>
-                <li class="page-item ${current_page == 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${current_page - 1}">Назад</a>
-                </li>`);
-
-                // Генерация кнопок для номеров страниц
-                for (let page_num = start_index_pages; page_num <= end_index_pages; page_num++) {
-                $pagination.append(`<li class="page-item ${page_num == current_page ? 'active' : ''}">
-                    <a class="page-link" href="#" data-page="${page_num}">${page_num}</a>
-                </li>`);
-                }
-
-                $pagination.append(`<li class="page-item ${current_page >= total_pages ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${current_page + 1}">Вперед</a>
-                </li>
-                <li class="page-item ${total_pages >= 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${total_pages}">В конец</a>
-                </li>`);
+                updatePagination(response.total_pages, response.current_page, response.start_index_pages, response.end_index_pages);
 
             },
             error: function(xhr, status, error) {
                 console.error("Ошибка загрузки данных: ", error);
             }
-        });
+        });        
+ 
     }
+
+       updateJudgeTable(1);
+       convertUtcToLocalTime();
 
 });

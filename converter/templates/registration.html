@@ -1,28 +1,23 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div style="margin-top: 50px;margin-top: 50px; width: max-content; margin-left: auto; margin-right: auto;">
-    <form method="post">
-        <h3 align="center">Регистрация пользователя</h3>
-        <div class="form-group">
-            <label for="first_name">Имя пользователя</label>
-            <input type="text" class="form-control" id="first_name" name="first_name"
-                   placeholder="Введите имя пользователя">
+<div class="mt-5 mx-auto" style="width: max-content;">
+    <form method="post" action="/register">
+        <h3 class="text-center">Регистрация пользователя</h3>
+        <div class="mb-2"> <!-- Используйте mb-3 для отступа между полями формы -->
+            <label for="first_name" class="form-label mb-0">Имя пользователя</label>
+            <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Введите имя пользователя">
         </div>
-        <div class="form-group">
-            <label for="password1">Пароль</label>
-            <input type="password" class="form-control" id="password1" name="password1"
-                   placeholder="Введите пароль">
+        <div class="mb-2">
+            <label for="password1" class="form-label mb-0">Пароль</label>
+            <input type="password" class="form-control" id="password1" name="password1" placeholder="Введите пароль">
         </div>
-        <div class="form-group">
-            <label for="password2">Подтверждение пароля</label>
-            <input type="password" class="form-control" id="password2" name="password2"
-                   placeholder="Введите пароль еще раз">
+        <div class="mb-2">
+            <label for="password2" class="form-label mb-0">Подтверждение пароля</label>
+            <input type="password" class="form-control" id="password2" name="password2" placeholder="Введите пароль еще раз">
         </div>
-        <br>
-        <div style="display: flex; flex-direction: row-reverse;">
-        <button class="btn btn-primary" type="submit">Зарегистрироваться</button>
-    </div>
+        <div class="d-flex justify-content-end mt-3">
+            <button class="btn btn-primary" type="submit">Зарегистрироваться</button>
+        </div>
     </form>
-
 </div>
 {% endblock content %}
