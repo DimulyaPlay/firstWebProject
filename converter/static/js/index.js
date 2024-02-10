@@ -147,6 +147,6 @@ $(document).ready(function () {
     });
 
     $(document).on('click', '.remove-tag', function () {
-        $(this).parent().remove(); // Удаляем тег
+        $(this).parent().remove();
     });
 });

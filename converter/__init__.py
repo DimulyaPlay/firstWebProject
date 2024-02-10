@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user, logout_user
 import os
@@ -24,6 +24,11 @@ def create_app(config):
         app = Flask(__name__)
     app.config['SECRET_KEY'] = 'ndfjknsdflkghnfhjkgndbfd dfghmdghnm'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + database_path + '?check_same_thread=False'
+    #  кэширование ресурсов на стороне клиента
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(seconds=31536000)
+    app.jinja_env.filters['versioned_static'] = lambda filename: url_for('static', filename=filename) + '?v=' + str(
+        os.path.getmtime(os.path.join(app.static_folder, filename)))
+    #  кэширование ресурсов на стороне клиента
     db.init_app(app)
     from .views import views
     from .auth import auth

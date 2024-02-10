@@ -1,44 +1,59 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div style="margin-top: 15px;">
+<div class="mt-3">
     <h2>Настройки системы</h2>
     <form id="settings-form" method="POST">
-        <!-- Поле для sig_check -->
-        <div class="form-group" style="padding-top: 0.5rem;">
-            <input type="checkbox" class="form-check-input" id="sig_check" name="sig_check" {% if default_configuration.sig_check %}checked{% endif %}>
-            <label for="sig_check">Проверка подписи с помощью КриптоПро. Прикрепяемый sig файл должен будет пройти проверку, иначе результат не будет сохранен.</label>
+        <div class="form-group-pt">
+            <input type="checkbox" class="form-check-input" id="sig_check" name="sig_check" {% if
+                default_configuration.sig_check %}checked{% endif %}>
+            <label for="sig_check">Проверка подписи с помощью КриптоПро. Прикрепяемый sig файл должен будет пройти
+                проверку, иначе результат не будет сохранен.</label>
         </div>
-        <div class="form-group" style="padding-top: 0.5rem;">
+        <div class="form-group-pt">
             <label for="csp_path">Путь к Crypto Pro CSP:</label>
-            <input type="text" class="form-control" id="csp_path" name="csp_path" value="{{ default_configuration.csp_path }}">
+            <input type="text" class="form-control" id="csp_path" name="csp_path"
+                value="{{ default_configuration.csp_path }}">
         </div>
-        <div class="form-group" style="padding-top: 0.5rem;">
-            <label for="file_storage">Путь к хранилищу файлов, сюда сохраняются все файлы пользователей включая подписи. Хранятся с названиями в формате uuid4.</label>
-            <input type="text" class="form-control" id="file_storage" name="file_storage" value="{{ default_configuration.file_storage }}">
+        <div class="form-group-pt">
+            <label for="file_storage">Путь к хранилищу файлов, сюда сохраняются все файлы пользователей включая подписи.
+                Хранятся с названиями в формате uuid4.</label>
+            <input type="text" class="form-control" id="file_storage" name="file_storage"
+                value="{{ default_configuration.file_storage }}">
         </div>
-        <div class="form-group" style="padding-top: 0.5rem;">
-            <label for="file_export_folder">Путь для экспорта файлов, сюда выводятся пакеты для отправки с помощью OutlookAutosender. Один пакет - одно сообщение.</label>
-            <input type="text" class="form-control" id="file_export_folder" name="file_export_folder" value="{{ default_configuration.file_export_folder }}">
+        <div class="form-group-pt">
+            <label for="file_export_folder">Путь для экспорта файлов, сюда выводятся пакеты для отправки с помощью
+                OutlookAutosender. Один пакет - одно сообщение.</label>
+            <input type="text" class="form-control" id="file_export_folder" name="file_export_folder"
+                value="{{ default_configuration.file_export_folder }}">
         </div>
-        <div class="form-group" style="padding-top: 0.5rem;">
-            <label for="reports_path">Путь для отчетов, отсюда будут браться отчеты об отправке сообщения. Имя файла должно быть в виде "ИД сообщения.pdf". <br>OutlookAutosender выводит такие файлы после отправки в заданную в нем папку:</label>
-            <input type="text" class="form-control" id="reports_path" name="reports_path" value="{{ default_configuration.reports_path }}">
+        <div class="form-group-pt">
+            <label for="reports_path">Путь для отчетов, отсюда будут браться отчеты об отправке сообщения. Имя файла
+                должно быть в виде "ИД сообщения.pdf". <br>OutlookAutosender выводит такие файлы после отправки в
+                заданную в нем папку:</label>
+            <input type="text" class="form-control" id="reports_path" name="reports_path"
+                value="{{ default_configuration.reports_path }}">
         </div>
-        <div class="form-group" style="padding-top: 0.5rem;">
-            <label for="auth_timeout">Таймаут авторизации. Укажите время неактивности (в часах), после которого сессия пользователя будет автоматически завершена. <br>Установите 0 для отключения таймаута.</label>
-            <input type="number" class="form-control" id="auth_timeout" name="auth_timeout" value="{{ default_configuration.auth_timeout }}" min="0" step="1">
+        <div class="form-group-pt">
+            <label for="auth_timeout">Таймаут авторизации. Укажите время неактивности (в часах), после которого сессия
+                пользователя будет автоматически завершена. <br>Установите 0 для отключения таймаута.</label>
+            <input type="number" class="form-control" id="auth_timeout" name="auth_timeout"
+                value="{{ default_configuration.auth_timeout }}" min="0" step="1">
         </div>
-                <div class="form-group" style="padding-top: 0.5rem;">
-            <label for="restricted_emails" style="user-select: text";>Черный список email адресов для пропуска при распознавании и отправке через ";"</label>
-            <input type="text" class="form-control" id="restricted_emails" name="restricted_emails" value="{{ default_configuration.restricted_emails }}" placeholder="example@example.com;test@tset.ru">
+        <div class="form-group-pt">
+            <label for="restricted_emails" style="user-select: text" ;>Черный список email адресов для пропуска при
+                распознавании и отправке через ";"</label>
+            <input type="text" class="form-control" id="restricted_emails" name="restricted_emails"
+                value="{{ default_configuration.restricted_emails }}" placeholder="example@example.com;test@tset.ru">
         </div>
-        <div class="form-group" style="padding-top: 0.5rem;">
-            <label for="hwid" style="user-select: text";>Отправьте этот ID оборудования для активации полного функционала сервиса: {{hwid}}</label>
-            <input type="text" class="form-control" id="hwid" name="hwid" value="{{ default_configuration.l_key }}" placeholder="Введите сюда полученный ключ">
+        <div class="form-group-pt">
+            <label for="hwid" style="user-select: text" ;>Отправьте этот ID оборудования для активации полного
+                функционала сервиса: {{hwid}}</label>
+            <input type="text" class="form-control" id="hwid" name="hwid" value="{{ default_configuration.l_key }}"
+                placeholder="Введите сюда полученный ключ">
         </div>
         <br>
-        <button type="submit" class="btn btn-primary" >Сохранить настройки системы</button>
+        <button type="submit" class="btn btn-primary">Сохранить настройки системы</button>
     </form>
 </div>
 
