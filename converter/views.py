@@ -1,6 +1,6 @@
 import time
 import traceback
-from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash, redirect, make_response, render_template_string
+from flask import request, render_template, url_for, send_file, jsonify, Blueprint, flash, redirect
 from flask_login import current_user, login_required, logout_user
 from .models import UploadedFiles, UploadedMessages, Users
 from sqlalchemy import desc
@@ -9,10 +9,8 @@ from datetime import datetime, timedelta
 from . import db, free_mails_limit
 from uuid import uuid4
 from .Utils import generate_sig_pages, check_sig, config, export_signed_message,\
-    save_config, read_create_config, process_emails, generate_modal, hwid, sent_mails_in_current_session, is_valid
-from email_validator import validate_email
-import zipfile
-import tempfile
+    save_config, read_create_config, process_emails, hwid, sent_mails_in_current_session, is_valid
+
 
 views = Blueprint('views', __name__)
 
@@ -126,46 +124,6 @@ def outbox():
     return render_template('outbox.html',
                            title='Мои отправления',
                            user=current_user)
-
-
-@views.route('/get_report', methods=['GET'])
-@login_required
-def get_report():
-    idx = request.args.get('message_id', 1, type=int)
-    msg = UploadedMessages.query.get(idx)
-    report_filepath = os.path.join(config['file_storage'], msg.reportNameUUID)
-    if os.path.exists(report_filepath):
-        return send_file(report_filepath, as_attachment=False)
-    else:
-        return jsonify({'error': 'File not found'})
-
-
-@views.route('/get_message_data/<msg_id>', methods=['GET'])
-@login_required
-def get_message_data(msg_id):
-    msg = UploadedMessages.query.get(msg_id)
-    if msg:
-        modal = generate_modal(msg)
-        return render_template_string(modal)
-    else:
-        return jsonify({'error': 'File not found'})
-
-
-@views.route('/get_file', methods=['GET'])
-@login_required
-def get_file():
-    idx = request.args.get('file_id', 1, type=int)
-    file_obj = UploadedFiles.query.get(idx)
-    if not file_obj:
-        return jsonify({'error': 'File not found in DB'})
-    file_path = os.path.join(config['file_storage'], file_obj.fileNameUUID)
-    if os.path.exists(file_path):
-        response = make_response(send_file(file_path, as_attachment=False, download_name=file_obj.fileName))
-        response.headers['Sig-Pages'] = file_obj.sigPages
-        response.headers['File-Type'] = file_obj.fileType
-        return response
-    else:
-        return jsonify({'error': 'File not found in storage'})
 
 
 @views.post('/uploadMessage')
@@ -309,7 +267,7 @@ def upload_file():
                 db.session.commit()
                 sent_mails_in_current_session += "1"
                 flash('Сообщение успешно отправлено.', category='success')
-                return jsonify({'success': True, 'redirect_url': url_for('views.create_message')})
+                return jsonify({'error': False, 'redirect_url': url_for('views.create_message')})
         except Exception as e:
             traceback.print_exc()
             error_message = f'при экспорте готового письма ({e}).'
@@ -317,7 +275,7 @@ def upload_file():
             return jsonify({'error': True, 'error_message': error_message})
         sent_mails_in_current_session += "1"
         flash('Сообщение передано на подпись. После подписания будет отправлено.', category='success')
-        return jsonify({'success': True, 'redirect_url': url_for('views.create_message')})
+        return jsonify({'error': False, 'redirect_url': url_for('views.create_message')})
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
@@ -326,46 +284,4 @@ def upload_file():
     finally:
         db.session.close()
 
-
-@views.route('/upload_signed_file', methods=['POST'])
-@login_required
-def upload_signed_file():
-    try:
-        file_id = request.form['fileId']
-        zip_file = request.files['file']
-        file = UploadedFiles.query.get(file_id)
-        file_path = os.path.join(config['file_storage'], file.fileNameUUID)
-        file.sigNameUUID = file.fileNameUUID + '.sig'
-        file.sigName = file.fileName + '.sig'
-        sig_path = os.path.join(config['file_storage'], file.sigNameUUID)
-        fd, temp_zip = tempfile.mkstemp(f'.zip')
-        os.close(fd)
-        zip_file.save(temp_zip)
-        zip_path = temp_zip
-        with zipfile.ZipFile(zip_path, 'r') as zipf:
-            files_in_zip = zipf.namelist()
-            for file_in_zip in files_in_zip:
-                if file_in_zip.endswith('.sig'):
-                    zipf.extract(file_in_zip, os.path.dirname(sig_path))
-                    os.replace(os.path.join(os.path.dirname(sig_path), file_in_zip), sig_path)
-                else:
-                    zipf.extract(file_in_zip, os.path.dirname(file_path))
-                    os.replace(os.path.join(os.path.dirname(file_path), file_in_zip), file_path)
-        os.remove(zip_path)
-        if config['sig_check']:
-            if not check_sig(file_path, sig_path):
-                return jsonify({'success':False, 'message':'Подпись не прошла проверку на сервере'})
-        db.session.commit()
-        message_files = UploadedFiles.query.filter_by(message_id=file.message_id).all()
-        all_files_signed = all(file.sigName for file in message_files)
-        if all_files_signed:
-            message = UploadedMessages.query.filter_by(id=file.message_id).first()
-            message.signed = True
-            export_signed_message(message)
-            db.session.commit()
-        return jsonify({'success': True, 'message': 'Документ подписан успешно'})
-    except Exception as e:
-        traceback.print_exc()
-        db.session.rollback()
-        return jsonify({'success': False, 'message': e})
 

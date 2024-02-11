@@ -8,44 +8,52 @@
                 <div class="row">
                     <div class="col-md-6 mb-0">
                         <label class="form-label">Файл на подпись:
-                            <input type="file" class="form-control btn btn-primary" id="formFile1" name="file1" accept=".pdf" />
+                            <input type="file" class="form-control btn btn-primary" id="formFile1" name="file1"
+                                accept=".pdf" />
                         </label>
+                        <div class="form-check mb-1">
+                            <label class="form-check-label">Добавить штамп (только для PDF файлов)
+                                <input class="form-check-input addStampCheckbox" type="checkbox" id="addStamp1"
+                                    name="addStamp1">
+                            </label>
+                        </div>
+                        <div class="stamp-options" id="stampOptions" style="display: none;">
+                            <div class="form-check">
+                                <label class="form-check-label">Первая страница
+                                    <input class="form-check-input" type="checkbox" name="firstPage1" id="firstPage1">
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <label class="form-check-label">Последняя страница
+                                    <input class="form-check-input" type="checkbox" name="lastPage1" id="lastPage1">
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <label class="form-check-label">Все страницы
+                                    <input class="form-check-input" type="checkbox" name="allPages1" id="allPages1">
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <label class="form-label">Страницы по выбору:
+                                    <input type="text" class="form-control" name="customPages1"
+                                        placeholder="Введите номера страниц">
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-6 mb-0">
                         <label class="form-label">Выберите подпись, если файл подписан:
                             <input type="file" class="form-control btn btn-secondary" name="sig1" accept=".sig" />
                         </label>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-danger btn-sm removeSignatureFileBlock"
+                                data-file-index="1" style="height: fit-content;">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="form-check mb-1">
-                    <label class="form-check-label">Добавить штамп (только для PDF файлов)
-                        <input class="form-check-input addStampCheckbox" type="checkbox" id="addStamp1"
-                            name="addStamp1">
-                    </label>
-                </div>
-                <div class="stamp-options" id="stampOptions" style="display: none;">
-                    <div class="form-check">
-                        <label class="form-check-label">Первая страница
-                            <input class="form-check-input" type="checkbox" name="firstPage1" id="firstPage1">
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <label class="form-check-label">Последняя страница
-                            <input class="form-check-input" type="checkbox" name="lastPage1" id="lastPage1">
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <label class="form-check-label">Все страницы
-                            <input class="form-check-input" type="checkbox" name="allPages1" id="allPages1">
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <label class="form-label">Страницы по выбору:
-                            <input type="text" class="form-control" name="customPages1"
-                                placeholder="Введите номера страниц">
-                        </label>
-                    </div>
-                </div>
+
             </div>
         </div>
         <div class="p-1 m-1">
@@ -94,7 +102,7 @@
                 <input type="text" class="form-control mt-2" name="subject" placeholder="Тема письма">
                 <textarea class="form-control mt-2" rows="3" name="body" placeholder="Текст письма"></textarea>
             </div>
-            
+
             <button class="btn btn-primary p-2" type="submit" id="submitButton">Отправить письмо</button>
             <div class="spinner-border text-primary" role="status" id="loadingSpinner" style="display: none;"></div>
         </div>

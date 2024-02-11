@@ -15,49 +15,49 @@ $(document).ready(function () {
                         <label class="form-label">Файл на подпись:
                             <input type="file" class="form-control btn btn-primary"  id="formFile${index}" name="file${index}" accept=".pdf" />
                         </label>
+                        <div class="form-check mb-0">
+                            <label class="form-check-label">Добавить штамп (только для PDF файлов)
+                                <input class="form-check-input addStampCheckbox" type="checkbox" name="addStamp${index}">
+                            </label>
+                        </div>
+                        <div class="stamp-options" style="display: none;">
+                            <div class="form-check">
+                                <label class="form-check-label">Первая страница
+                                    <input class="form-check-input" type="checkbox" name="firstPage${index}">
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <label class="form-check-label">Последняя страница
+                                    <input class="form-check-input" type="checkbox" name="lastPage${index}">
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <label class="form-check-label">Все страницы
+                                    <input class="form-check-input" type="checkbox" name="allPages${index}">
+                                </label>
+                            </div>
+                            <div class="mb-1">
+                                <label class="form-label">Страницы по выбору:
+                                    <input type="text" class="form-control" name="customPages${index}"
+                                        placeholder="Введите номера страниц">
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-6 mb-0 mt-2">
                         <label class="form-label">Выберите подпись, если файл подписан:
                             <input type="file" class="form-control btn btn-secondary" name="sig${index}" accept=".sig" />
                         </label>
-                    </div>
-                </div>
-                <div class="form-check mb-0">
-                    <label class="form-check-label">Добавить штамп (только для PDF файлов)
-                        <input class="form-check-input addStampCheckbox" type="checkbox" name="addStamp${index}">
-                    </label>
-                </div>
-                <div class="stamp-options" style="display: none;">
-                    <div class="form-check">
-                        <label class="form-check-label">Первая страница
-                            <input class="form-check-input" type="checkbox" name="firstPage${index}">
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <label class="form-check-label">Последняя страница
-                            <input class="form-check-input" type="checkbox" name="lastPage${index}">
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <label class="form-check-label">Все страницы
-                            <input class="form-check-input" type="checkbox" name="allPages${index}">
-                        </label>
-                    </div>
-                    <div class="mb-1">
-                        <label class="form-label">Страницы по выбору:
-                            <input type="text" class="form-control" name="customPages${index}"
-                                placeholder="Введите номера страниц">
-                        </label>
+                        <div class="text-end">
+                        <button type="button" class="btn btn-danger btn-sm removeSignatureFileBlock"
+                            data-file-index="${index}" style="height: fit-content;">
+                            <span aria-hidden="true">&times;</span>
+                        </button></div>
                     </div>
                 </div>
             </div>
         `;
     }
-
-    // Делегирование события change для динамически добавляемых чекбоксов
-    $(document).on('change', '.addStampCheckbox', function () {
-        $(this).closest('.signature-file-block').find('.stamp-options').toggle(this.checked);
-    });
 
     // Обработчик клика по кнопке "Добавить еще файл на подпись"
     $('.addSignatureFileBtn').click(function () {
@@ -67,7 +67,14 @@ $(document).ready(function () {
         $('#signatureFilesContainer').append(createSignatureFileBlock(index));
     });
 
+    $(document).on('click', '.removeSignatureFileBlock', function () {
+        $(this).closest('.signature-file-block').remove();
+    });
 
+    // Делегирование события change для динамически добавляемых чекбоксов
+    $(document).on('change', '.addStampCheckbox', function () {
+        $(this).closest('.signature-file-block').find('.stamp-options').toggle(this.checked);
+    });
 
     $('#signatureFilesContainer').on('change', '[id^="formFile"]', function () {
         const formData = new FormData();
@@ -78,13 +85,17 @@ $(document).ready(function () {
             data: formData,
             contentType: false,
             processData: false,
-            success: function (data) {
-                $('#sendByEmail').prop('checked', true);
-                data.detectedAddresses.forEach(function (address) {
-                    var tag = $('<div class="email-tag" name="email">' + address + '<span class="remove-tag">&times;</span></div>');
-                $('#emailTags').append(tag);
-                });
-                $('#emailSection').show()
+            success: function (response) {
+                if (response.error) {
+                    console.log(response.error_message);
+                } else {
+                    $('#sendByEmail').prop('checked', true);
+                    response.detectedAddresses.forEach(function (address) {
+                        var tag = $('<div class="email-tag" name="email">' + address + '<span class="remove-tag">&times;</span></div>');
+                        $('#emailTags').append(tag);
+                    });
+                    $('#emailSection').show()
+                }
             },
             error: function (error) {
                 console.log('Error:', error);
@@ -120,7 +131,7 @@ $(document).ready(function () {
             processData: false,
             success: function (response) {
                 if (response.error) {
-                    alert('Ошибка: ' + response.error_message);
+                    alert(response.error_message);
                     $('#loadingSpinner').hide();
                     $('button[type="submit"]').prop('disabled', false);
                 } else {

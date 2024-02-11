@@ -295,7 +295,7 @@ def generate_modal(message):
     # Формирование списка файлов для данного сообщения
     files_list_html = ""
     for file in message.files:
-        download_link = f'<a href="/get_file?file_id={file.id}" target="_blank">{file.fileName}</a>'
+        download_link = f'<a href="/api/get-file?file_id={file.id}" target="_blank">{file.fileName}</a>'
         files_list_html += f"<li>{download_link}</li>"
 
     # Форматирование даты и времени
