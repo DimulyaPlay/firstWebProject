@@ -124,7 +124,7 @@ $(document).ready(function () {
 
         $.ajax({
             type: 'POST',
-            url: '/uploadMessage',
+            url: '/api/create-new-message',
             data: formData,
             contentType: false,
             cache: false,
@@ -150,14 +150,21 @@ $(document).ready(function () {
             e.preventDefault(); // Предотвращаем отправку формы
             var email = $(this).val().trim();
             if (email) { // Проверяем, не пустой ли email
+                var emailClass = email.replace(/[^a-zA-Z0-9]/g, ''); // Создаем класс из email для использования в качестве селектора
                 var tag = $('<div class="email-tag" name="email">' + email + '<span class="remove-tag">&times;</span></div>');
                 $('#emailTags').append(tag);
+                // Создаем скрытое поле с классом для идентификации
+                var hiddenInput = $('<input type="hidden" name="email" value="' + email + '" class="' + emailClass + '">');
+                $('#fileForm').append(hiddenInput);
                 $(this).val(''); // Очищаем поле ввода
             }
         }
     });
 
     $(document).on('click', '.remove-tag', function () {
-        $(this).parent().remove();
+        var email = $(this).parent().text().slice(0, -1); // Получаем email без символа удаления
+        var emailClass = email.replace(/[^a-zA-Z0-9]/g, ''); // Преобразуем email в класс
+        $('.' + emailClass).remove(); // Удаляем соответствующее скрытое поле
+        $(this).parent().remove(); // Удаляем тег
     });
 });
