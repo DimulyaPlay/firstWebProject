@@ -1,9 +1,10 @@
 import { convertUtcToLocalTime, updatePagination } from './modules/utils.js';
 convertUtcToLocalTime();
 $(document).ready(function () {
-    $('#messageList').on('click', 'tr[data-toggle="modal"]', function(event) {
-        if ($(event.target).hasClass('no-modal')) {
-            return;
+    $('#messageList').on('click', 'tr[data-toggle="modal"]', function (event) {
+        // клик непосредственно по элементу с классом no-modal или по дочернему элементу внутри <a> с классом no-modal
+        if ($(event.target).hasClass('no-modal') || $(event.target).closest('a.no-modal').length) {
+            return; // Пропускаем событие, если условие выполняется
         }
         const messageId = $(this).data('message-id');
         $.get(`/api/get-message-modal?message_id=${messageId}`, function (data) {
@@ -21,9 +22,16 @@ $(document).ready(function () {
 
     });
 
-    $('#search').on('click', function(e) {
+    $('#search').on('click', function (e) {
         let searchString = $('#searchString').val();
         updateMessagesTable(1, searchString);
+    });
+
+    $('body').on('click', '.page-link', function (e) {
+        e.preventDefault(); // Предотвратить переход по ссылке
+        let searchString = $('#searchString').val();
+        var pageNumber = $(this).data('page');
+        updateMessagesTable(pageNumber, searchString);
     });
 
 
@@ -32,7 +40,7 @@ $(document).ready(function () {
             url: `/api/outbox-messages?page=${page}&search=${encodeURIComponent(searchString)}`,
             type: 'GET',
             dataType: 'json',
-            success: function(response) {
+            success: function (response) {
                 $('#searchString').val(response.search);
                 var messages = response.messages;
                 var $tbody = $('#messageList');
@@ -40,7 +48,7 @@ $(document).ready(function () {
                 $tbody.empty();
                 $tbody.hide();
                 if (messages && messages.length > 0) {
-                    $.each(messages, function(index, message) {
+                    $.each(messages, function (index, message) {
                         var rowClass = message.signed ? 'table-success' : 'table-warning';
                         var filesCount = message.filesCount;
                         var toRosreestrIcon = message.toRosreestr ? 'rosreestr-icon.png' : 'no-rosreestr-icon.png';
@@ -59,7 +67,7 @@ $(document).ready(function () {
                                             <td><img src="static/img/email-forward.png" style="text-align: center;" alt="Forward" class="no-modal"></td>
                                         </tr>`;
                     });
-                    
+
                 } else {
                     $tbody.append('<tr><td colspan="8" class="text-center">Сообщений нет</td></tr>');
                 }
@@ -68,7 +76,7 @@ $(document).ready(function () {
                 $tbody.show()
                 updatePagination(response.total_pages, response.current_page, response.start_index_pages, response.end_index_pages);
             },
-            error: function(xhr, status, error) {
+            error: function (xhr, status, error) {
                 console.error("Ошибка загрузки данных: ", error);
             }
         });

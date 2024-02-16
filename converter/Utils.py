@@ -274,7 +274,6 @@ def start_monitoring(path, app):
 
 def process_existing_reports(directory, file_storage, app):
     with app.app_context():
-        # Теперь весь код здесь выполняется в контексте приложения Flask
         existing_files = glob.glob(directory + '/*.pdf')
         for fp in existing_files:
             filename = os.path.basename(fp)
