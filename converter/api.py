@@ -39,6 +39,7 @@ def get_judge_files():
             'message_id': file.message_id
         })
     total_pages = (total_files + per_page - 1) // per_page
+    total_pages = 1 if not total_pages else total_pages
     start_index_pages = page - 3 if page - 3 > 1 else 1
     end_index_pages = page + 3 if page + 3 < total_pages else total_pages
     return jsonify({
@@ -87,6 +88,7 @@ def get_out_messages():
             'search_query': search_query
         })
     total_pages = (total_files + per_page - 1) // per_page
+    total_pages = 1 if not total_pages else total_pages
     start_index_pages = page - 3 if page - 3 > 1 else 1
     end_index_pages = page + 3 if page + 3 < total_pages else total_pages
     return jsonify({
