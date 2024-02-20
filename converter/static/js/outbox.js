@@ -28,12 +28,47 @@ $(document).ready(function () {
     });
 
     $('body').on('click', '.page-link', function (e) {
-        e.preventDefault(); // Предотвратить переход по ссылке
+        e.preventDefault();
         let searchString = $('#searchString').val();
         var pageNumber = $(this).data('page');
         updateMessagesTable(pageNumber, searchString);
     });
 
+    $(document).keypress(function(event) {
+        if (event.which === 13) {
+            event.preventDefault();
+            $('#search').click();
+        }
+    });
+
+    $(document).on('click', '.cancel-message', function (e) {
+        e.preventDefault();
+        var messageId = $(this).data('message-id');
+        var $tr = $(`tr[data-message-id='${messageId}']`)
+        var modalId = `#myModal${messageId}`; // Идентификатор модального окна
+        if (confirm("Вы уверены, что хотите отклонить это сообщение? Сообщение и все вложения будут безвозвратно удалены!")) {
+            $.ajax({
+                url: `/api/cancel-message?message_id=${messageId}`,
+                type: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.error) {
+                        alert("Ошибка: " + response.error_message);
+                    } else {
+                        alert("Сообщение успешно отклонено.");
+                        $(modalId).modal('hide').on('hidden.bs.modal', function () {
+                            $(this).remove();
+                        });
+                        $tr.remove();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert("Произошла ошибка при попытке отклонить сообщение.");
+                }
+            });
+        }
+    });
+    
 
     function updateMessagesTable(page, searchString) {
         $.ajax({

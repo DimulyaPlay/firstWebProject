@@ -4,7 +4,7 @@ from .auth import login
 from flask import request, jsonify, Blueprint, make_response, send_file, render_template_string, flash, url_for
 from flask_login import current_user, login_required
 from .models import UploadedFiles, UploadedMessages, Users
-from sqlalchemy import desc
+from sqlalchemy import desc, case
 from .Utils import analyze_file, config, generate_modal, sent_mails_in_current_session, check_sig, export_signed_message, is_valid, process_emails, generate_sig_pages
 import os
 from . import db, free_mails_limit
@@ -16,87 +16,71 @@ from uuid import uuid4
 api = Blueprint('api', __name__)
 
 
-@api.route('/judge-files', methods=['GET'])
+@api.get('/judge-files')
 @login_required
 def get_judge_files():
     page = request.args.get('page', 1, type=int)
     per_page = 10
-    filtered_files = (UploadedFiles.query
-                      .filter(UploadedFiles.sigById == current_user.id)
-                      .order_by(desc(UploadedFiles.createDatetime)).all())
-    total_files = len(filtered_files)
-    start_index = (page - 1) * per_page
-    end_index = start_index + per_page
-    paginated_files = filtered_files[start_index:end_index]
+    pagination = UploadedFiles.query \
+        .filter(UploadedFiles.sigById == current_user.id) \
+        .order_by(case((UploadedFiles.sigNameUUID == '', 0), else_=1), desc(UploadedFiles.createDatetime)) \
+        .paginate(page=page, per_page=per_page, error_out=False)
+    paginated_files = pagination.items
+    files_data = [{
+        'fileName': file.fileName,
+        'createDatetime': file.createDatetime.isoformat(),
+        'id': file.id,
+        'sigNameUUID': bool(file.sigNameUUID),
+        'message_id': file.message_id
+    } for file in paginated_files]
 
-    files_data = []
-    for file in paginated_files:
-        files_data.append({
-            'fileName': file.fileName,
-            'createDatetime': file.createDatetime.isoformat(),
-            'id': file.id,
-            'sigNameUUID': bool(file.sigNameUUID),
-            'message_id': file.message_id
-        })
-    total_pages = (total_files + per_page - 1) // per_page
-    total_pages = 1 if not total_pages else total_pages
-    start_index_pages = page - 3 if page - 3 > 1 else 1
-    end_index_pages = page + 3 if page + 3 < total_pages else total_pages
     return jsonify({
         'files': files_data,
-        'total_pages': total_pages,
+        'total_pages': pagination.pages,
         'current_page': page,
-        "start_index_pages": start_index_pages,
-        "end_index_pages": end_index_pages
+        "start_index_pages": max(1, page - 3),
+        "end_index_pages": min(page + 3, pagination.pages)
     })
 
 
-@api.route('/outbox-messages', methods=['GET'])
+from sqlalchemy import desc, case
+
+
+@api.get('/outbox-messages')
 @login_required
 def get_out_messages():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     search_query = request.args.get('search', '')
+    base_query = UploadedMessages.query.filter(UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
     if current_user.first_name != 'admin':
-        filtered_messages = (UploadedMessages.query
-                             .filter(UploadedMessages.user == current_user,
-                                     UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
-                             .order_by(desc(UploadedMessages.createDatetime))  # Сортировка по убыванию времени создания
-                             .all())
-    else:
-        filtered_messages = (UploadedMessages.query
-                             .filter(UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
-                             .order_by(desc(UploadedMessages.createDatetime))  # Сортировка по убыванию времени создания
-                             .all())
-    total_files = len(filtered_messages)
-    start_index = (page - 1) * per_page
-    end_index = start_index + per_page
-    paginated_messages = filtered_messages[start_index:end_index]
+        base_query = base_query.filter(UploadedMessages.user == current_user)
+    # Добавляем условную сортировку: неподписанные сообщения будут в начале списка
+    messages_query = base_query.order_by(
+        case((UploadedMessages.signed == False, 0), else_=1),
+        desc(UploadedMessages.createDatetime)
+    )
+    pagination = messages_query.paginate(page=page, per_page=per_page, error_out=False)
+    paginated_messages = pagination.items
+    messages_data = [{
+        'mailSubject': message.mailSubject,
+        'createDatetime': message.createDatetime.isoformat(),
+        'signed': message.signed,
+        'id': message.id,
+        'reportDatetime': message.reportDatetime,
+        'toEmails': message.toEmails,
+        'sigByName': message.sigByName,
+        'toRosreestr': message.toRosreestr,
+        'filesCount': len(message.files),
+        'search_query': search_query
+    } for message in paginated_messages]
 
-    messages_data = []
-    for message in paginated_messages:
-        messages_data.append({
-            'mailSubject': message.mailSubject,
-            'createDatetime': message.createDatetime.isoformat(),
-            'signed': message.signed,
-            'id': message.id,
-            'reportDatetime': message.reportDatetime,
-            'toEmails': message.toEmails,
-            'sigByName': message.sigByName,
-            'toRosreestr': message.toRosreestr,
-            'filesCount': len(message.files),
-            'search_query': search_query
-        })
-    total_pages = (total_files + per_page - 1) // per_page
-    total_pages = 1 if not total_pages else total_pages
-    start_index_pages = page - 3 if page - 3 > 1 else 1
-    end_index_pages = page + 3 if page + 3 < total_pages else total_pages
     return jsonify({
         'messages': messages_data,
-        'total_pages': total_pages,
+        'total_pages': pagination.pages,
         'current_page': page,
-        "start_index_pages": start_index_pages,
-        "end_index_pages": end_index_pages,
+        "start_index_pages": max(1, page - 3),
+        "end_index_pages": min(page + 3, pagination.pages),
         'search': search_query
     })
 
@@ -136,7 +120,7 @@ def get_file():
         return jsonify({'error': True, 'error_message': error_message})
 
 
-@api.route('/get-report', methods=['GET'])
+@api.get('/get-report')
 @login_required
 def get_report():
     msg_id = request.args.get('message_id', 1, type=int)
@@ -358,3 +342,38 @@ def create_new_message():
         return jsonify({'error': True, 'error_message': error_message})
     finally:
         db.session.close()
+
+
+@api.post('/cancel-message')
+@login_required
+def cancel_message():
+    msg_id = request.args.get('message_id', None, type=int)
+    if msg_id is None:
+        return jsonify({'error': True, 'error_message': 'ID сообщения не указан.'})
+    msg = UploadedMessages.query.get(msg_id)
+    if msg is None:
+        return jsonify({'error': True, 'error_message': 'Сообщение не найдено.'})
+    if msg.signed:
+        error_message = 'Ошибка. Невозможно удалить отправленное сообщение.'
+        return jsonify({'error': True, 'error_message': error_message})
+    # Удаление записей из базы данных
+    try:
+        for file in msg.files:
+            file_path = os.path.join(config['file_storage'], file.fileNameUUID)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            if file.sigNameUUID:
+                sig_path = os.path.join(config['file_storage'], file.sigNameUUID)
+                if os.path.exists(sig_path):
+                    os.remove(sig_path)
+
+        UploadedFiles.query.filter_by(message_id=msg_id).delete()
+        db.session.delete(msg)
+        db.session.commit()
+        return jsonify({'error': False, 'error_message': 'Сообщение и связанные файлы успешно удалены.'}), 200
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': True, 'error_message': f'Произошла ошибка при удалении сообщения. {e}'}), 500
+
+

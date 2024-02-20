@@ -325,7 +325,8 @@ def generate_modal(message):
                     <ul>{files_list_html}</ul>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    {f"<a href='#'  class='btn btn-danger cancel-message' data-message-id='{message.id}' {'' if not message.signed else 'hidden'}>Отменить отправку</a>"}
+                    <button type="button" class="btn btn-secondary " data-bs-dismiss="modal">Закрыть</button>  
                 </div>
             </div>
         </div>

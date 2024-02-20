@@ -41,15 +41,20 @@ $(document).ready(function () {
         const fileId = $button.data('fileId');
         const fileName = $button.data('fileName');
         const selectedCert = $('#certificateSelector').val();
+        const message_id = $button.data('messageId');
+        var $tr = $(`tr[data-file-id='${fileId}']`)
+        const $cancelButton = $(`a.cancel-message[data-message-id='${message_id}']`);
         try {
             $button.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Подписание...').prop('disabled', true);
-    
+
             const fileData = await getFileBlob(fileId); // Получаем blob и заголовки
             const zipBlob = await signFile(fileData, fileName, selectedCert); // Передаем все необходимые данные для подписания
-    
+
             await uploadSignedFile(fileId, zipBlob);
             alert('Файл успешно подписан и загружен.');
             $button.html('Подписан').removeClass('btn-primary').addClass('btn-success');
+            $tr.removeClass('table-warning').addClass('table-success');
+            $cancelButton.prop('disabled', true).addClass('disabled');
         } catch (error) {
             console.error('Ошибка при подписании файла:', error);
             alert('Не удалось подписать документ. DocumentSIGner запущен?');
@@ -79,7 +84,7 @@ $(document).ready(function () {
             });
         });
     }
-    
+
     async function signFile(fileData, fileName, selectedCert) {
         const { blob, fileType, sigPages } = fileData;
         const formData = new FormData();
@@ -88,7 +93,7 @@ $(document).ready(function () {
         formData.append('fileType', fileType);
         formData.append('selectedCert', selectedCert);
         formData.append('fileName', fileName);
-    
+
         const response = await fetch('http://localhost:4999/sign_file', {
             method: 'POST',
             body: formData
@@ -96,38 +101,65 @@ $(document).ready(function () {
         if (!response.ok) throw new Error('Ошибка при подписании');
         return response.blob();
     }
-    
+
 
     async function uploadSignedFile(fileId, zipBlob) {
         return new Promise((resolve, reject) => {
             var formData = new FormData();
             formData.append('fileId', fileId);
             formData.append('file', zipBlob, 'signed_files.zip');
-    
+
             $.ajax({
                 url: '/api/upload-signed-file',
                 type: 'POST',
                 data: formData,
                 contentType: false,
                 processData: false,
-                success: function(data) {
+                success: function (data) {
                     if (data.error) {
                         reject(new Error(data.error_message)); // Отклоняем обещание при ошибке
                     } else {
                         resolve(data); // Разрешаем обещание при успехе
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     reject(new Error('Ошибка при отправке подписанных файлов: ' + error)); // Отклоняем обещание при ошибке AJAX
                 }
             });
         });
     }
+
+    $(document).on('click', '.cancel-message', function (e) {
+        e.preventDefault();
+        var messageId = $(this).data('message-id');
+        var $tr = $(`tr[data-message-id='${messageId}']`)
+        var modalId = `#myModal${messageId}`; // Идентификатор модального окна
+        if (confirm("Вы уверены, что хотите отклонить это сообщение? Сообщение и все вложения будут безвозвратно удалены!")) {
+            $.ajax({
+                url: `/api/cancel-message?message_id=${messageId}`,
+                type: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.error) {
+                        alert("Ошибка: " + response.error_message);
+                    } else {
+                        alert("Сообщение успешно отклонено.");
+                        $(modalId).modal('hide').on('hidden.bs.modal', function () {
+                            $(this).remove();
+                        });
+                        $tr.remove();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert("Произошла ошибка при попытке отклонить сообщение.");
+                }
+            });
+        }
+    });
     
 
-
     $('body').on('click', '.page-link', function (e) {
-        e.preventDefault(); // Предотвратить переход по ссылке
+        e.preventDefault();
         var pageNumber = $(this).data('page');
         updateJudgeTable(pageNumber);
     });
@@ -147,7 +179,7 @@ $(document).ready(function () {
                 if (files && files.length > 0) {
                     $.each(files, function (index, file) {
                         var rowClass = file.sigNameUUID ? 'table-success' : 'table-warning';
-                        content += `<tr class="${rowClass}" style="text-align: center;">
+                        content += `<tr class="${rowClass}" style="text-align: center;" data-message-id="${file.message_id}" data-file-id="${file.id}">
                                         <th class="align-middle" scope="row" style="text-align: left;">${file.fileName}</th>
                                         <td class="align-middle" data-utc-time="${file.createDatetime}"></td>
                                         <td class="align-middle">
@@ -159,12 +191,13 @@ $(document).ready(function () {
                                         <img src="static/img/email-icon.png" alt="OpenLetter" data-toggle="modal" data-message-id="${file.message_id}" style="cursor: pointer;">
                                         </td>
                                         <td class="align-middle">
-                                            <button class="btn btn-primary btn-sign-file" data-file-id="${file.id}" data-file-name="${file.fileName}" ${file.sigNameUUID ? 'disabled' : ''}>Подписать</button>
-                                        </td>
+                                            <button class="btn btn-primary btn-sign-file ${file.sigNameUUID ? '' : 'btn-sm'}" data-file-id="${file.id}" data-message-id="${file.message_id}" data-file-name="${file.fileName}" ${file.sigNameUUID ? 'disabled>Подписано' : '>Подписать'}</button><br>
+                                            ${!file.sigNameUUID ? `<a href="#" class="btn btn-danger btn-sm mt-1 cancel-message" data-message-id="${file.message_id}">Отклонить</a>` : ''}
+                                            </td>
                                        </tr>`;
 
                     });
-                    
+
                 } else {
                     $tbody.append('<tr><td colspan="5" class="text-center">Файлы не найдены</td></tr>');
                 }
