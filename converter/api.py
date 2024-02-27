@@ -50,6 +50,7 @@ from sqlalchemy import desc, case
 @login_required
 def get_out_messages():
     page = request.args.get('page', 1, type=int)
+    archived = request.args.get('archive', False, type=bool)
     per_page = 10
     search_query = request.args.get('search', '')
     base_query = UploadedMessages.query.filter(UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
@@ -68,9 +69,7 @@ def get_out_messages():
         'signed': message.signed,
         'id': message.id,
         'reportDatetime': message.reportDatetime,
-        'toEmails': message.toEmails,
         'sigByName': message.sigByName,
-        'toRosreestr': message.toRosreestr,
         'filesCount': len(message.files),
         'search_query': search_query
     } for message in paginated_messages]

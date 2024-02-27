@@ -5,6 +5,7 @@ import os
 import sys
 from threading import Thread
 from datetime import datetime, timedelta
+from flask_migrate import Migrate
 
 db = SQLAlchemy()
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -30,6 +31,7 @@ def create_app(config):
         os.path.getmtime(os.path.join(app.static_folder, filename)))
     #  кэширование ресурсов на стороне клиента
     db.init_app(app)
+    migrate = Migrate(app, db)
     from .views import views
     from .auth import auth
     from .api import api

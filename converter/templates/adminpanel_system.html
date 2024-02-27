@@ -12,26 +12,26 @@
         </div>
         <div class="form-group-pt">
             <label for="csp_path">Путь к Crypto Pro CSP:</label>
-            <input type="text" class="form-control" id="csp_path" name="csp_path"
+            <input type="text" class="form-control selectable" id="csp_path" name="csp_path"
                 value="{{ default_configuration.csp_path }}">
         </div>
         <div class="form-group-pt">
             <label for="file_storage">Путь к хранилищу файлов, сюда сохраняются все файлы пользователей включая подписи.
                 Хранятся с названиями в формате uuid4.</label>
-            <input type="text" class="form-control" id="file_storage" name="file_storage"
+            <input type="text" class="form-control selectable" id="file_storage" name="file_storage"
                 value="{{ default_configuration.file_storage }}">
         </div>
         <div class="form-group-pt">
             <label for="file_export_folder">Путь для экспорта файлов, сюда выводятся пакеты для отправки с помощью
                 OutlookAutosender. Один пакет - одно сообщение.</label>
-            <input type="text" class="form-control" id="file_export_folder" name="file_export_folder"
+            <input type="text" class="form-control selectable" id="file_export_folder" name="file_export_folder"
                 value="{{ default_configuration.file_export_folder }}">
         </div>
         <div class="form-group-pt">
             <label for="reports_path">Путь для отчетов, отсюда будут браться отчеты об отправке сообщения. Имя файла
                 должно быть в виде "ИД сообщения.pdf". <br>OutlookAutosender выводит такие файлы после отправки в
                 заданную в нем папку:</label>
-            <input type="text" class="form-control" id="reports_path" name="reports_path"
+            <input type="text" class="form-control selectable" id="reports_path" name="reports_path"
                 value="{{ default_configuration.reports_path }}">
         </div>
         <div class="form-group-pt">
@@ -41,15 +41,15 @@
                 value="{{ default_configuration.auth_timeout }}" min="0" step="1">
         </div>
         <div class="form-group-pt">
-            <label for="restricted_emails" style="user-select: text" ;>Черный список email адресов для пропуска при
+            <label for="restricted_emails";>Черный список email адресов для пропуска при
                 распознавании и отправке через ";"</label>
-            <input type="text" class="form-control" id="restricted_emails" name="restricted_emails"
+            <input type="text" class="form-control selectable" id="restricted_emails" name="restricted_emails"
                 value="{{ default_configuration.restricted_emails }}" placeholder="example@example.com;test@tset.ru">
         </div>
         <div class="form-group-pt">
-            <label for="hwid" style="user-select: text" ;>Отправьте этот ID оборудования для активации полного
-                функционала сервиса: {{hwid}}</label>
-            <input type="text" class="form-control" id="hwid" name="hwid" value="{{ default_configuration.l_key }}"
+            <label for="l_key" class="selectable" ;>Отправьте этот ID оборудования для активации полного
+                функционала сервиса: {{hwid}}<br>Статус проверки: {{ license_message }}</label>
+            <input type="text" class="form-control selectable" id="l_key" name="l_key" value="{{ default_configuration.l_key }}"
                 placeholder="Введите сюда полученный ключ">
         </div>
         <br>

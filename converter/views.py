@@ -7,7 +7,7 @@ from sqlalchemy import desc
 import os
 from datetime import datetime, timedelta
 from . import db, free_mails_limit
-from .Utils import config, save_config, read_create_config, hwid, sent_mails_in_current_session, is_valid
+from .Utils import config, save_config, read_create_config, hwid, sent_mails_in_current_session, is_valid, license_message, verify_license_key
 
 
 views = Blueprint('views', __name__)
@@ -41,6 +41,12 @@ def judge_cabinet():
     return render_template('judgecabinet.html', title='Кабинет судьи', user=current_user)
 
 
+@views.route('/archive', methods=['GET'])
+@login_required
+def archive():
+    return render_template('archive.html', title='Архив', user=current_user)
+
+
 @views.route('/admin', methods=['GET'])
 @login_required
 def adminpanel():
@@ -50,13 +56,14 @@ def adminpanel():
 @views.route('/adminpanel/system', methods=['GET', 'POST'])
 @login_required
 def adminpanel_system():
-    global config
+    global config, license_message, is_valid
     if request.method == 'GET':
         return render_template('adminpanel_system.html',
                                title='Панель управления',
                                user=current_user,
                                default_configuration=config,
-                               hwid=hwid)
+                               hwid=hwid,
+                               license_message=license_message)
     if request.method == 'POST':
         try:
             sig_check = request.form.get('sig_check') == 'on'  # Преобразование в boolean
@@ -72,6 +79,7 @@ def adminpanel_system():
                 flash('Параметры не были сохранены, один или несколько из путей для хранения недоступны', category='error')
                 return redirect(url_for('views.adminpanel_system'))
             l_key = request.form.get('l_key')
+            is_valid, license_message = verify_license_key(l_key, hwid)
             config['sig_check'] = sig_check
             config['csp_path'] = csp_path
             config['file_storage'] = file_storage

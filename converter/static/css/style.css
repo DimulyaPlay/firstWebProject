@@ -8,6 +8,14 @@
     gap: 5px;
 }
 
+* {
+    user-select: none;
+    }
+
+.selectable {
+    user-select: text;
+}
+
 .tags-container {
     display: flex;
     flex-wrap: wrap;

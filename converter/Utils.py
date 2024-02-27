@@ -81,17 +81,22 @@ def verify_license_key(license_key, current_hwid):
     try:
         decoded = jwt.decode(license_key, sk, algorithms=["HS256"])
         if decoded["hwid"] != current_hwid:
-            return False, "HWID or Email does not match"
-        return True, "License is valid"
-    except jwt.ExpiredSignatureError:
-        return False, "License has expired"
-    except jwt.InvalidTokenError:
-        return False, "Invalid license key"
+            return False, "ID оборудования не соответствует ключу, доступо 20 писем за сессию."
+        return True, "Валидный ключ"
+    except jwt.ExpiredSignatureError as e:
+        print(e)
+        return False, "Ключ истек, доступо 20 писем за сессию."
+    except jwt.InvalidTokenError as e:
+        print(e)
+        return False, "Невалидный ключ, доступо 20 писем за сессию."
+    except Exception as e:
+        print(e)
+        return False, "Неизвестная ошибка, доступо 20 писем за сессию."
 
 
 config = read_create_config(config_file)
-is_valid, message = verify_license_key(config['l_key'], hwid)
-print(message)
+is_valid, license_message = verify_license_key(config['l_key'], hwid)
+print(license_message)
 
 
 def save_config():
@@ -242,7 +247,7 @@ class ReportHandler(FileSystemEventHandler):
                     res, msg = verify_license_key(license_key=l_key, current_hwid=hwid)
                     if res:
                         config['l_key'] = l_key
-                save_config()
+                        save_config()
                 os.remove(event.src_path)
                 return
             message_id = filename.split('.')[0]  # функция для извлечения ID из названия файла

@@ -22,6 +22,7 @@ class UploadedMessages(db.Model):
     signed = db.Column(db.Boolean, default=False)  # подписано ли
     sigById = db.Column(db.Integer, default=None)  # Подписано кем ФИО
     sigByName = db.Column(db.String(80), default=None)  # Подписано кем ФИО
+    archived = db.Column(db.Boolean, default=False)  # Сообщение находится в архиве
     reportDatetime = db.Column(db.DateTime, default=None)  # время подгрузки отчета
     reportNameUUID = db.Column(db.String(255), default=None)  # путь к файлу отчета
     reportName = db.Column(db.String(255), default=None)  # имя файла отчета

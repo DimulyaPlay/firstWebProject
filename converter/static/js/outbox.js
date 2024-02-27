@@ -86,16 +86,13 @@ $(document).ready(function () {
                     $.each(messages, function (index, message) {
                         var rowClass = message.signed ? 'table-success' : 'table-warning';
                         var filesCount = message.filesCount;
-                        var toRosreestrIcon = message.toRosreestr ? 'rosreestr-icon.png' : 'no-rosreestr-icon.png';
-                        var toEmailsIcon = message.toEmails ? 'email-icon.png' : 'no-email-icon.png';
                         var reportIcon = message.reportDatetime ? 'report-icon.png' : 'no-report-icon.png';
                         content += `<tr class="${rowClass}" style="text-align: center;" data-toggle="modal" data-target="#myModal" data-message-id="${message.id}">
                                             <th class="align-middle" scope="row" style="text-align: left;">${message.mailSubject}</th>
                                             <td class="align-middle">${filesCount}</td>
                                             <td class="align-middle">${message.sigByName}</td>
                                             <td class="align-middle" data-utc-time="${message.createDatetime}"></td>
-                                            <td><img src="static/img/${toRosreestrIcon}" alt="Rosreestr"></td>
-                                            <td><img src="static/img/${toEmailsIcon}" alt="Email" data-message-id="${message.id}"></td>
+                                            <td><img src="static/img/archive-icon.png" alt="Archive"></td>
                                             <td>
                                                 ${message.reportDatetime ? `<a href="/api/get-report?message_id=${message.id}" target="_blank" class="no-modal" style="cursor: pointer;"><img src="static/img/${reportIcon}" alt="Report"></a>` : '<img src="static/img/no-report-icon.png" alt="No Report" class="no-modal">'}
                                             </td>
