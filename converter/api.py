@@ -50,10 +50,14 @@ from sqlalchemy import desc, case
 @login_required
 def get_out_messages():
     page = request.args.get('page', 1, type=int)
-    archived = request.args.get('archive', False, type=bool)
+    archived = request.args.get('archive', 'false').lower() == 'true'
     per_page = 10
     search_query = request.args.get('search', '')
     base_query = UploadedMessages.query.filter(UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
+    if archived:
+        base_query = base_query.filter(UploadedMessages.archived == True)
+    else:
+        base_query = base_query.filter(UploadedMessages.archived == False)
     if current_user.first_name != 'admin':
         base_query = base_query.filter(UploadedMessages.user == current_user)
     # Добавляем условную сортировку: неподписанные сообщения будут в начале списка
@@ -374,5 +378,25 @@ def cancel_message():
         traceback.print_exc()
         db.session.rollback()
         return jsonify({'error': True, 'error_message': f'Произошла ошибка при удалении сообщения. {e}'}), 500
+
+
+@api.get('/set-archived')
+@login_required
+def archive_message():
+    try:
+        msg_id = request.args.get('message_id', None, type=int)
+        if msg_id is None:
+            return jsonify({'error': True, 'error_message': 'ID сообщения не указан.'}), 400
+        msg = UploadedMessages.query.get(msg_id)
+        if msg is None:
+            return jsonify({'error': True, 'error_message': 'Сообщение не найдено.'}), 400
+        else:
+            msg.archived = True
+            db.session.commit()
+            return jsonify({'error': False, 'error_message': 'Сообщение перемещено в архив'}), 200
+    except Exception as e:
+        print(e)
+        db.session.rollback()
+        return jsonify({'error': True, 'error_message': f'Ошибка выполнения запроса{e}'}), 400
 
 

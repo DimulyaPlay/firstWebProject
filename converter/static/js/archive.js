@@ -40,39 +40,11 @@ $(document).ready(function () {
             $('#search').click();
         }
     });
-
-    $(document).on('click', '.cancel-message', function (e) {
-        e.preventDefault();
-        var messageId = $(this).data('message-id');
-        var $tr = $(`tr[data-message-id='${messageId}']`)
-        var modalId = `#myModal${messageId}`; // Идентификатор модального окна
-        if (confirm("Вы уверены, что хотите отклонить это сообщение? Сообщение и все вложения будут безвозвратно удалены!")) {
-            $.ajax({
-                url: `/api/cancel-message?message_id=${messageId}`,
-                type: 'POST',
-                dataType: 'json',
-                success: function(response) {
-                    if (response.error) {
-                        alert("Ошибка: " + response.error_message);
-                    } else {
-                        alert("Сообщение успешно отклонено.");
-                        $(modalId).modal('hide').on('hidden.bs.modal', function () {
-                            $(this).remove();
-                        });
-                        $tr.remove();
-                    }
-                },
-                error: function(xhr, status, error) {
-                    alert("Произошла ошибка при попытке отклонить сообщение.");
-                }
-            });
-        }
-    });
     
 
     function updateMessagesTable(page, searchString) {
         $.ajax({
-            url: `/api/outbox-messages?page=${page}&search=${encodeURIComponent(searchString)}`,
+            url: `/api/outbox-messages?page=${page}&search=${encodeURIComponent(searchString)}&archive=true`,
             type: 'GET',
             dataType: 'json',
             success: function (response) {
@@ -92,9 +64,6 @@ $(document).ready(function () {
                                             <td class="align-middle">${filesCount}</td>
                                             <td class="align-middle">${message.sigByName}</td>
                                             <td class="align-middle" data-utc-time="${message.createDatetime}"></td>
-                                            <td>
-                                            <a href="/api/set-archived?message_id=${message.id}" class="no-modal" style="cursor: pointer;"><img src="static/img/archive-icon.png" alt="Archive"></a>
-                                            </td>
                                             <td>
                                                 ${message.reportDatetime ? `<a href="/api/get-report?message_id=${message.id}" target="_blank" class="no-modal" style="cursor: pointer;"><img src="static/img/${reportIcon}" alt="Report"></a>` : '<img src="static/img/no-report-icon.png" alt="No Report" class="no-modal">'}
                                             </td>

@@ -1,0 +1,71 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="input-group mt-3 mb-3">
+  <input type="text" id="searchString" class="form-control" placeholder="Поиск по теме">
+  <button id="search" class="btn btn-primary">Искать</button>
+</div>
+
+
+<div class="rounded bg-secondary bg-opacity-25 p-1">
+  <table class="table table-hover mb-0">
+    <thead>
+      <tr style="text-align: center;">
+        <th scope="col" class="col-md-4 align-middle" style="text-align: left;">Тема отправления</th>
+        <th scope="col" class="col-md-2 align-middle">Вложений</th>
+        <th scope="col" class="col-md-2 align-middle">Подписант</th>
+        <th scope="col" class="col-md-2 align-middle">Время создания</th>
+        <th scope="col" class="col-md-1 align-middle">Печать отчета</th>
+        <th scope="col" class="col-md-1 align-middle">Переслать</th>
+      </tr>
+    </thead>
+    <tbody id="messageList">
+    </tbody>
+  </table>
+</div>
+<br>
+<nav aria-label="Page navigation" class="d-flex justify-content-center">
+  <ul class="pagination">
+  </ul>
+</nav>
+
+
+<br>
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th scope="col">Цветовая разметка</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="table-success">
+      <th scope="row">Отправлено успешно</th>
+    </tr>
+    <tr class="table-danger">
+      <th scope="row">Ошибка при отправке</th>
+    </tr>
+    <tr class="table-warning">
+      <th scope="row">Не подписано</th>
+    </tr>
+  </tbody>
+</table>
+
+<div class="modal fade" id="genericModal" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="genericModalLabel">
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+      </div>
+      <div class="modal-footer">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="{{ 'js/archive.js'|versioned_static }}"></script>
+{% endblock content %}
