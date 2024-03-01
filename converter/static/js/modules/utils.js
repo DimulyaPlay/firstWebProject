@@ -1,5 +1,5 @@
 export function convertUtcToLocalTime() {
-    $('[data-utc-time]').each(function() {
+    $('[data-utc-time]').each(function () {
         var utcTime = $(this).data('utc-time');
         // Создаем объект Date, интерпретируя исходную строку времени как UTC
         var date = new Date(utcTime + 'Z'); // Добавляем 'Z' для указания на UTC
@@ -8,6 +8,15 @@ export function convertUtcToLocalTime() {
             $(this).text(localTime);
         }
     });
+}
+
+export function convertLocalToUtcDate(localDateStr) {
+    if (!localDateStr) return ''; // Если дата не задана, возвращаем пустую строку
+
+    var localDate = new Date(localDateStr);
+    var timezoneOffset = localDate.getTimezoneOffset() * 60000;
+    var utcDate = new Date(localDate.getTime() - timezoneOffset);
+    return utcDate.toISOString().slice(0, 10); // Возвращаем только дату в формате YYYY-MM-DD
 }
 
 export function clearModalField(modal) {

@@ -3,6 +3,13 @@
 {% block content %}
 <div class="input-group mt-3 mb-3">
   <input type="text" id="searchString" class="form-control" placeholder="Поиск по теме">
+  
+  <span class="input-group-text">С:</span>
+  <input type="date" id="dateFrom" class="form-control" style="max-width: 160px;">
+  
+  <span class="input-group-text">По:</span>
+  <input type="date" id="dateTo" class="form-control" style="max-width: 160px;">
+  
   <button id="search" class="btn btn-primary">Искать</button>
 </div>
 

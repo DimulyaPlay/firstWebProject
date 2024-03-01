@@ -11,6 +11,7 @@ from . import db, free_mails_limit
 import tempfile
 import zipfile
 from uuid import uuid4
+from datetime import datetime, timedelta
 
 
 api = Blueprint('api', __name__)
@@ -53,13 +54,29 @@ def get_out_messages():
     archived = request.args.get('archive', 'false').lower() == 'true'
     per_page = 10
     search_query = request.args.get('search', '')
+    date_from = request.args.get('dateFrom', None)
+    date_to = request.args.get('dateTo', None)
     base_query = UploadedMessages.query.filter(UploadedMessages.mailSubject.ilike(f"%{search_query}%"))
+
+    # Фильтрация по архивным сообщениям
     if archived:
         base_query = base_query.filter(UploadedMessages.archived == True)
     else:
         base_query = base_query.filter(UploadedMessages.archived == False)
+
+    # Фильтрация сообщений по пользователю (если не админ)
     if current_user.first_name != 'admin':
         base_query = base_query.filter(UploadedMessages.user == current_user)
+
+    # Фильтрация по дате
+    if date_from:
+        date_from = datetime.strptime(date_from, '%Y-%m-%d')
+        base_query = base_query.filter(UploadedMessages.createDatetime >= date_from)
+    if date_to:
+        date_to = datetime.strptime(date_to, '%Y-%m-%d')
+        # Добавляем один день к date_to и вычитаем 1 секунду, чтобы получить конец дня
+        date_to = date_to + timedelta(days=1) - timedelta(seconds=1)
+        base_query = base_query.filter(UploadedMessages.createDatetime <= date_to)
     # Добавляем условную сортировку: неподписанные сообщения будут в начале списка
     messages_query = base_query.order_by(
         case((UploadedMessages.signed == False, 0), else_=1),
@@ -75,7 +92,6 @@ def get_out_messages():
         'reportDatetime': message.reportDatetime,
         'sigByName': message.sigByName,
         'filesCount': len(message.files),
-        'search_query': search_query
     } for message in paginated_messages]
 
     return jsonify({
@@ -84,7 +100,6 @@ def get_out_messages():
         'current_page': page,
         "start_index_pages": max(1, page - 3),
         "end_index_pages": min(page + 3, pagination.pages),
-        'search': search_query
     })
 
 

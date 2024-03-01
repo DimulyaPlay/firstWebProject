@@ -1,4 +1,4 @@
-import { convertUtcToLocalTime, updatePagination } from './modules/utils.js';
+import { convertUtcToLocalTime, updatePagination, convertLocalToUtcDate } from './modules/utils.js';
 convertUtcToLocalTime();
 $(document).ready(function () {
     $('#messageList').on('click', 'tr[data-toggle="modal"]', function (event) {
@@ -22,33 +22,49 @@ $(document).ready(function () {
 
     });
 
-    $('#search').on('click', function (e) {
-        let searchString = $('#searchString').val();
-        updateMessagesTable(1, searchString);
-    });
-
-    $('body').on('click', '.page-link', function (e) {
-        e.preventDefault();
-        let searchString = $('#searchString').val();
-        var pageNumber = $(this).data('page');
-        updateMessagesTable(pageNumber, searchString);
-    });
-
-    $(document).keypress(function(event) {
+    $(document).keypress(function (event) {
         if (event.which === 13) {
             event.preventDefault();
             $('#search').click();
         }
     });
-    
 
-    function updateMessagesTable(page, searchString) {
+    $('#search').on('click', function (e) {
+        let searchString = $('#searchString').val();
+        let dateFrom = $('#dateFrom').val();
+        let dateTo = $('#dateTo').val();
+        // Преобразование дат в UTC
+        dateFrom = convertLocalToUtcDate(dateFrom);
+        dateTo = convertLocalToUtcDate(dateTo);
+        updateMessagesTable(1, searchString, dateFrom, dateTo);
+    });
+
+    $('body').on('click', '.page-link', function (e) {
+        e.preventDefault();
+        let searchString = $('#searchString').val();
+        let dateFrom = $('#dateFrom').val();
+        let dateTo = $('#dateTo').val();
+        // Преобразование дат в UTC
+        dateFrom = convertLocalToUtcDate(dateFrom);
+        dateTo = convertLocalToUtcDate(dateTo);
+        var pageNumber = $(this).data('page');
+        updateMessagesTable(pageNumber, searchString, dateFrom, dateTo);
+    });
+
+
+    function updateMessagesTable(page, searchString, dateFrom, dateTo) {
+        let queryURL = `/api/outbox-messages?page=${page}&search=${encodeURIComponent(searchString)}&archive=true`;
+        if (dateFrom) {
+            queryURL += `&dateFrom=${encodeURIComponent(dateFrom)}`;
+        }
+        if (dateTo) {
+            queryURL += `&dateTo=${encodeURIComponent(dateTo)}`;
+        }
         $.ajax({
-            url: `/api/outbox-messages?page=${page}&search=${encodeURIComponent(searchString)}&archive=true`,
+            url: queryURL,
             type: 'GET',
             dataType: 'json',
             success: function (response) {
-                $('#searchString').val(response.search);
                 var messages = response.messages;
                 var $tbody = $('#messageList');
                 var content = '';
