@@ -164,10 +164,14 @@ $(document).ready(function () {
         updateJudgeTable(pageNumber);
     });
 
+    $('#signedToggle').on('change', function() {
+        updateJudgeTable(1); // Обновляем таблицу при каждом переключении
+    });
 
     function updateJudgeTable(page) {
+        let showAll = $('#signedToggle').is(':checked');
         $.ajax({
-            url: `/api/judge-files?page=${page}`,
+            url: `/api/judge-files?page=${page}&showAll=${showAll}`,
             type: 'GET',
             dataType: 'json',
             success: function (response) {

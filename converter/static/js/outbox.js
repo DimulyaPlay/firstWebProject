@@ -116,7 +116,6 @@ $(document).ready(function () {
             type: 'GET',
             dataType: 'json',
             success: function (response) {
-                $('#searchString').val(response.search);
                 var messages = response.messages;
                 var $tbody = $('#messageList');
                 var content = '';

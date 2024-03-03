@@ -22,11 +22,18 @@ api = Blueprint('api', __name__)
 def get_judge_files():
     page = request.args.get('page', 1, type=int)
     per_page = 10
-    pagination = UploadedFiles.query \
-        .filter(UploadedFiles.sigById == current_user.id) \
-        .order_by(case((UploadedFiles.sigNameUUID == '', 0), else_=1), desc(UploadedFiles.createDatetime)) \
-        .paginate(page=page, per_page=per_page, error_out=False)
+    show_all = request.args.get('showAll', 'false').lower() == 'true'
+    base_query = UploadedFiles.query.filter(UploadedFiles.sigById == current_user.id)
+    if not show_all:
+        # Показываем только неподписанные файлы, если слайдер выключен
+        base_query = base_query.filter(UploadedFiles.sigNameUUID.is_(None))
+    pagination = base_query.order_by(
+        case((UploadedFiles.sigNameUUID.is_(None), 0), else_=1),
+        desc(UploadedFiles.createDatetime)
+    ).paginate(page=page, per_page=per_page, error_out=False)
+
     paginated_files = pagination.items
+    total_pages = pagination.pages if pagination.pages else 1
     files_data = [{
         'fileName': file.fileName,
         'createDatetime': file.createDatetime.isoformat(),
@@ -34,17 +41,13 @@ def get_judge_files():
         'sigNameUUID': bool(file.sigNameUUID),
         'message_id': file.message_id
     } for file in paginated_files]
-
     return jsonify({
         'files': files_data,
-        'total_pages': pagination.pages,
+        'total_pages': total_pages,
         'current_page': page,
         "start_index_pages": max(1, page - 3),
-        "end_index_pages": min(page + 3, pagination.pages)
+        "end_index_pages": min(page + 3, total_pages)
     })
-
-
-from sqlalchemy import desc, case
 
 
 @api.get('/outbox-messages')
@@ -83,6 +86,7 @@ def get_out_messages():
         desc(UploadedMessages.createDatetime)
     )
     pagination = messages_query.paginate(page=page, per_page=per_page, error_out=False)
+    total_pages = pagination.pages if pagination.pages else 1
     paginated_messages = pagination.items
     messages_data = [{
         'mailSubject': message.mailSubject,
@@ -96,10 +100,10 @@ def get_out_messages():
 
     return jsonify({
         'messages': messages_data,
-        'total_pages': pagination.pages,
+        'total_pages': total_pages,
         'current_page': page,
         "start_index_pages": max(1, page - 3),
-        "end_index_pages": min(page + 3, pagination.pages),
+        "end_index_pages": min(page + 3, total_pages),
     })
 
 
