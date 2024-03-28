@@ -139,7 +139,7 @@ $(document).ready(function () {
                 url: `/api/cancel-message?message_id=${messageId}`,
                 type: 'POST',
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.error) {
                         alert("Ошибка: " + response.error_message);
                     } else {
@@ -150,13 +150,13 @@ $(document).ready(function () {
                         $tr.remove();
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     alert("Произошла ошибка при попытке отклонить сообщение.");
                 }
             });
         }
     });
-    
+
 
     $('body').on('click', '.page-link', function (e) {
         e.preventDefault();
@@ -164,9 +164,42 @@ $(document).ready(function () {
         updateJudgeTable(pageNumber);
     });
 
-    $('#signedToggle').on('change', function() {
+    $('#signedToggle').on('change', function () {
         updateJudgeTable(1); // Обновляем таблицу при каждом переключении
     });
+
+    $('body').on('click', '#fileList tr', function (e) {
+        if (!$(e.target).closest('.no-preview').length) {
+            let fileId = $(this).data('file-id');
+            let fileLink = `/api/get-file?file_id=${fileId}`
+            if ($('#pdfPreview').attr('src') == fileLink) {
+                togglePreview(false);
+                $('#pdfPreview').attr('src', null);
+            } else {
+                openFileInPreview(fileLink);
+                togglePreview(true);
+            }
+        }
+    });
+
+    function openFileInPreview(fileUrl) {
+        $('#pdfPreview').attr('src', fileUrl);
+    }
+
+    function togglePreview(showPreview) {
+        if (showPreview) {
+            // Переключаем на режим предпросмотра
+            $('#mainContainer').removeClass('container').addClass('container-fluid');
+            $('#pdfPreviewContainer').css('flex', '40%');
+            $('#tableContainer').css('flex', '60%');
+        } else {
+            // Возвращаем обратно в исходный режим
+            $('#mainContainer').removeClass('container-fluid').addClass('container');
+            $('#pdfPreviewContainer').css('flex', '0%');
+            $('#tableContainer').css('flex', '100%');
+        }
+    }
+
 
     function updateJudgeTable(page) {
         let showAll = $('#signedToggle').is(':checked');
@@ -187,16 +220,11 @@ $(document).ready(function () {
                                         <th class="align-middle" scope="row" style="text-align: left;">${file.fileName}</th>
                                         <td class="align-middle" data-utc-time="${file.createDatetime}"></td>
                                         <td class="align-middle">
-                                            <a href="/api/get-file?file_id=${file.id}" target="_blank">
-                                                <img src="static/img/file-icon.png" alt="OpenFile">
-                                            </a>
+                                        <img src="static/img/email-icon.png" class="no-preview" alt="OpenLetter" data-toggle="modal" data-message-id="${file.message_id}" style="cursor: pointer;">
                                         </td>
                                         <td class="align-middle">
-                                        <img src="static/img/email-icon.png" alt="OpenLetter" data-toggle="modal" data-message-id="${file.message_id}" style="cursor: pointer;">
-                                        </td>
-                                        <td class="align-middle">
-                                            <button class="btn btn-primary btn-sign-file ${file.sigNameUUID ? '' : 'btn-sm'}" data-file-id="${file.id}" data-message-id="${file.message_id}" data-file-name="${file.fileName}" ${file.sigNameUUID ? 'disabled>Подписано' : '>Подписать'}</button><br>
-                                            ${!file.sigNameUUID ? `<a href="#" class="btn btn-danger btn-sm mt-1 cancel-message" data-message-id="${file.message_id}">Отклонить</a>` : ''}
+                                            <button class="btn btn-primary btn-sign-file no-preview ${file.sigNameUUID ? '' : 'btn-sm'}" data-file-id="${file.id}" data-message-id="${file.message_id}" data-file-name="${file.fileName}" ${file.sigNameUUID ? 'disabled>Подписано' : '>Подписать'}</button><br>
+                                            ${!file.sigNameUUID ? `<a href="#" class="btn btn-danger btn-sm mt-1 cancel-message no-preview" data-message-id="${file.message_id}">Отклонить</a>` : ''}
                                             </td>
                                        </tr>`;
 
