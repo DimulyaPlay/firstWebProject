@@ -47,3 +47,32 @@ export function updatePagination(total_pages, current_page, start_index_pages, e
         <a class="page-link" href="#" data-page="${total_pages}">В конец</a>
     </li>`);
 }
+
+export function forwardMessage() {
+    $(document).on('click', '.forward-message', function() {
+        const modal = $(this).closest('.message-modal');
+        const messageId = modal.data('message-id');
+        let emails = [];
+        modal.find('.tags-container .email-tag').each(function() {
+            const email = $(this).text().trim();
+            emails.push(email.replace(/×$/, '').trim());
+        });
+        const emailsStr = emails.join(';');
+        $.ajax({
+            url: '/api/forward-existing-message',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                message_id: messageId,
+                emails: emailsStr
+            }),
+            success: function(response) {
+                alert(response.error_message);
+            },
+            error: function(error) {
+                console.error('Ошибка при пересылке сообщения:', error);
+                alert('Произошла ошибка при пересылке сообщения.');
+            }
+        });
+    });
+}

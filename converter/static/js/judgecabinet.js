@@ -1,4 +1,4 @@
-import { convertUtcToLocalTime, updatePagination } from './modules/utils.js';
+import { convertUtcToLocalTime, updatePagination, forwardMessage } from './modules/utils.js';
 $(document).ready(function () {
 
     $('#fileList').on('click', 'img[data-toggle="modal"]', function () {
@@ -200,6 +200,28 @@ $(document).ready(function () {
         }
     }
 
+    $(document).on('keypress', '#emailInput', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            var email = $(this).val().trim();
+            if (email) {
+                var emailClass = email.replace(/[^a-zA-Z0-9]/g, '');
+                var tag = $('<div class="email-tag" name="email">' + email + '<span class="remove-tag">&times;</span></div>');
+                $('#emailTags').append(tag);
+                var hiddenInput = $('<input type="hidden" name="email" value="' + email + '" class="' + emailClass + '">');
+                $('#myModal').append(hiddenInput); // Используйте уникальный селектор модального окна, если у вас их несколько
+                $(this).val('');
+            }
+        }
+    });
+    
+    // Обработчик удаления тега
+    $(document).on('click', '.remove-tag', function() {
+        $(this).parent().remove();
+    });
+
+    // Запуск функции пересылки сообщений из модальных окон
+    forwardMessage();
 
     function updateJudgeTable(page) {
         let showAll = $('#signedToggle').is(':checked');

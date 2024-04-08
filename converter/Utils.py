@@ -144,6 +144,19 @@ def process_emails(request_form):
     return None
 
 
+def process_emails2(emails_list):
+    val_mails = []
+    for email in emails_list:
+        try:
+            validate_email(email)
+            if email not in config['restricted_emails'].split(';'):
+                val_mails.append(email)
+        except:
+            traceback.print_exc()
+    emails = '; '.join(val_mails)
+    return emails if emails else None
+
+
 def generate_sig_pages(current_list, custom_string):
     print(current_list, custom_string)
     input_pagelist = get_sorted_pages(custom_string)
@@ -295,18 +308,30 @@ def process_existing_reports(directory, file_storage, app):
                 db.session.commit()
 
 
-def generate_modal(message):
-    # Формирование списка файлов для данного сообщения
+def generate_modal_message(message):
     files_list_html = ""
     for file in message.files:
         download_link = f'<a href="/api/get-file?file_id={file.id}" target="_blank">{file.fileName}</a>'
-        files_list_html += f"<li>{download_link}</li>"
+        # Проверка наличия электронной подписи
+        signature_link = f'<a href="/api/get-sign?file_id={file.id}" target="_blank">(подписано УКЭП)</a>' if file.sigNameUUID else ''
+        files_list_html += f"<li>{download_link} {signature_link}</li>"
 
     # Форматирование даты и времени
     report_datetime = message.reportDatetime.strftime("%Y-%m-%d %H:%M:%S") if message.reportDatetime else "Нет"
 
+    # Добавляем разметку для поля ввода адресов электронной почты
+    email_input_html = """
+    <div id="emailSection" class="mb-2">
+        <div class="tags-input-wrapper mb-2">
+            <div id="emailTags" class="tags-container"></div>
+        </div>
+        <input type="email" id="emailInput" class="form-control"
+            placeholder="Введите адрес и нажмите Enter">
+    </div>
+    """
+
     modal = f"""
-    <div class="modal fade" id="myModal{message.id}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel{message.id}" aria-hidden="true">
+    <div class="modal fade message-modal" id="myModal{message.id}" data-message-id="{message.id}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel{message.id}" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -316,8 +341,8 @@ def generate_modal(message):
                 <div class="modal-body">
                     <p>Создано: <span data-utc-time="{message.createDatetime}"></span></p>
                     <div class="mb-3">
-                        <label for="mailBody" class="form-label">Тема:</label>
-                        <div id="mailBody" class="form-control" style="height: auto; white-space: pre-wrap;">{message.mailSubject}</div>
+                        <label for="mailSubject" class="form-label">Тема:</label>
+                        <div id="mailSubject" class="form-control" style="height: auto; white-space: pre-wrap;">{message.mailSubject}</div>
                     </div>
                     <div class="mb-3">
                         <label for="mailBody" class="form-label">Содержание:</label>
@@ -328,10 +353,11 @@ def generate_modal(message):
                     <p>Время подгрузки отчета: <span data-utc-time="{message.reportDatetime}">{report_datetime}</span></p>
                     <h6>Файлы:</h6>
                     <ul>{files_list_html}</ul>
+                    {email_input_html}
                 </div>
                 <div class="modal-footer">
-                    {f"<a href='#'  class='btn btn-danger cancel-message' data-message-id='{message.id}' {'' if not message.signed else 'hidden'}>Отменить отправку</a>"}
-                    <button type="button" class="btn btn-secondary " data-bs-dismiss="modal">Закрыть</button>  
+                    {f"<a href='#' class='btn btn-primary forward-message'>Переслать на указанные адреса</a>"}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>  
                 </div>
             </div>
         </div>

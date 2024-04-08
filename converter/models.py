@@ -36,11 +36,11 @@ class UploadedMessages(db.Model):
 class UploadedFiles(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # ID
     createDatetime = db.Column(db.DateTime, default=datetime.utcnow)  # Время загрузки документа
-    fileNameUUID = db.Column(db.String(255), unique=True, nullable=False)  # Путь к сохраненному файлу
+    fileNameUUID = db.Column(db.String(255), unique=False, nullable=False)  # Путь к сохраненному файлу
     fileName = db.Column(db.String(255), nullable=False)  # Название файла
     fileType = db.Column(db.String(50))  # Расширение файла
     sigPages = db.Column(db.String(120), default=None)  # Предложенные страницы для размещения штампа
-    sigNameUUID = db.Column(db.String(255), unique=True, default=None)  # Путь к сохраненной подписи
+    sigNameUUID = db.Column(db.String(255), unique=False, default=None)  # Путь к сохраненной подписи
     sigName = db.Column(db.String(255), default=None)  # Название файла подписи
     sigById = db.Column(db.Integer, default=None)  # Подписано кем ФИО, если None, то подписи не требует (аттачмент)
     sigByName = db.Column(db.String(80), default=None)  # Подписано кем ФИО

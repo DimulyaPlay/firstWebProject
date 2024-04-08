@@ -5,7 +5,7 @@ from flask import request, jsonify, Blueprint, make_response, send_file, render_
 from flask_login import current_user, login_required
 from .models import UploadedFiles, UploadedMessages, Users
 from sqlalchemy import desc, case
-from .Utils import analyze_file, config, generate_modal, sent_mails_in_current_session, check_sig, export_signed_message, is_valid, process_emails, generate_sig_pages
+from .Utils import analyze_file, config, generate_modal_message, sent_mails_in_current_session, check_sig, export_signed_message, is_valid, process_emails, generate_sig_pages, process_emails2
 import os
 from . import db, free_mails_limit
 import tempfile
@@ -142,6 +142,26 @@ def get_file():
         return jsonify({'error': True, 'error_message': error_message})
 
 
+@api.route('/get-sign', methods=['GET'])
+@login_required
+def get_sign():
+    idx = request.args.get('file_id', 1, type=int)
+    file_obj = UploadedFiles.query.get(idx)
+    if not file_obj or not file_obj.sigNameUUID:
+        error_message = 'Ошибка: файл подписи не найден в базе данных.'
+        return jsonify({'error': True, 'error_message': error_message})
+
+    # Путь к файлу подписи
+    sign_path = os.path.join(config['file_storage'], file_obj.sigNameUUID)
+
+    if os.path.exists(sign_path):
+        # Отправка файла подписи
+        return send_file(sign_path, as_attachment=True, download_name=file_obj.sigName)
+    else:
+        error_message = 'Ошибка: файл подписи не найден в хранилище.'
+        return jsonify({'error': True, 'error_message': error_message})
+
+
 @api.get('/get-report')
 @login_required
 def get_report():
@@ -160,7 +180,7 @@ def get_report():
 def get_message_modal():
     msg_id = request.args.get('message_id', 1, type=int)
     msg = UploadedMessages.query.get(msg_id)
-    modal = generate_modal(msg)
+    modal = generate_modal_message(msg)
     return render_template_string(modal)
 
 
@@ -197,7 +217,7 @@ def upload_signed_file():
         message_files = UploadedFiles.query.filter_by(message_id=file.message_id).all()
         all_files_signed = all(file.sigName for file in message_files)
         if all_files_signed:
-            message = UploadedMessages.query.filter_by(id=file.message_id).first()
+            message = UploadedMessages.query.get(id=file.message_id)
             message.signed = True
             export_signed_message(message)
             db.session.commit()
@@ -339,7 +359,7 @@ def create_new_message():
         current_user.last_judge = judge.id
         db.session.commit()
         try:
-            message_files = UploadedFiles.query.filter_by(message_id=message_id).all()
+            message_files = UploadedFiles.query.filter_by(message_id=message_id)
             all_files_signed = all(file.sigName for file in message_files)
             if all_files_signed:
                 new_message = UploadedMessages.query.filter_by(id=message_id).first()
@@ -364,6 +384,63 @@ def create_new_message():
         return jsonify({'error': True, 'error_message': error_message})
     finally:
         db.session.close()
+
+
+@api.post('/forward-existing-message')
+@login_required
+def forward_existing_message():
+    try:
+        data = request.get_json()
+        message_id = data.get('message_id')
+        emails = data.get('emails').split(';')  # Преобразование строки адресов в список
+        new_emails = process_emails2(emails)
+        if not new_emails:
+            return jsonify({'error': True, 'error_message': f'Не указан действительный email'})
+        original_message = UploadedMessages.query.get(message_id)
+        original_files = original_message.files
+
+        new_message = UploadedMessages(
+            createDatetime=datetime.utcnow(),  # Устанавливаем текущее время создания
+            signed=original_message.signed,
+            sigById=original_message.sigById,
+            sigByName=original_message.sigByName,
+            archived=False,  # Новое сообщение не архивное
+            toRosreestr=False,
+            toEmails=new_emails,  # Новые адреса для отправки
+            mailSubject=f'Пересылка: {original_message.mailSubject}',
+            mailBody=original_message.mailBody,
+            user_id=original_message.user_id
+        )
+        # Сохраняем новое сообщение в базу данных
+        db.session.add(new_message)
+        db.session.commit()
+        for original_file in original_files:
+            # Создание копии файла с изменением message_id
+            new_file = UploadedFiles(
+                createDatetime=original_file.createDatetime,
+                fileNameUUID=original_file.fileNameUUID,
+                fileName=original_file.fileName,
+                fileType=original_file.fileType,
+                sigPages=original_file.sigPages,
+                sigNameUUID=original_file.sigNameUUID,
+                sigName=original_file.sigName,
+                sigById=original_file.sigById,
+                sigByName=original_file.sigByName,
+                user_id=original_file.user_id,
+                message_id=new_message.id  # ID нового сообщения
+            )
+            # Сохраняем копию файла в базу данных
+            db.session.add(new_file)
+        db.session.commit()
+        if new_message.signed:
+            export_signed_message(new_message)
+    except Exception as e:
+        db.session.rollback()
+        traceback.print_exc()
+        return jsonify({'error': True, 'error_message': f'Произошла ошибка:{e}'})
+    return jsonify({'error': False, 'error_message': 'Сообщение успешно переслано.'})
+
+
 
 
 @api.post('/cancel-message')

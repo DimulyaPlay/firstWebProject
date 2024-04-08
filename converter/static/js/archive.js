@@ -1,4 +1,4 @@
-import { convertUtcToLocalTime, updatePagination, convertLocalToUtcDate } from './modules/utils.js';
+import { convertUtcToLocalTime, updatePagination, convertLocalToUtcDate, forwardMessage } from './modules/utils.js';
 convertUtcToLocalTime();
 $(document).ready(function () {
     $('#messageList').on('click', 'tr[data-toggle="modal"]', function (event) {
@@ -28,6 +28,29 @@ $(document).ready(function () {
             $('#search').click();
         }
     });
+    
+    $(document).on('keypress', '#emailInput', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            var email = $(this).val().trim();
+            if (email) {
+                var emailClass = email.replace(/[^a-zA-Z0-9]/g, '');
+                var tag = $('<div class="email-tag" name="email">' + email + '<span class="remove-tag">&times;</span></div>');
+                $('#emailTags').append(tag);
+                var hiddenInput = $('<input type="hidden" name="email" value="' + email + '" class="' + emailClass + '">');
+                $('#myModal').append(hiddenInput); // Используйте уникальный селектор модального окна, если у вас их несколько
+                $(this).val('');
+            }
+        }
+    });
+    
+    // Обработчик удаления тега
+    $(document).on('click', '.remove-tag', function() {
+        $(this).parent().remove();
+    });
+
+    // Запуск функции пересылки сообщений из модальных окон
+    forwardMessage();
 
     $('#search').on('click', function (e) {
         let searchString = $('#searchString').val();
@@ -83,7 +106,6 @@ $(document).ready(function () {
                                             <td>
                                                 ${message.reportDatetime ? `<a href="/api/get-report?message_id=${message.id}" target="_blank" class="no-modal" style="cursor: pointer;"><img src="static/img/${reportIcon}" alt="Report"></a>` : '<img src="static/img/no-report-icon.png" alt="No Report" class="no-modal">'}
                                             </td>
-                                            <td><img src="static/img/email-forward.png" style="text-align: center;" alt="Forward" class="no-modal"></td>
                                         </tr>`;
                     });
 
