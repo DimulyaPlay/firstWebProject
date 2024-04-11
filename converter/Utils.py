@@ -216,6 +216,7 @@ def export_signed_message(message):
     sigpaths = [os.path.join(config['file_storage'], f.sigNameUUID) for f in files if f.sigNameUUID]
     signames = [f.sigName for f in files]
     signames = [f'file_{i}' if signames.count(f) > 1 else f for i, f in enumerate(signames)]
+    signames = [signame for signame in signames if signame != "No_need"]
     fileNames = filenames.copy()
     if sigpaths:
         fileNames.extend(signames)
