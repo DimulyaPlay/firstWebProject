@@ -23,9 +23,6 @@ class UploadedMessages(db.Model):
     sigById = db.Column(db.Integer, default=None)  # Подписано кем ФИО
     sigByName = db.Column(db.String(80), default=None)  # Подписано кем ФИО
     archived = db.Column(db.Boolean, default=False)  # Сообщение находится в архиве
-    reportDatetime = db.Column(db.DateTime, default=None)  # время подгрузки отчета
-    reportNameUUID = db.Column(db.String(255), default=None)  # путь к файлу отчета
-    reportName = db.Column(db.String(255), default=None)  # имя файла отчета
     toRosreestr = db.Column(db.Boolean)  # Флаг отправки в росреестр
     toEmails = db.Column(db.String(255))  # Адреса отправки на почту, '' = не отправлять
     mailSubject = db.Column(db.String(255))  # Тема письма для отправки
@@ -47,3 +44,12 @@ class UploadedFiles(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # связь файла с пользователем по ИД
     message_id = db.Column(db.Integer, db.ForeignKey('uploaded_messages.id'))  # внешний ключ для UploadedMessages.id
     message = db.relationship('UploadedMessages', backref='files', lazy=True)
+
+
+class UploadedReplies(db.Model):
+    id = db.Column(db.Integer, primary_key=True)  # ID
+    fileDatetime = db.Column(db.DateTime, default=None)  # время подгрузки отчета об отправке
+    fileNameUUID = db.Column(db.String(255), default=None)  # путь к файлу отчета об отправке
+    fileName = db.Column(db.String(255), default=None)  # имя файла отчета об отправке
+    message_id = db.Column(db.Integer, db.ForeignKey('uploaded_messages.id'))  # внешний ключ для UploadedMessages.id
+    message = db.relationship('UploadedMessages', backref='replies', lazy=True)

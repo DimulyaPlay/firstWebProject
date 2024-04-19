@@ -264,17 +264,26 @@ class ReportHandler(FileSystemEventHandler):
                         save_config()
                 os.remove(event.src_path)
                 return
+            is_reply = False
             message_id = filename.split('.')[0]  # функция для извлечения ID из названия файла
+            if filename.split('.')[1] == 'reply':
+                is_reply = True
             new_filename = str(uuid4()) + '.pdf'
             new_filepath = os.path.join(config['file_storage'], new_filename)
             time.sleep(2)
             shutil.move(event.src_path, new_filepath)
             message = UploadedMessages.query.get(message_id)
             if message:
-                message.reportDatetime = datetime.utcnow()
-                message.reportNameUUID = new_filename
-                message.reportName = filename
-                db.session.commit()
+                if not is_reply:
+                    message.reportDatetime = datetime.utcnow()
+                    message.reportNameUUID = new_filename
+                    message.reportName = filename
+                    db.session.commit()
+                else:
+                    message.replyDatetime = datetime.utcnow()
+                    message.replyNameUUID = new_filename
+                    message.replyName = filename
+                    db.session.commit()
 
 
 def start_monitoring(path, app):
@@ -295,18 +304,27 @@ def process_existing_reports(directory, file_storage, app):
     with app.app_context():
         existing_files = glob.glob(directory + '/*.pdf')
         for fp in existing_files:
+            is_reply = False
             filename = os.path.basename(fp)
             message_id = filename.split('.')[0]  # функция для извлечения ID из названия файла
+            if filename.split('.')[1] == 'reply':
+                is_reply = True
             new_filename = str(uuid4()) + '.pdf'
             new_filepath = os.path.join(file_storage, new_filename)
             time.sleep(1)
             shutil.move(fp, new_filepath)
             message = UploadedMessages.query.get(message_id)
             if message:
-                message.reportDatetime = datetime.utcnow()
-                message.reportNameUUID = new_filename
-                message.reportName = filename
-                db.session.commit()
+                if not is_reply:
+                    message.reportDatetime = datetime.utcnow()
+                    message.reportNameUUID = new_filename
+                    message.reportName = filename
+                    db.session.commit()
+                else:
+                    message.replyDatetime = datetime.utcnow()
+                    message.replyNameUUID = new_filename
+                    message.replyName = filename
+                    db.session.commit()
 
 
 def generate_modal_message(message):
