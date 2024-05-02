@@ -335,6 +335,10 @@ def generate_modal_message(message):
         signature_link = f'<a href="/api/get-sign?file_id={file.id}" target="_blank">(подписано УКЭП)</a>' if file.sigNameUUID else ''
         files_list_html += f"<li>{download_link} {signature_link}</li>"
 
+    replies_list_html = ""
+    for reply in message.replies:
+        ...
+
     # Форматирование даты и времени
     report_datetime = message.reportDatetime.strftime("%Y-%m-%d %H:%M:%S") if message.reportDatetime else "Нет"
 
