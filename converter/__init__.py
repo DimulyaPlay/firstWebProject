@@ -10,6 +10,8 @@ from flask_migrate import Migrate
 db = SQLAlchemy()
 basedir = os.path.abspath(os.path.dirname(__file__))
 database_path = os.path.join(basedir, 'instance', 'database.db')
+soffice_path = os.path.join(basedir, 'tools', 'LibreOfficePortablePrevious', 'LibreOfficePortablePrevious.exe')
+convert_types_list = ['doc', 'docx', 'odt', 'rtf']
 if not os.path.exists(os.path.join(basedir, 'instance')):
     os.mkdir(os.path.join(basedir, 'instance'))
 free_mails_limit = 20
@@ -43,8 +45,8 @@ def create_app(config):
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
-    from .Utils import start_monitoring, process_existing_reports
-    process_existing_reports(config['reports_path'], config['file_storage'],  app)
+    from .Utils import start_monitoring, process_existing_msg
+    process_existing_msg(config['reports_path'], config['file_storage'],  app)
     Thread(target=start_monitoring, args=(config['reports_path'], app), daemon=True).start()
 
     @login_manager.user_loader

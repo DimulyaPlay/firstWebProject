@@ -139,18 +139,19 @@ $(document).ready(function () {
             type: 'GET',
             dataType: 'json',
             success: function (response) {
-                var messages = response.messages;
-                var $tbody = $('#messageList');
-                var content = '';
+                let messages = response.messages;
+                let $tbody = $('#messageList');
+                let content = '';
                 $tbody.empty();
                 $tbody.hide();
                 if (messages && messages.length > 0) {
                     $.each(messages, function (index, message) {
-                        var rowClass = message.signed ? 'table-success' : 'table-warning';
-                        var filesCount = message.filesCount;
-                        var reportIcon = message.reportDatetime ? 'report-icon.png' : 'no-report-icon.png';
+                        let rowClass = message.signed ? 'table-success' : 'table-warning';
+                        let reportIcon = message.responseUUID ? 'report-icon.png' : 'no-report-icon.png';
+                        let isResponsed = message.is_responsed ? ' (есть ответы)':'';
+                        let filesCount = message.filesCount;
                         content += `<tr class="${rowClass}" style="text-align: center;" data-toggle="modal" data-target="#myModal" data-message-id="${message.id}">
-                                            <th class="align-middle" scope="row" style="text-align: left;">${message.mailSubject}</th>
+                                            <td class="align-middle" scope="row" style="text-align: left;">${message.mailSubject}${isResponsed}</td>
                                             <td class="align-middle">${filesCount}</td>
                                             <td class="align-middle">${message.sigByName}</td>
                                             <td class="align-middle" data-utc-time="${message.createDatetime}"></td>
@@ -158,7 +159,7 @@ $(document).ready(function () {
                                             <a href="#" class="no-modal archive-message" data-message-id="${message.id}" style="cursor: pointer;"><img src="static/img/archive-icon.png" alt="Archive"></a>
                                             </td>
                                             <td>
-                                                ${message.reportDatetime ? `<a href="/api/get-report?message_id=${message.id}" target="_blank" class="no-modal" style="cursor: pointer;"><img src="static/img/${reportIcon}" alt="Report"></a>` : '<img src="static/img/no-report-icon.png" alt="No Report" class="no-modal">'}
+                                                ${message.responseUUID ? `<a href="/api/get-report?message_id=${message.id}" target="_blank" class="no-modal" style="cursor: pointer;"><img src="static/img/${reportIcon}" alt="Report"></a>` : '<img src="static/img/no-report-icon.png" alt="No Report" class="no-modal">'}
                                             </td>
                                         </tr>`;
                     });

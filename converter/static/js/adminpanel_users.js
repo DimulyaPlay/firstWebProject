@@ -3,14 +3,14 @@ import { convertUtcToLocalTime, clearModalField } from './modules/utils.js';
 $(document).ready(function () {
     $('.save-user-settings-btn').click(function() {
         var userSettings = {};
-        $('[name^="is_judge_"], [name^="fio_"], [name^="first_name_"]').each(function() {
+        $('[name^="judge_"], [name^="reg_"], [name^="fio_"], [name^="login_"]').each(function() {
             var $input = $(this);
             var splitName = $input.attr('name').split('_');
             var userId = splitName[splitName.length - 1];
             var fieldName = splitName[0];
             userSettings[userId] = userSettings[userId] || {};
             if ($input.is(':checkbox')) {
-                userSettings[userId]['judge'] = $input.is(':checked');
+                userSettings[userId][fieldName] = $input.is(':checked');
             } else {
                 userSettings[userId][fieldName] = $input.val();
             }
@@ -26,10 +26,11 @@ $(document).ready(function () {
     $('.add-user-btn').click(function() {
         const newUser = {
             fio: $('#new_user_fio').val(),
-            firstName: $('#new_user_first_name').val(),
+            login: $('#new_user_login').val(),
             password: $('#new_user_password').val(),
             confirmPassword: $('#new_user_confirm_password').val(),
-            isJudge: $('#new_user_is_judge').is(':checked')
+            isJudge: $('#new_user_is_judge').is(':checked'),
+            isReg: $('#new_user_is_reg').is(':checked')
         };
         sendData('/add-user', newUser);
     });

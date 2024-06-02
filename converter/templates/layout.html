@@ -15,14 +15,17 @@
     <div class="nav nav-pills" style="margin-left:0.5rem">
         <div class="navbar-nav">
             {% if user.is_authenticated %}
-            <a class="nav-item nav-link" id="welcomeUser">Добро пожаловать, {{ user.first_name }}</a>
+            <a class="nav-item nav-link" id="welcomeUser">Добро пожаловать, {{ user.login }}</a>
             <a class="nav-item nav-link {{ 'active' if title=='Отправить письмо' else '' }}" id="home" href="/create_message">Отправить письмо</a>
             <a class="nav-item nav-link {{ 'active' if title=='Мои отправления' else '' }}" id="outbox" href="/outbox">Мои отправления</a>
             <a class="nav-item nav-link {{ 'active' if title=='Архив' else '' }}" id="archive" href="/archive">Архив</a>
-            {% if user.is_judge == True %}
+            {% if user.has_role(2) %}
             <a class="nav-item nav-link {{ 'active' if title=='Кабинет судьи' else '' }}" id="judgeCabinet" href="/judge_cabinet">Кабинет судьи</a>
             {% endif %}
-            {% if user.first_name == 'admin' %}
+            {% if user.has_role(1) %}
+            <a class="nav-item nav-link {{ 'active' if title=='Кабинет ЭПР' else '' }}" id="eprCabinet" href="/epr_cabinet">Кабинет ЭПР</a>
+            {% endif %}
+            {% if user.login == 'admin' %}
             <a class="nav-item nav-link {{ 'active' if title=='Панель управления' else '' }}" id="adminPanel" href="/admin">Панель управления</a>
             {% endif %}
             <a class="nav-item nav-link" id="logout" href="/logout">Выйти</a>
@@ -49,5 +52,52 @@
 {% endif %}
 {% endwith %}
 <div class="container-fluid">{% block content %} {% endblock %}</div>
+
+<script>
+    const userId = '{{ user.id if user.is_authenticated else "" }}'; // Идентификатор пользователя
+
+    // Запрос разрешения на показ уведомлений
+    function requestNotificationPermission() {
+        if (Notification.permission !== 'granted') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    console.log('Permission granted');
+                }
+            });
+        }
+    }
+
+    // Отправка уведомления
+    function showNotification(message) {
+        if (Notification.permission === 'granted') {
+            new Notification('Новое уведомление', { body: message });
+        }
+    }
+
+    // Функция для опроса сервера
+    function fetchNotifications() {
+        if (userId) {
+            fetch(`/api/get-notifications`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(notification => {
+                        showNotification(notification); // Показать браузерное уведомление
+                        console.log(notification)
+                    });
+                })
+                .catch(error => console.error('Error fetching notifications:', error));
+        }
+    }
+
+    // Опрос сервера каждые 5 минут (300000 миллисекунд)
+    setInterval(fetchNotifications, 300000);
+
+    // Начальный вызов для мгновенной проверки уведомлений при загрузке страницы
+    fetchNotifications();
+
+    // Запросить разрешение на показ уведомлений при загрузке страницы
+    requestNotificationPermission();
+</script>
+
 </body>
 </html>

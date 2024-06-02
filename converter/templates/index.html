@@ -9,10 +9,10 @@
                     <div class="col-md-6 mb-0">
                         <label class="form-label">Файл на подпись:
                             <input type="file" class="form-control btn btn-primary" id="formFile1" name="file1"
-                                accept=".pdf" />
+                                accept=".pdf, .doc, .docx, .rtf, .odt" />
                         </label>
                         <div class="form-check mb-1">
-                            <label class="form-check-label">Добавить штамп (только для PDF файлов)
+                            <label class="form-check-label">Добавить штамп
                                 <input class="form-check-input addStampCheckbox" type="checkbox" id="addStamp1"
                                     name="addStamp1">
                             </label>
@@ -73,26 +73,67 @@
                     </option>
                     {% endfor %}
                 </select>
+                <input type="text" class="form-control mt-2" name="mainDescription" placeholder="Описание отправления (рекомендуется)">
             </div>
-            <div class="row">
-                <div class="col-md-6 mb-0">
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" name="sendByEmail" id="sendByEmail">
-                        <label class="form-check-label" for="sendByEmail">
-                            Отправить по эл. почте
+                    
+            <div class="col-md-6 mb-0">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="sendToRosreestr" id="sendToRosreestr">
+                    <label class="form-check-label" for="sendToRosreestr">
+                        Отправить в Росреестр
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-6 mb-0">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="sendToEpr" id="sendToEpr">
+                    <label class="form-check-label" for="sendToEpr">
+                        Отправить на портал ЭПР
+                    </label>
+                </div>
+            </div>
+            <div id="eprSection" class="mb-2" style="display: none;">
+                <hr> <!-- Разделитель сверху -->
+                <div class="mb-2">
+                    <label for="eprNumber" class="form-label">Номер обращения:</label>
+                    <input type="text" class="form-control" id="eprNumber" name="eprNumber"
+                        placeholder="Введите номер обращения">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Статус обращения:</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="eprStatus" id="eprResponse" value="response">
+                        <label class="form-check-label" for="eprResponse">
+                            Ответ на обращение
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="eprStatus" id="eprReturnedForCorrections"
+                            value="returned_for_corrections">
+                        <label class="form-check-label" for="eprReturnedForCorrections">
+                            Возвращено для устранения недостатков
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="eprStatus"
+                            id="eprReturnedWithoutConsideration" value="returned_without_consideration">
+                        <label class="form-check-label" for="eprReturnedWithoutConsideration">
+                            Возвращено без рассмотрения
                         </label>
                     </div>
                 </div>
-                <div class="col-md-6 mb-0">
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" name="sendToRosreestr" id="sendToRosreestr">
-                        <label class="form-check-label" for="sendToRosreestr">
-                            Отправить в Росреестр
-                        </label>
-                    </div>
+                <hr> <!-- Разделитель снизу -->
+            </div>
+            <div class="col-md-6 mb-0">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="sendByEmail" id="sendByEmail">
+                    <label class="form-check-label" for="sendByEmail">
+                        Отправить по эл. почте
+                    </label>
                 </div>
             </div>
             <div id="emailSection" class="mb-2" style="display: none;">
+                <hr> <!-- Разделитель сверху -->
                 <div class="tags-input-wrapper mb-2">
                     <div id="emailTags" class="tags-container">
                     </div>
@@ -101,8 +142,8 @@
                     placeholder="Введите адрес электронной почты и нажмите Enter">
                 <input type="text" class="form-control mt-2" name="subject" placeholder="Тема письма">
                 <textarea class="form-control mt-2" rows="3" name="body" placeholder="Текст письма"></textarea>
+                <hr> <!-- Разделитель снизу -->
             </div>
-
             <button class="btn btn-primary p-2" type="submit" id="submitButton">Отправить письмо</button>
             <div class="spinner-border text-primary" role="status" id="loadingSpinner" style="display: none;"></div>
         </div>

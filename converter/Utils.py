@@ -4,8 +4,9 @@ import sys
 import re
 from PyPDF2 import PdfReader
 import subprocess
-from .models import UploadedFiles, UploadedMessages
-from . import db
+from .models import UploadedFiles, UploadedMessages, UploadedSigs, Users, UploadedAttachments, ExternalSenders
+from . import db, free_mails_limit
+from sqlalchemy import func
 import zipfile
 import json
 from datetime import datetime
@@ -17,7 +18,19 @@ from watchdog.events import FileSystemEventHandler
 from email_validator import validate_email
 import time
 import jwt
+import textwrap
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.pagesizes import A4
+import extract_msg
+from msgtopdf import Msgtopdf
+import hashlib
+import socket
+import re
 
+
+pdfmetrics.registerFont(TTFont('TimesNewRoman', 'times.ttf'))
 sk = 'Ваш hwid:'
 try:
     if os.name == 'nt':
@@ -43,6 +56,12 @@ if not os.path.exists(config_path):
 config_file = os.path.join(config_path, 'config.json')
 
 
+def get_server_ip():
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    return ip_address
+
+
 def read_create_config(config_filepath=config_file):
     default_configuration = {
         "sig_check": False,
@@ -50,9 +69,13 @@ def read_create_config(config_filepath=config_file):
         "file_storage": r"C:\fileStorage",
         "file_export_folder": r"C:\fileStorage\Export",
         "reports_path": r"C:\fileStorage\Reports",
+        'soffice_path': r'C:\Program Files\LibreOffice\program',
         'auth_timeout': 0,
         'l_key': "",
-        'restricted_emails': ''
+        'restricted_emails': '',
+        'server_ip': get_server_ip(),
+        'server_port': 5000,
+        'msg_attachments_dir': r"C:\fileStorage\MsgAttachments"
     }
     if os.path.exists(config_filepath):
         try:
@@ -61,7 +84,7 @@ def read_create_config(config_filepath=config_file):
                 for key, value in default_configuration.items():
                     if key not in list(cfg.keys()):
                         cfg[key] = default_configuration[key]
-                for fp in ("file_storage", "file_export_folder", "reports_path"):
+                for fp in ("file_storage", "file_export_folder", "reports_path", 'msg_attachments_dir'):
                     if not os.path.exists(cfg[fp]):
                         os.mkdir(cfg[fp])
         except Exception as e:
@@ -69,11 +92,11 @@ def read_create_config(config_filepath=config_file):
             os.remove(config_filepath)
             cfg = default_configuration
             with open(config_filepath, 'w') as configfile:
-                json.dump(cfg, configfile)
+                json.dump(cfg, configfile, indent=4)
     else:
         cfg = default_configuration
         with open(config_filepath, 'w') as configfile:
-            json.dump(cfg, configfile)
+            json.dump(cfg, configfile, indent=4)
     return cfg
 
 
@@ -99,11 +122,38 @@ is_valid, license_message = verify_license_key(config['l_key'], hwid)
 print(license_message)
 
 
+def convert_to_pdf(input_file, output_file):
+    output_dir = os.path.dirname(output_file)
+    command = [
+        os.path.join(config['soffice_path'], 'soffice.exe'),
+        '--headless',
+        '--convert-to',
+        'pdf',
+        input_file,
+        '--outdir',
+        output_dir
+    ]
+    try:
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
+        if result.returncode == 0:
+            generated_pdf = os.path.join(output_dir, os.path.splitext(os.path.basename(input_file))[0] + '.pdf')
+            if os.path.exists(generated_pdf):
+                shutil.move(generated_pdf, output_file)
+                os.remove(input_file)
+                return output_file
+            else:
+                raise Exception("Generated PDF file not found")
+        else:
+            raise Exception(f"Conversion failed: {result.stderr}")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"Error during conversion: {e.stderr}")
+
+
 def save_config():
     try:
         global config
         with open(config_file, 'w') as json_file:
-            json.dump(config, json_file)
+            json.dump(config, json_file, indent=4)
     except:
         traceback.print_exc()
 
@@ -123,6 +173,23 @@ def analyze_file(file):
         traceback.print_exc()
         return []
 
+def delayed_file_removal(file_list, delay=5):
+    time.sleep(delay)
+    for file_path in file_list:
+        try:
+            while os.path.exists(file_path):
+                try:
+                    if os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                    else:
+                        os.remove(file_path)
+                    print(file_path, 'removed')
+                    break
+                except PermissionError:
+                    time.sleep(1)
+        except Exception as e:
+            print(f'Error removing file {file_path}: {e}')
+
 
 def analyze_text(text):
     try:
@@ -139,8 +206,44 @@ def analyze_text(text):
 def process_emails(request_form):
     toEmails = True if request_form.get('sendByEmail') == 'on' else None
     if toEmails:
-        emails = '; '.join([email for email in request_form.getlist('email') if validate_email(email) and email.lower() not in config['restricted_emails'].split(';')])
+        emails = '; '.join([email for email in request_form.getlist('email') if email.lower() not in config['restricted_emails'].split(';')])
         return emails if emails else None
+    return None
+
+
+def process_description(request_form):
+    mainDescriprion = request_form.get('mainDescription')
+    toEpr = request_form.get('eprNumber')
+    toRosreestr = request_form.get('toRosreestr')
+    mailSubject = request_form.get('mailSubject')
+    if mainDescriprion:
+        return mainDescriprion
+    elif mailSubject:
+        return mailSubject
+    elif toEpr:
+        return f'Ответ на обращение {toEpr}'
+    elif toRosreestr:
+        return 'Отправка в Росреестр'
+    else:
+        return 'Нет описания'
+
+
+def process_epr(request_form):
+    toEpr = request_form.get('sendToEpr') == 'on'
+    if toEpr:
+        epr_number = request_form.get('eprNumber')
+        epr_status = request_form.get('eprStatus')
+        status_mapping = {
+            'response': 0,
+            'returned_for_corrections': 1,
+            'returned_without_consideration': 2
+        }
+        status_number = status_mapping.get(epr_status, 0)
+        if status_number is not None:
+            toEprString = f"{epr_number}:{status_number}"
+            return toEprString
+        else:
+            return None
     return None
 
 
@@ -203,44 +306,122 @@ def check_sig(fp, sp):
         return not output
 
 
+def process_files(request_files):
+    files_data = request_files.lists()
+    new_files_data = {}
+    for key, value in files_data:
+        if key != 'attachments' and value[0].filename:
+            new_files_data[key] = value[0]
+    attachments = request_files.getlist('attachments')
+    attachments = [attachment for attachment in attachments if attachment.filename]
+    return new_files_data, attachments
+
+
+def get_users_with_role(role_id):
+    role_str = str(role_id)
+    return Users.query.filter(Users.roles.like(f'%{role_str}%')).all()
+
+
+def generate_new_thread_id():
+    max_thread_id = db.session.query(func.max(UploadedMessages.thread_id)).scalar()
+    if max_thread_id is None:
+        return 1
+    return max_thread_id + 1
+
+
+def extract_thread_id(subject):
+    match = re.search(r'.*\[tid-(\d+)-(\d+)\].*', subject)
+    if match:
+        return match.group(1), match.group(2)
+    return None
+
+
+def are_all_files_signed(message):
+    return all(file.signed for file in message.files if file.sig_required)
+
+
+def make_unique_filenames(names):
+    counts = {}
+    unique_names = []
+    for name in names:
+        if name in counts:
+            counts[name] += 1
+            unique_name = f"{name} ({counts[name]})"
+        else:
+            counts[name] = 0
+            unique_name = name
+        unique_names.append(unique_name)
+    return unique_names
+
+
 def export_signed_message(message):
     zip_filename = os.path.join(config['file_export_folder'],
                                 f'Export_msg_id_{message.id}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip')
     zip_filename_part = zip_filename + '.part'
 
-    files = UploadedFiles.query.filter_by(message_id=message.id).all()
+    files = message.files
     filepaths = [os.path.join(config['file_storage'], f.fileNameUUID) for f in files]
     filenames = [f.fileName for f in files]
-    filenames = [f'file_{i}' if filenames.count(f) > 1 else f for i, f in enumerate(filenames)]
-
-    sigpaths = [os.path.join(config['file_storage'], f.sigNameUUID) for f in files if f.sigNameUUID]
-    signames = [f.sigName for f in files]
-    signames = [f'file_{i}' if signames.count(f) > 1 else f for i, f in enumerate(signames)]
-    signames = [signame for signame in signames if signame != "No_need"]
+    filenames = make_unique_filenames(filenames)
+    ## добавими файлы с графическими подписями, если такие есть
+    for fp in files:
+        gf_filepath = os.path.join(config['file_storage'], fp.gf_fileNameUUID)
+        gf_filename = "gf_"+fp.fileName
+        if os.path.exists(gf_filepath) and os.path.isfile(gf_filepath):
+            filepaths.append(gf_filepath)
+            filenames.append(gf_filename)
+    sigs = message.sigs
+    sigpaths = [os.path.join(config['file_storage'], f.sigNameUUID) for f in sigs if f.sigNameUUID]
+    signames = [f.sigName for f in sigs]
+    signames = make_unique_filenames(signames)
     fileNames = filenames.copy()
     if sigpaths:
         fileNames.extend(signames)
 
     meta = {
         'id': message.id,
+        'thread': message.thread_id,
         'rr': message.toRosreestr,
         'emails': message.toEmails,
+        'epr': message.toEpr,
         'subject': message.mailSubject,
         'body': message.mailBody,
         'fileNames': fileNames
     }
+    # Создание ZIP архива
     with zipfile.ZipFile(zip_filename_part, 'w') as zip_file:
         for file_path, file_name in zip(filepaths, filenames):
             zip_file.write(file_path, arcname=file_name)
-        if sigpaths:
-            for file_path, file_name in zip(sigpaths, signames):
-                zip_file.write(file_path, arcname=file_name)
+        for file_path, file_name in zip(sigpaths, signames):
+            zip_file.write(file_path, arcname=file_name)
         meta_filename = 'meta.json'
         with open(meta_filename, 'w') as meta_file:
-            json.dump(meta, meta_file)
+            json.dump(meta, meta_file, indent=4)
         zip_file.write(meta_filename, arcname=meta_filename)
     os.remove(meta_filename)
     os.rename(zip_filename_part, zip_filename)
+    return zip_filename
+
+
+def export_files_to_epr(message, temp_dir):
+    zip_filename = os.path.join(temp_dir,
+                                f'Response_to_{message.toEpr.split(":")[0]}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip')
+    files = message.files
+    filepaths = [os.path.join(config['file_storage'], f.fileNameUUID) for f in files]
+    filenames = [f.fileName for f in files]
+    filenames = make_unique_filenames(filenames)
+    sigs = message.sigs
+    sigpaths = [os.path.join(config['file_storage'], f.sigNameUUID) for f in sigs if f.sigNameUUID]
+    signames = [f.sigName for f in sigs]
+    signames = make_unique_filenames(signames)
+    fileNames = filenames.copy()
+    if sigpaths:
+        fileNames.extend(signames)
+    with zipfile.ZipFile(zip_filename, 'w') as zip_file:
+        for file_path, file_name in zip(filepaths, filenames):
+            zip_file.write(file_path, arcname=file_name)
+        for file_path, file_name in zip(sigpaths, signames):
+            zip_file.write(file_path, arcname=file_name)
     return zip_filename
 
 
@@ -264,26 +445,13 @@ class ReportHandler(FileSystemEventHandler):
                         save_config()
                 os.remove(event.src_path)
                 return
-            is_reply = False
-            message_id = filename.split('.')[0]  # функция для извлечения ID из названия файла
-            if filename.split('.')[1] == 'reply':
-                is_reply = True
-            new_filename = str(uuid4()) + '.pdf'
-            new_filepath = os.path.join(config['file_storage'], new_filename)
-            time.sleep(2)
-            shutil.move(event.src_path, new_filepath)
-            message = UploadedMessages.query.get(message_id)
-            if message:
-                if not is_reply:
-                    message.reportDatetime = datetime.utcnow()
-                    message.reportNameUUID = new_filename
-                    message.reportName = filename
-                    db.session.commit()
+            if filename.endswith('.msg'):
+                time.sleep(3)
+                res = create_new_message_from_msg(event.src_path)
+                if not res:
+                    print('failure on adding:', event.src_path)
                 else:
-                    message.replyDatetime = datetime.utcnow()
-                    message.replyNameUUID = new_filename
-                    message.replyName = filename
-                    db.session.commit()
+                    os.remove(event.src_path)
 
 
 def start_monitoring(path, app):
@@ -300,31 +468,15 @@ def start_monitoring(path, app):
         observer.join()
 
 
-def process_existing_reports(directory, file_storage, app):
+def process_existing_msg(directory, file_storage, app):
     with app.app_context():
-        existing_files = glob.glob(directory + '/*.pdf')
-        for fp in existing_files:
-            is_reply = False
-            filename = os.path.basename(fp)
-            message_id = filename.split('.')[0]  # функция для извлечения ID из названия файла
-            if filename.split('.')[1] == 'reply':
-                is_reply = True
-            new_filename = str(uuid4()) + '.pdf'
-            new_filepath = os.path.join(file_storage, new_filename)
-            time.sleep(1)
-            shutil.move(fp, new_filepath)
-            message = UploadedMessages.query.get(message_id)
-            if message:
-                if not is_reply:
-                    message.reportDatetime = datetime.utcnow()
-                    message.reportNameUUID = new_filename
-                    message.reportName = filename
-                    db.session.commit()
-                else:
-                    message.replyDatetime = datetime.utcnow()
-                    message.replyNameUUID = new_filename
-                    message.replyName = filename
-                    db.session.commit()
+        existing_files = glob.glob(directory + '/*.msg')
+        for msg in existing_files:
+            res = create_new_message_from_msg(msg)
+            if not res:
+                print('failure on adding:', msg)
+            else:
+                os.remove(msg)
 
 
 def generate_modal_message(message):
@@ -332,17 +484,51 @@ def generate_modal_message(message):
     for file in message.files:
         download_link = f'<a href="/api/get-file?file_id={file.id}" target="_blank">{file.fileName}</a>'
         # Проверка наличия электронной подписи
-        signature_link = f'<a href="/api/get-sign?file_id={file.id}" target="_blank">(подписано УКЭП)</a>' if file.sigNameUUID else ''
+        signature_link = f'<a href="/api/get-sign?file_id={file.id}" target="_blank">(подписано УКЭП)</a>' if file.signed else ''
         files_list_html += f"<li>{download_link} {signature_link}</li>"
+    # Получаем все сообщения, относящиеся к цепочке сообщений, и сортируем их по дате
+    epr_report_link_html = ''
+    if message.epr_uploadedUUID:
+        epr_report_link_html = f'<a href="/api/get-epr-report?message_id={message.id}" target="_blank">(Отчет об отправке)</a>'
+    thread_messages = UploadedMessages.query.filter_by(thread_id=message.thread_id).order_by(
+        UploadedMessages.createDatetime).all()
+    # Создаем HTML для сообщений в цепочке
+    messages_list_html = ""
+    for msg in thread_messages:
+        alignment = "text-left" if not msg.is_incoming else "text-right"
+        # Получение первого файла в сообщении, если он существует
+        first_file = msg.files[0] if msg.files else None
+        if first_file:
+            subject_link = f'<a href="/api/get-file?file_id={first_file.id}" target="_blank">{msg.mailSubject}</a>'
+        else:
+            subject_link = msg.mailSubject
+        messages_list_html += f"""
+        <div class="message-bubble {alignment}">
+            <div class="message-header">
+            <span class="message-date" data-utc-time="{msg.createDatetime}"></span>
+            <span class="message-subject">{subject_link}</span>
+            </div>
+        </div>
+        """
 
-    replies_list_html = ""
-    for reply in message.replies:
-        ...
+    # HTML для спойлера
+    thread_spoiler_html = f"""
+    <div class="accordion" id="accordionExample{message.id}">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne{message.id}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne{message.id}" aria-expanded="false" aria-controls="collapseOne{message.id}">
+                    Показать цепочку сообщений
+                </button>
+            </h2>
+            <div id="collapseOne{message.id}" class="accordion-collapse collapse" aria-labelledby="headingOne{message.id}" data-bs-parent="#accordionExample{message.id}">
+                <div class="accordion-body">
+                    {messages_list_html}
+                </div>
+            </div>
+        </div>
+    </div>
+    """
 
-    # Форматирование даты и времени
-    report_datetime = message.reportDatetime.strftime("%Y-%m-%d %H:%M:%S") if message.reportDatetime else "Нет"
-
-    # Добавляем разметку для поля ввода адресов электронной почты
     email_input_html = """
     <div id="emailSection" class="mb-2">
         <div class="tags-input-wrapper mb-2">
@@ -355,7 +541,7 @@ def generate_modal_message(message):
 
     modal = f"""
     <div class="modal fade message-modal" id="myModal{message.id}" data-message-id="{message.id}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel{message.id}" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="myModalLabel{message.id}">Письмо №{message.id}</h5>
@@ -373,10 +559,11 @@ def generate_modal_message(message):
                     </div>
                     <p>Отправлять в Росреестр: {"Да" if message.toRosreestr else "Нет"}</p>
                     <p>Отправлять по email: {message.toEmails if message.toEmails else "Нет"}</p>
-                    <p>Время подгрузки отчета: <span data-utc-time="{message.reportDatetime}">{report_datetime}</span></p>
+                    <p>Отправлять на ЭПР: {"Да" if message.toEpr else "Нет"} {epr_report_link_html}</p>
                     <h6>Файлы:</h6>
                     <ul>{files_list_html}</ul>
                     {email_input_html}
+                    {thread_spoiler_html}
                 </div>
                 <div class="modal-footer">
                     {f"<a href='#' class='btn btn-primary forward-message'>Переслать на указанные адреса</a>"}
@@ -388,3 +575,144 @@ def generate_modal_message(message):
     """
     return modal
 
+
+def create_new_message_from_msg(msg_path):
+    try:
+        pdf_path, thread_id, message_id, subject, sender_email = create_note_from_msg(msg_path)
+        # Если это отчет, то просто прикрепляем полученный пдф к оригинальному письму
+        if os.path.basename(msg_path).startswith('report'):
+            splitted_name = os.path.basename(msg_path).split('-')
+            msg_id = int(splitted_name[2])
+            sent_msg = UploadedMessages.query.get(msg_id)
+            fileNameUUID = str(uuid4()) + '.pdf'
+            new_filepath_to_save = os.path.join(config['file_storage'], fileNameUUID)
+            shutil.move(pdf_path, new_filepath_to_save)
+            sent_msg.responseUUID = fileNameUUID
+            db.session.commit()
+            return True
+        # Иначе создаем новое входящее письмо
+        sender = ExternalSenders.query.filter_by(email=sender_email).first()
+        if not sender:
+            sender = ExternalSenders(email=sender_email)
+            db.session.add(sender)
+            db.session.commit()
+
+        new_message = UploadedMessages(
+            mailSubject=subject,
+            external_sender_id=sender.id,
+            is_incoming=True,
+            thread_id=thread_id
+        )
+        db.session.add(new_message)
+        orig_message = UploadedMessages.query.get(message_id)
+        orig_message.is_responsed = True
+        db.session.commit()
+        fileNameUUID = str(uuid4()) + '.pdf'
+        new_filepath_to_save = os.path.join(config['file_storage'], fileNameUUID)
+        shutil.move(pdf_path, new_filepath_to_save)
+        new_file = UploadedFiles(
+            fileNameUUID=fileNameUUID,
+            fileName=os.path.basename(pdf_path),
+            fileType='pdf'
+        )
+        db.session.add(new_file)
+        new_message.files.append(new_file)
+        db.session.commit()
+        return True
+    except:
+        traceback.print_exc()
+        db.session.rollback()
+        return False
+
+
+def create_note_from_msg(msg_path):
+    """
+    Создание из msg файла отдельного pdf документа(для печати не через outlook)
+    Генерирует word документ по шаблону, затем конвертирует в pdf
+    @param msg_path: путь к мсг
+    @return: путь к пдф
+    :param server_ip:
+    """
+
+    def reencode_text(text, from_enc='ISO-8859-15', to_enc='windows-1251'):
+        if isinstance(text, str):
+            return text.encode(from_enc).decode(to_enc)
+        return text
+    msg = extract_msg.openMsg(msg_path)
+    max_line_length = 75
+    subject = reencode_text(msg.subject)
+    thread_id, message_id = extract_thread_id(subject)
+    subject_lines = textwrap.wrap(subject, max_line_length)
+    res_date = msg.date
+    if isinstance(res_date, datetime):
+        date_obj = res_date
+    else:
+        date_obj = datetime.strptime(res_date, "%a, %d %b %Y %H:%M:%S %z")
+    res_date = date_obj.strftime("%d.%m.%Y, %H:%M:%S")
+    rec_list = [r.email for r in msg.recipients]
+    rec_str = ', '.join(rec_list)
+    rec_lines = textwrap.wrap(rec_str, max_line_length)
+    att_list = [(at.longFilename, at.data) for at in msg.attachments]
+    sender_str = msg.sender.split()[-1]
+    body_text = str(reencode_text(msg.body)).replace('\r', '').replace('\n\n', '\n')
+    pdf_path = f"{msg_path}.pdf"
+    c = canvas.Canvas(pdf_path, pagesize=A4)
+    c.setFont("TimesNewRoman", 8)
+    x_offset = 25
+    x_offset_val = 100
+    y_current = 800
+    c.drawString(x_offset, y_current, "От:")
+    c.drawString(x_offset_val, y_current, sender_str)
+    y_current -= 14
+    c.drawString(x_offset, y_current, "Отправлено:")
+    c.drawString(x_offset_val, y_current, res_date)
+    y_current -= 14
+    c.drawString(x_offset, y_current, "Кому:")
+    for line in rec_lines:
+        c.drawString(x_offset_val, y_current, line)
+        y_current -= 14
+    c.drawString(x_offset, y_current, "Тема:")
+    for line in subject_lines:
+        c.drawString(x_offset_val, y_current, line)
+        y_current -= 14
+    c.drawString(x_offset, y_current, "Вложения:")
+    for filename, attachment in att_list:
+        if attachment:  # Если вложение не пустое
+            filename_uuid = save_attachment(attachment, filename)
+            link_url = f"http://{config['server_ip']}:{config['server_port']}/api/get_attachment/{filename_uuid}"
+            c.drawString(x_offset_val, y_current, filename)
+            c.linkURL(link_url, (x_offset_val, y_current, x_offset_val + 200, y_current + 10))
+            y_current -= 14
+    y_current -= 14
+    c.drawString(x_offset, y_current, "Тело письма:")
+    y_current -= 18
+    text_object = c.beginText(x_offset, y_current)
+    text_object.setFont("TimesNewRoman", 8)
+    text_object.setTextOrigin(x_offset, y_current)
+    text_object.textLines(body_text)
+    c.drawText(text_object)
+    c.save()
+    msg.close()
+    return pdf_path, thread_id, message_id, subject, msg.sender
+
+
+def save_attachment(file_data, original_filename):
+    hash_md5 = hashlib.md5()
+    hash_md5.update(file_data)
+    hash_sum = hash_md5.hexdigest()
+    existing_file = UploadedAttachments.query.filter_by(hashSum=hash_sum).first()
+    if existing_file:
+        return existing_file.fileNameUUID
+    file_uuid = str(uuid4())
+    file_extension = os.path.splitext(original_filename)[1]
+    filename_uuid = f"{file_uuid}{file_extension}"
+    save_directory = os.path.join(config['msg_attachments_dir'], filename_uuid)
+    with open(save_directory, 'wb') as f:
+        f.write(file_data)
+    new_attachment = UploadedAttachments(
+        fileNameUUID=filename_uuid,
+        hashSum=hash_sum,
+        fileType=file_extension)
+    db.session.add(new_attachment)
+    db.session.commit()
+    return filename_uuid

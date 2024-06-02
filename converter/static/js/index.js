@@ -5,6 +5,10 @@ $(document).ready(function () {
     $('#sendByEmail').on('change', function () {
         $('#emailSection').toggle(this.checked);
     });
+    // Обработчик для отображения секции ЭПР при изменении чекбокса
+    $('#sendToEpr').on('change', function () {
+        $('#eprSection').toggle(this.checked);
+    });
 
     // Функция для создания нового блока
     function createSignatureFileBlock(index) {

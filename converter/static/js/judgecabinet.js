@@ -50,7 +50,7 @@ $(document).ready(function () {
             const fileData = await getFileBlob(fileId); // Получаем blob и заголовки
             const zipBlob = await signFile(fileData, fileName, selectedCert); // Передаем все необходимые данные для подписания
 
-            await uploadSignedFile(fileId, zipBlob);
+            await uploadSignedFile(message_id, fileId, zipBlob);
             alert('Файл успешно подписан и загружен.');
             $button.html('Подписан').removeClass('btn-primary').addClass('btn-success');
             $tr.removeClass('table-warning').addClass('table-success');
@@ -103,10 +103,11 @@ $(document).ready(function () {
     }
 
 
-    async function uploadSignedFile(fileId, zipBlob) {
+    async function uploadSignedFile(messageId, fileId, zipBlob) {
         return new Promise((resolve, reject) => {
             var formData = new FormData();
             formData.append('fileId', fileId);
+            formData.append('messageId', messageId);
             formData.append('file', zipBlob, 'signed_files.zip');
 
             $.ajax({
@@ -237,35 +238,31 @@ $(document).ready(function () {
                 $tbody.hide();
                 if (files && files.length > 0) {
                     $.each(files, function (index, file) {
-                        var rowClass = file.sigNameUUID ? 'table-success' : 'table-warning';
+                        var rowClass = file.signed ? 'table-success' : 'table-warning';
                         content += `<tr class="${rowClass}" style="text-align: center;" data-message-id="${file.message_id}" data-file-id="${file.id}">
-                                        <th class="align-middle" scope="row" style="text-align: left;">${file.fileName}</th>
+                                        <th class="align-middle" scope="row" style="text-align: left;">${file.fileDesc}</th>
                                         <td class="align-middle" data-utc-time="${file.createDatetime}"></td>
                                         <td class="align-middle">
-                                        <img src="static/img/email-icon.png" class="no-preview" alt="OpenLetter" data-toggle="modal" data-message-id="${file.message_id}" style="cursor: pointer;">
+                                            <img src="static/img/email-icon.png" class="no-preview" alt="OpenLetter" data-toggle="modal" data-message-id="${file.message_id}" style="cursor: pointer;">
                                         </td>
                                         <td class="align-middle">
-                                            <button class="btn btn-primary btn-sign-file no-preview ${file.sigNameUUID ? '' : 'btn-sm'}" data-file-id="${file.id}" data-message-id="${file.message_id}" data-file-name="${file.fileName}" ${file.sigNameUUID ? 'disabled>Подписано' : '>Подписать'}</button><br>
-                                            ${!file.sigNameUUID ? `<a href="#" class="btn btn-danger btn-sm mt-1 cancel-message no-preview" data-message-id="${file.message_id}">Отклонить</a>` : ''}
-                                            </td>
-                                       </tr>`;
-
+                                            <button class="btn btn-primary btn-sign-file no-preview ${file.signed ? '' : 'btn-sm'}" data-file-id="${file.id}" data-message-id="${file.message_id}" data-file-name="${file.fileName}" ${file.signed ? 'disabled>Подписано' : '>Подписать'}</button><br>
+                                            ${!file.signed ? `<a href="#" class="btn btn-danger btn-sm mt-1 cancel-message no-preview" data-message-id="${file.message_id}">Отклонить</a>` : ''}
+                                        </td>
+                                    </tr>`;
                     });
-
                 } else {
                     $tbody.append('<tr><td colspan="5" class="text-center">Файлы не найдены</td></tr>');
                 }
                 $tbody.append(content);
                 convertUtcToLocalTime();
-                $tbody.show()
+                $tbody.show();
                 updatePagination(response.total_pages, response.current_page, response.start_index_pages, response.end_index_pages);
-
             },
             error: function (xhr, status, error) {
                 console.error("Ошибка загрузки данных: ", error);
             }
         });
-
     }
 
     updateJudgeTable(1);

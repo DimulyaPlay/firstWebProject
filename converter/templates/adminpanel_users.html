@@ -1,41 +1,51 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    <!-- Таблица пользователей -->
-    <h2 class="mt-4">Управление пользователями</h2>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Судья</th>
-                <th>ФИО</th>
-                <th>Имя пользователя</th>
-                <th>Зарегистрирован</th>
-                <th>Последняя активность</th>
-                <th> </th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users_table %}
-            <tr>
-                <td>{{ user.id }}</td>
-                <td><input type="checkbox" class="form-check-input" name="is_judge_{{ user.id }}" {% if user.is_judge %}checked{% endif %}></td>
-                <td><input type="text" class="form-control" name="fio_{{ user.id }}" value="{{ user.fio }}"></td>
-                <td><input type="text" class="form-control" name="first_name_{{ user.id }}" value="{{ user.first_name }}" disabled></td>
-                <td data-utc-time="{{ user.createDatetime.isoformat() }}"></td>
-                <td data-utc-time="{{ user.last_seen.isoformat() }}"></td>
-                <td><button type="button" class="btn btn-success change-password-button" data-bs-toggle="modal" data-bs-target="#changePasswordModal" data-user-id="{{ user.id }}">Сменить пароль</button>
-                    <button type="button" class="btn btn-danger block-user-btn"  data-user-id="{{ user.id }}">Заблокировать</button></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <br>
-    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">Добавить нового пользователя</button>
-    <button type="button" class="btn btn-primary save-user-settings-btn">Сохранить настройки пользователей</button>
+<!-- Таблица пользователей -->
+<h2 class="mt-4">Управление пользователями</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Судья</th>
+            <th>Регистратор</th>
+            <th>ФИО</th>
+            <th>Имя пользователя</th>
+            <th>Зарегистрирован</th>
+            <th>Последняя активность</th>
+            <th> </th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users_table %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td><input type="checkbox" class="form-check-input" name="judge_{{ user.id }}" {% if user.has_role(2)
+                    %}checked{% endif %}></td>
+            <td><input type="checkbox" class="form-check-input" name="reg_{{ user.id }}" {% if user.has_role(1)
+                    %}checked{% endif %}></td>
+            <td><input type="text" class="form-control" name="fio_{{ user.id }}" value="{{ user.fio }}"></td>
+            <td><input type="text" class="form-control" name="login_{{ user.id }}" value="{{ user.login }}" disabled>
+            </td>
+            <td data-utc-time="{{ user.createDatetime.isoformat() }}"></td>
+            <td data-utc-time="{{ user.last_seen.isoformat() }}"></td>
+            <td><button type="button" class="btn btn-success change-password-button" data-bs-toggle="modal"
+                    data-bs-target="#changePasswordModal" data-user-id="{{ user.id }}">Сменить пароль</button>
+                <button type="button" class="btn btn-danger block-user-btn"
+                    data-user-id="{{ user.id }}">Заблокировать</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<br>
+<button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">Добавить нового
+    пользователя</button>
+<button type="button" class="btn btn-primary save-user-settings-btn">Сохранить настройки пользователей</button>
 
-    <!-- Модальное окно для смены пароля -->
-    <div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+<!-- Модальное окно для смены пароля -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -51,32 +61,40 @@
             </div>
         </div>
     </div>
-    </div>
+</div>
 
-    <!-- Модальное окно для добавления пользователя -->
-    <div class="modal fade" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addUserModalLabel">Добавление нового пользователя</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Модальное окно для добавления пользователя -->
+<div class="modal fade" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">Добавление нового пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control mb-2 selectable" id="new_user_fio" placeholder="ФИО">
+                <input type="text" class="form-control mb-2 selectable" id="new_user_login"
+                    placeholder="Имя пользователя*">
+                <input type="password" class="form-control mb-2" id="new_user_password" placeholder="Пароль*">
+                <input type="password" class="form-control" id="new_user_confirm_password"
+                    placeholder="Подтвердите пароль*">
+                <div class="form-check" style="padding-top: 0.5rem; padding-right: 0.5rem">
+                    <input class="form-check-input" type="checkbox" id="new_user_is_judge">
+                    <label class="form-check-label" for="new_user_is_judge">Судья</label>
                 </div>
-                <div class="modal-body">
-                    <input type="text" class="form-control mb-2 selectable" id="new_user_fio" placeholder="ФИО">
-                    <input type="text" class="form-control mb-2 selectable" id="new_user_first_name" placeholder="Имя пользователя*">
-                    <input type="password" class="form-control mb-2" id="new_user_password" placeholder="Пароль*">
-                    <input type="password" class="form-control" id="new_user_confirm_password" placeholder="Подтвердите пароль*">
-                    <div class="form-check" style="padding-top: 0.5rem; padding-right: 0.5rem">
-                        <input class="form-check-input" type="checkbox" id="new_user_is_judge">
-                        <label class="form-check-label" for="new_user_is_judge">Судья</label>
-                    </div>
+                <div class="form-check" style="padding-top: 0.5rem; padding-right: 0.5rem">
+                    <input class="form-check-input" type="checkbox" id="new_user_is_reg">
+                    <label class="form-check-label" for="new_user_is_reg">Регистратор</label>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary add-user-btn">Добавить</button>
-                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary add-user-btn">Добавить</button>
             </div>
         </div>
     </div>
+</div>
 <script type="module" src="{{ 'js/adminpanel_users.js'|versioned_static }}"></script>
 
 {% endblock content %}

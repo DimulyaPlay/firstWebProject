@@ -13,26 +13,25 @@ auth = Blueprint('auth', __name__)
 def registration():
     data = request.form
     if request.method == 'POST':
-        first_name = data.get('first_name')
+        login = data.get('login')
+        fio = data.get('fio')
         password1 = data.get('password1')
         password2 = data.get('password2')
-        user = Users.query.filter_by(first_name=first_name).first()
+        user = Users.query.filter_by(login=login).first()
         if user:
             flash('Пользователь с таким именем существует', category='error')
-        if len(first_name) < 2:
+        if len(login) < 2:
             flash('Имя не может быть короче 2 символов', category='error')
         elif password1 != password2:
             flash('Пароли не совпадают', category='error')
         elif len(password1) < 4:
             flash('Пароль не может быть короче 4 символов', category='error')
-
         else:
             try:
-                newUser = Users(first_name=first_name, password=generate_password_hash(password1))
+                newUser = Users(login=login, fio=fio, password=generate_password_hash(password1))
                 db.session.add(newUser)
                 db.session.commit()
-                user = Users.query.filter_by(first_name=first_name).first()
-                login_user(user, remember=True)
+                login_user(newUser, remember=True)
                 flash('Аккаунт успешно создан', category='success')
                 return redirect(url_for('views.home_redirector'))
             except:
@@ -49,9 +48,9 @@ def login():
         return render_template('login.html', title='Войти', user=current_user)
     else:
         data = request.form
-        first_name = data.get('first_name')
+        login = data.get('login')
         password = data.get('password')
-        user = Users.query.filter_by(first_name=first_name).first()
+        user = Users.query.filter_by(login=login).first()
         if user:
             if check_password_hash(user.password, password):
                 login_user(user, remember=True)
@@ -104,39 +103,40 @@ def block_user():
         user = Users.query.get(user_id)
         if not user:
             return jsonify({'success': False, 'message': 'Пользователь не найден.'})
-        if user.first_name == 'admin':
+        if user.login == 'admin':
             return jsonify({'success': False, 'message': 'Нельзя заблокировать учетную запись администратора.'})
         # Обновление пароля
         user.password = ' '
         db.session.commit()
-
         return jsonify({'success': True, 'message': 'Пользователь заблокирован, для разблокировки воспользуйтесь сменой пароля'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': e})
 
 
+# noinspection PyArgumentList
 @auth.route('/add-user', methods=['POST'])
 @login_required
 def add_user():
     try:
         data = request.json
-        login = data.get('firstName')
+        login = data.get('login')
         pw = data.get('password')
         pwc = data.get('confirmPassword')
+        roles = '0'
+        if data.get('isJudge'):
+            roles += "2"
+        if data.get('isReg'):
+            roles += "1"
         if not all((login, pw, pwc)):
             return {'success': False, 'message': 'Не все обязательные (*) поля заполнены'}
         if pw != pwc:
             return {'success': False, 'message': 'Введенные пароли не совпадают'}
-        new_user = Users(
-            fio=data.get('fio', None),
-            first_name=login,
-            password=generate_password_hash(pw),
-            is_judge=data['isJudge']
-        )
+        new_user = Users(fio=data.get('fio', None), login=login, password=generate_password_hash(pw), roles=roles)
         db.session.add(new_user)
         db.session.commit()
         return {'success': True, 'message': 'Пользователь успешно добавлен'}
     except Exception as e:
+        traceback.print_exc()
         db.session.rollback()
         return {'success': False, 'message': 'Ошибка при добавлении пользователя: ' + str(e)}

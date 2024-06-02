@@ -7,7 +7,7 @@ from sqlalchemy import desc
 import os
 from datetime import datetime, timedelta
 from . import db, free_mails_limit
-from .Utils import config, save_config, read_create_config, hwid, sent_mails_in_current_session, is_valid, license_message, verify_license_key
+from .Utils import config, save_config, get_users_with_role, read_create_config, hwid, sent_mails_in_current_session, is_valid, get_server_ip, license_message, verify_license_key
 
 
 views = Blueprint('views', __name__)
@@ -16,9 +16,9 @@ views = Blueprint('views', __name__)
 @views.route('/', methods=['GET'])
 def home_redirector():
     if current_user.is_authenticated:
-        if current_user.is_judge:
+        if current_user.has_role(2):
             return redirect(url_for('views.judge_cabinet'))
-        judges = Users.query.filter_by(is_judge=True)
+        judges = get_users_with_role(2)
         return render_template('index.html', title='Отправить письмо', user=current_user, judges=judges)
     else:
         return render_template('login.html', title='Войти', user=current_user)
@@ -29,8 +29,16 @@ def create_message():
     if current_user.is_authenticated:
         if not is_valid and len(sent_mails_in_current_session) > free_mails_limit:
             flash('Лимит сообщений исчерпан, новые сообщения отправляться не будут.', 'error')
-        judges = Users.query.filter_by(is_judge=True)
+        judges = get_users_with_role(2)
         return render_template('index.html', title='Отправить письмо', user=current_user, judges=judges)
+    else:
+        return render_template('login.html', title='Войти', user=current_user)
+
+
+@views.route('/epr_cabinet', methods=['GET'])
+def epr_cabinet():
+    if current_user.is_authenticated:
+        return render_template('epr.html', title='Кабинет ЭПР', user=current_user)
     else:
         return render_template('login.html', title='Войти', user=current_user)
 
@@ -71,6 +79,7 @@ def adminpanel_system():
             file_storage = request.form.get('file_storage')
             file_export_folder = request.form.get('file_export_folder')
             reports_path = request.form.get('reports_path')
+            soffice_path = request.form.get('soffice_path')
             if sig_check:
                 if not os.path.exists(csp_path):
                     flash('Параметры не были сохранены, недействительный путь к Крипто Про', category='error')
@@ -84,10 +93,14 @@ def adminpanel_system():
             config['csp_path'] = csp_path
             config['file_storage'] = file_storage
             config['file_export_folder'] = file_export_folder
+            config['soffice_path'] = soffice_path
             config['reports_path'] = reports_path
             config['auth_timeout'] = request.form.get('auth_timeout')
             config['l_key'] = l_key
             config['restricted_emails'] = request.form.get('restricted_emails')
+            config['server_ip'] = request.form.get('server_ip', get_server_ip())
+            config['server_port'] = request.form.get('server_port', 5000)
+            config['msg_attachments_dir'] = request.form.get('msg_attachments_dir')
             save_config()
             flash('Параметры успешно сохранены', category='success')
         except:
@@ -102,7 +115,7 @@ def adminpanel_system():
 def adminpanel_users():
     global config
     if request.method == 'GET':
-        users_table = Users.query.filter_by().all()
+        users_table = Users.query.all()
         return render_template('adminpanel_users.html',
                                title='Панель управления',
                                user=current_user,
@@ -114,9 +127,16 @@ def adminpanel_users():
             for user_id, user_data in data.items():
                 user = Users.query.get(user_id)
                 if user:
-                    user.is_judge = user_data.get('judge', user.is_judge)
                     user.fio = user_data.get('fio', user.fio)
-                    user.first_name = user_data.get('first_name', user.first_name)
+                    user.login = user_data.get('login', user.login)
+                    if user_data.get('judge'):
+                        user.add_role(2)
+                    else:
+                        user.remove_role(2)
+                    if user_data.get('reg'):
+                        user.add_role(1)
+                    else:
+                        user.remove_role(1)
                     db.session.commit()
             return jsonify({'success': True, 'message': 'Параметры успешно сохранены'})
         except Exception as e:
