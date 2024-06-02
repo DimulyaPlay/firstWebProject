@@ -1,0 +1,45 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<br>
+<div class="container">
+  <div class="rounded bg-secondary bg-opacity-25 p-1">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr style="text-align: center;">
+          <th scope="col" class="col-md-2 align-middle" style="text-align: left;">Номер обращения</th>
+          <th scope="col" class="col-md-4 align-middle" style="text-align: left;">Тип ответа</th>
+          <th scope="col" class="col-md-1 align-middle">Скачать</th>
+          <th scope="col" class="col-md-1 align-middle">Загрузить отчет</th>
+        </tr>
+      </thead>
+      <tbody id="messageList">
+      </tbody>
+    </table>
+  </div>
+  <br>
+  <nav aria-label="Page navigation" class="d-flex justify-content-center">
+    <ul class="pagination">
+    </ul>
+  </nav>
+    <br>
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th scope="col">Цветовая разметка</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="table-success">
+        <th scope="row">Отчет загружен</th>
+      </tr>
+      <tr class="table-danger">
+        <th scope="row">Нет отчета</th>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+<script type="module" src="{{ 'js/epr.js'|versioned_static }}"></script>
+{% endblock content %}
