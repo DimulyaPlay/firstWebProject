@@ -635,9 +635,7 @@ def create_note_from_msg(msg_path):
     :param server_ip:
     """
 
-    def reencode_text(text, from_enc='ISO-8859-15', to_enc='windows-1251'):
-        if isinstance(text, str):
-            return text.encode(from_enc).decode(to_enc)
+    def reencode_text(text):
         return text
     msg = extract_msg.openMsg(msg_path)
     max_line_length = 75
@@ -654,7 +652,7 @@ def create_note_from_msg(msg_path):
     rec_str = ', '.join(rec_list)
     rec_lines = textwrap.wrap(rec_str, max_line_length)
     att_list = [(at.longFilename, at.data) for at in msg.attachments]
-    sender_str = msg.sender.split()[-1]
+    sender_str = reencode_text(msg.sender.split()[-1])
     body_text = str(reencode_text(msg.body)).replace('\r', '').replace('\n\n', '\n')
     pdf_path = f"{msg_path}.pdf"
     c = canvas.Canvas(pdf_path, pagesize=A4)
