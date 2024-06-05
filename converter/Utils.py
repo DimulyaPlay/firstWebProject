@@ -365,11 +365,12 @@ def export_signed_message(message):
     filenames = make_unique_filenames(filenames)
     ## добавими файлы с графическими подписями, если такие есть
     for fp in files:
-        gf_filepath = os.path.join(config['file_storage'], fp.gf_fileNameUUID)
-        gf_filename = "gf_"+fp.fileName
-        if os.path.exists(gf_filepath) and os.path.isfile(gf_filepath):
-            filepaths.append(gf_filepath)
-            filenames.append(gf_filename)
+        if fp.gf_fileNameUUID:
+            gf_filepath = os.path.join(config['file_storage'], fp.gf_filашыувeNameUUID)
+            gf_filename = "gf_"+fp.fileName
+            if os.path.exists(gf_filepath) and os.path.isfile(gf_filepath):
+                filepaths.append(gf_filepath)
+                filenames.append(gf_filename)
     sigs = message.sigs
     sigpaths = [os.path.join(config['file_storage'], f.sigNameUUID) for f in sigs if f.sigNameUUID]
     signames = [f.sigName for f in sigs]

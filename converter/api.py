@@ -43,14 +43,15 @@ def get_judge_files():
     files_data = []
     for message in paginated_messages:
         for file in message.files:
-            files_data.append({
-                'fileName': file.fileName,
-                'fileDesc': f'{message.description} ({file.fileName})',
-                'createDatetime': file.createDatetime.isoformat(),
-                'id': file.id,
-                'signed': bool(file.signed),
-                'message_id': message.id
-            })
+            if file.sig_required:
+                files_data.append({
+                    'fileName': file.fileName,
+                    'fileDesc': f'{message.description} ({file.fileName})',
+                    'createDatetime': file.createDatetime.isoformat(),
+                    'id': file.id,
+                    'signed': bool(file.signed),
+                    'message_id': message.id
+                })
     # Сортируем файлы по дате создания
     files_data.sort(key=lambda x: x['createDatetime'], reverse=True)
     return jsonify({
