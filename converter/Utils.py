@@ -29,8 +29,8 @@ import hashlib
 import socket
 import re
 
-
-pdfmetrics.registerFont(TTFont('TimesNewRoman', 'times.ttf'))
+font_path = os.path.join(os.path.dirname(sys.argv[0]), 'converter', 'ttf.ttf')
+pdfmetrics.registerFont(TTFont('ttf', font_path))
 sk = 'Ваш hwid:'
 try:
     if os.name == 'nt':
@@ -215,7 +215,7 @@ def process_description(request_form):
     mainDescriprion = request_form.get('mainDescription')
     toEpr = request_form.get('eprNumber')
     toRosreestr = request_form.get('toRosreestr')
-    mailSubject = request_form.get('mailSubject')
+    mailSubject = request_form.get('subject')
     if mainDescriprion:
         return mainDescriprion
     elif mailSubject:
@@ -495,23 +495,19 @@ def generate_modal_message(message):
         UploadedMessages.createDatetime).all()
     # Создаем HTML для сообщений в цепочке
     messages_list_html = ""
-    for msg in thread_messages:
-        alignment = "text-left" if not msg.is_incoming else "text-right"
+    for msg in thread_messages[1:]:
         # Получение первого файла в сообщении, если он существует
         first_file = msg.files[0] if msg.files else None
         if first_file:
-            subject_link = f'<a href="/api/get-file?file_id={first_file.id}" target="_blank">{msg.mailSubject}</a>'
+            subject_link = f'<a href="/api/get-file?file_id={first_file.id}" target="_blank">{msg.description}</a>'
         else:
-            subject_link = msg.mailSubject
+            subject_link = msg.description
         messages_list_html += f"""
-        <div class="message-bubble {alignment}">
             <div class="message-header">
             <span class="message-date" data-utc-time="{msg.createDatetime}"></span>
             <span class="message-subject">{subject_link}</span>
             </div>
-        </div>
         """
-
     # HTML для спойлера
     thread_spoiler_html = f"""
     <div class="accordion" id="accordionExample{message.id}">
@@ -579,7 +575,7 @@ def generate_modal_message(message):
 
 def create_new_message_from_msg(msg_path):
     try:
-        pdf_path, thread_id, message_id, subject, sender_email = create_note_from_msg(msg_path)
+        pdf_path, thread_id, message_id, subject, sender_email = create_note_from_msg_zip(msg_path)
         # Если это отчет, то просто прикрепляем полученный пдф к оригинальному письму
         if os.path.basename(msg_path).startswith('report'):
             splitted_name = os.path.basename(msg_path).split('-')
@@ -600,6 +596,7 @@ def create_new_message_from_msg(msg_path):
 
         new_message = UploadedMessages(
             mailSubject=subject,
+            desctiption=subject,
             external_sender_id=sender.id,
             is_incoming=True,
             thread_id=thread_id
@@ -626,37 +623,35 @@ def create_new_message_from_msg(msg_path):
         return False
 
 
-def create_note_from_msg(msg_path):
+def create_note_from_msg_zip(zip_path):
     """
-    Создание из msg файла отдельного pdf документа(для печати не через outlook)
-    Генерирует word документ по шаблону, затем конвертирует в pdf
-    @param msg_path: путь к мсг
-    @return: путь к пдф
-    :param server_ip:
+    Создание PDF документа из Zip архива с сообщением и вложениями.
+    @param zip_path: путь к Zip архиву
+    @return: путь к созданному PDF файлу
     """
+    temp_dir = str(uuid4())
+    os.makedirs(temp_dir, exist_ok=True)
 
-    def reencode_text(text):
-        return text
-    msg = extract_msg.openMsg(msg_path)
-    max_line_length = 75
-    subject = reencode_text(msg.subject)
+    with zipfile.ZipFile(zip_path, 'r') as zipf:
+        zipf.extractall(temp_dir)
+
+    meta_path = os.path.join(temp_dir, 'meta.json')
+    with open(meta_path, 'r', encoding='utf-8') as meta_file:
+        meta = json.load(meta_file)
+    subject = meta.get('subject', '')
     thread_id, message_id = extract_thread_id(subject)
+    max_line_length = 75
     subject_lines = textwrap.wrap(subject, max_line_length)
-    res_date = msg.date
-    if isinstance(res_date, datetime):
-        date_obj = res_date
-    else:
-        date_obj = datetime.strptime(res_date, "%a, %d %b %Y %H:%M:%S %z")
-    res_date = date_obj.strftime("%d.%m.%Y, %H:%M:%S")
-    rec_list = [r.email for r in msg.recipients]
+    res_date = meta.get('date', '')
+    rec_list = meta.get('recipients', [])
     rec_str = ', '.join(rec_list)
     rec_lines = textwrap.wrap(rec_str, max_line_length)
-    att_list = [(at.longFilename, at.data) for at in msg.attachments]
-    sender_str = reencode_text(msg.sender.split()[-1])
-    body_text = str(reencode_text(msg.body)).replace('\r', '').replace('\n\n', '\n')
-    pdf_path = f"{msg_path}.pdf"
+    sender_str = meta.get('sender', '')
+    body_text = meta.get('body', '').replace('\r', '').replace('\n\n', '\n')
+    attachments = meta.get('attachments', {})
+    pdf_path = f"{zip_path}.pdf"
     c = canvas.Canvas(pdf_path, pagesize=A4)
-    c.setFont("TimesNewRoman", 8)
+    c.setFont("ttf", 8)
     x_offset = 25
     x_offset_val = 100
     y_current = 800
@@ -675,36 +670,36 @@ def create_note_from_msg(msg_path):
         c.drawString(x_offset_val, y_current, line)
         y_current -= 14
     c.drawString(x_offset, y_current, "Вложения:")
-    for filename, attachment in att_list:
-        if attachment:  # Если вложение не пустое
-            filename_uuid = save_attachment(attachment, filename)
-            link_url = f"http://{config['server_ip']}:{config['server_port']}/api/get_attachment/{filename_uuid}"
-            c.drawString(x_offset_val, y_current, filename)
-            c.linkURL(link_url, (x_offset_val, y_current, x_offset_val + 200, y_current + 10))
-            y_current -= 14
+    for file_uuid, original_name in attachments.items():
+        file_path = os.path.join(temp_dir, file_uuid)
+        filename_uuid = save_attachment(file_path, original_name)
+        link_url = f"http://{config['server_ip']}:{config['server_port']}/api/get_attachment/{filename_uuid}"
+        c.drawString(x_offset_val, y_current, original_name)
+        c.linkURL(link_url, (x_offset_val, y_current, x_offset_val + 200, y_current + 10))
+        y_current -= 14
     y_current -= 14
     c.drawString(x_offset, y_current, "Тело письма:")
     y_current -= 18
     text_object = c.beginText(x_offset, y_current)
-    text_object.setFont("TimesNewRoman", 8)
+    text_object.setFont("ttf", 8)
     text_object.setTextOrigin(x_offset, y_current)
     text_object.textLines(body_text)
     c.drawText(text_object)
     c.save()
-    msg.close()
-    return pdf_path, thread_id, message_id, subject, msg.sender
+    shutil.rmtree(temp_dir)
+    return pdf_path, thread_id, message_id, subject, sender_str
 
 
-def save_attachment(file_data, original_filename):
-    hash_md5 = hashlib.md5()
-    hash_md5.update(file_data)
-    hash_sum = hash_md5.hexdigest()
+def save_attachment(file_path):
+    with open(file_path, 'r') as file_data:
+        hash_md5 = hashlib.md5()
+        hash_md5.update(file_data)
+        hash_sum = hash_md5.hexdigest()
     existing_file = UploadedAttachments.query.filter_by(hashSum=hash_sum).first()
     if existing_file:
         return existing_file.fileNameUUID
-    file_uuid = str(uuid4())
-    file_extension = os.path.splitext(original_filename)[1]
-    filename_uuid = f"{file_uuid}{file_extension}"
+    filename_uuid = os.path.basename(file_path)
+    file_extension = filename_uuid.split('.')[-1]
     save_directory = os.path.join(config['msg_attachments_dir'], filename_uuid)
     with open(save_directory, 'wb') as f:
         f.write(file_data)

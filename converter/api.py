@@ -375,6 +375,7 @@ def upload_epr_report():
         error_message = f'Ошибка: {e}'
         return jsonify({'error': True, 'error_message': error_message})
 
+
 @api.post('/create-new-message')
 @login_required
 def create_new_message():
@@ -383,6 +384,7 @@ def create_new_message():
         if not is_valid and len(sent_mails_in_current_session) > free_mails_limit:
             return jsonify({'error': True, 'error_message': 'Лимит сообщений исчерпан.'})
         new_files_data, attachments = process_files(request.files)
+        sig_required = False
         judgeFio = request.form.get('judge')
         judge = Users.query.filter_by(fio=judgeFio).first()
         toRosreestr = True if request.form.get('sendToRosreestr') == 'on' else False
@@ -403,8 +405,6 @@ def create_new_message():
         try:
             new_message = UploadedMessages(description=description,
                                            toRosreestr=toRosreestr,
-                                           sigById=judge.id,
-                                           sigByName=judgeFio,
                                            toEmails=toEmails,
                                            toEpr=toEpr,
                                            mailSubject=subject,
@@ -418,6 +418,7 @@ def create_new_message():
             db.session.rollback()
             return jsonify({'error': True, 'error_message': error_message})
         if new_files_data:
+            sig_required = True
             for key, value in new_files_data.items():
                 if key.startswith('file'):
                     idx = key[4:]
@@ -515,6 +516,9 @@ def create_new_message():
                 db.session.rollback()
                 return jsonify({'error': True, 'error_message': error_message})
         current_user.last_judge = judge.id
+        if sig_required:
+            new_message.sigById = judge.id
+            new_message.sigByName = judgeFio
         db.session.commit()
         try:
             all_files_signed = are_all_files_signed(new_message)

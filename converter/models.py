@@ -57,8 +57,8 @@ class UploadedMessages(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # ID
     createDatetime = db.Column(db.DateTime, default=datetime.utcnow)  # время создания письма
     signed = db.Column(db.Boolean, default=False)  # подписано ли
-    sigById = db.Column(db.Integer)  # Подписано кем ИД
-    sigByName = db.Column(db.String(80))  # Подписано кем ФИО
+    sigById = db.Column(db.Integer, nullable=True)  # Подписано кем ИД
+    sigByName = db.Column(db.String(80), default='-')  # Подписано кем ФИО
     description = db.Column(db.String(255), nullable=True)
     archived = db.Column(db.Boolean, default=False)  # Сообщение находится в архиве
     toRosreestr = db.Column(db.Boolean, default=False)  # Флаг отправки в росреестр

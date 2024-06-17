@@ -73,7 +73,7 @@
                     </option>
                     {% endfor %}
                 </select>
-                <input type="text" class="form-control mt-2" name="mainDescription" placeholder="Описание отправления (рекомендуется)">
+                <input type="text" class="form-control mt-2 selectable" name="mainDescription" placeholder="Описание отправления (рекомендуется)">
             </div>
                     
             <div class="col-md-6 mb-0">
@@ -96,7 +96,7 @@
                 <hr> <!-- Разделитель сверху -->
                 <div class="mb-2">
                     <label for="eprNumber" class="form-label">Номер обращения:</label>
-                    <input type="text" class="form-control" id="eprNumber" name="eprNumber"
+                    <input type="text" class="form-control selectable" id="eprNumber" name="eprNumber"
                         placeholder="Введите номер обращения">
                 </div>
                 <div class="mb-2">
@@ -140,8 +140,8 @@
                 </div>
                 <input type="email" id="emailInput" class="form-control"
                     placeholder="Введите адрес электронной почты и нажмите Enter">
-                <input type="text" class="form-control mt-2" name="subject" placeholder="Тема письма">
-                <textarea class="form-control mt-2" rows="3" name="body" placeholder="Текст письма"></textarea>
+                <input type="text" class="form-control mt-2 selectable" name="subject" placeholder="Тема письма">
+                <textarea class="form-control mt-2 selectable" rows="3" name="body" placeholder="Текст письма"></textarea>
                 <hr> <!-- Разделитель снизу -->
             </div>
             <button class="btn btn-primary p-2" type="submit" id="submitButton">Отправить письмо</button>
