@@ -52,6 +52,21 @@
 {% endif %}
 {% endwith %}
 <div class="container-fluid">{% block content %} {% endblock %}</div>
+<div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="notificationModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="notificationModalLabel">Разрешить уведомления</h5>
+      </div>
+      <div class="modal-body">
+        Когда появится запрос, включите уведомления для получения сообщений по поступлении документов.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="enableNotificationsBtn">Хорошо</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
     const userId = '{{ user.id if user.is_authenticated else "" }}'; // Идентификатор пользователя
@@ -82,22 +97,33 @@
                 .then(data => {
                     data.forEach(notification => {
                         showNotification(notification); // Показать браузерное уведомление
-                        console.log(notification)
+                        console.log(notification);
                     });
                 })
                 .catch(error => console.error('Error fetching notifications:', error));
         }
     }
 
-    // Опрос сервера каждые 5 минут (300000 миллисекунд)
-    setInterval(fetchNotifications, 300000);
+    // Опрос сервера каждые 1 минут (60000 миллисекунд)
+    setInterval(fetchNotifications, 60000);
 
     // Начальный вызов для мгновенной проверки уведомлений при загрузке страницы
     fetchNotifications();
 
-    // Запросить разрешение на показ уведомлений при загрузке страницы
-    requestNotificationPermission();
+    // Показать модальное окно, если разрешение на уведомления не было предоставлено
+    document.addEventListener('DOMContentLoaded', function() {
+        if (Notification.permission !== 'granted') {
+            $('#notificationModal').modal('show');
+        }
+    });
+
+    // Обработчик для кнопки разрешения уведомлений
+    document.getElementById('enableNotificationsBtn').addEventListener('click', function() {
+        requestNotificationPermission();
+        $('#notificationModal').modal('hide');
+    });
 </script>
+
 
 </body>
 </html>

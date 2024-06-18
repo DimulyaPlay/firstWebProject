@@ -323,7 +323,7 @@ def upload_signed_file():
                 if file_in_zip.endswith('.sig'):
                     zipf.extract(file_in_zip, os.path.dirname(sig_path))
                     os.replace(os.path.join(config['file_storage'], file_in_zip), sig_path)
-                elif file_in_zip.startswith('gf_'):
+                elif file_in_zip.startswith('gf_') and file.sigPages:
                     zipf.extract(file_in_zip, os.path.dirname(gf_file_path))
                     os.replace(os.path.join(config['file_storage'], file_in_zip), gf_file_path)
                 else:
@@ -340,7 +340,8 @@ def upload_signed_file():
         message.sigs.append(new_sig)
         file.signature = new_sig
         file.signed = True
-        file.gf_fileNameUUID = f'gf_{file.fileNameUUID}'
+        if file.sigPages:
+            file.gf_fileNameUUID = f'gf_{file.fileNameUUID}'
         db.session.commit()
         all_files_signed = are_all_files_signed(message)
         if all_files_signed:

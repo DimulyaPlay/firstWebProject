@@ -366,7 +366,7 @@ def export_signed_message(message):
     ## добавими файлы с графическими подписями, если такие есть
     for fp in files:
         if fp.gf_fileNameUUID:
-            gf_filepath = os.path.join(config['file_storage'], fp.gf_filашыувeNameUUID)
+            gf_filepath = os.path.join(config['file_storage'], fp.gf_fileNameUUID)
             gf_filename = "gf_"+fp.fileName
             if os.path.exists(gf_filepath) and os.path.isfile(gf_filepath):
                 filepaths.append(gf_filepath)
@@ -448,7 +448,7 @@ class ReportHandler(FileSystemEventHandler):
                 return
             if filename.endswith('.msg'):
                 time.sleep(3)
-                res = create_new_message_from_msg(event.src_path)
+                res = create_new_message_from_zip(event.src_path)
                 if not res:
                     print('failure on adding:', event.src_path)
                 else:
@@ -471,9 +471,9 @@ def start_monitoring(path, app):
 
 def process_existing_msg(directory, file_storage, app):
     with app.app_context():
-        existing_files = glob.glob(directory + '/*.msg')
+        existing_files = glob.glob(directory + '/*.zip')
         for msg in existing_files:
-            res = create_new_message_from_msg(msg)
+            res = create_new_message_from_zip(msg)
             if not res:
                 print('failure on adding:', msg)
             else:
@@ -573,12 +573,12 @@ def generate_modal_message(message):
     return modal
 
 
-def create_new_message_from_msg(msg_path):
+def create_new_message_from_zip(msg_zip_path):
     try:
-        pdf_path, thread_id, message_id, subject, sender_email = create_note_from_msg_zip(msg_path)
+        pdf_path, thread_id, message_id, subject, sender_email = create_note_from_msg_zip(msg_zip_path)
         # Если это отчет, то просто прикрепляем полученный пдф к оригинальному письму
-        if os.path.basename(msg_path).startswith('report'):
-            splitted_name = os.path.basename(msg_path).split('-')
+        if os.path.basename(msg_zip_path).startswith('report'):
+            splitted_name = os.path.basename(msg_zip_path).split('-')
             msg_id = int(splitted_name[2])
             sent_msg = UploadedMessages.query.get(msg_id)
             fileNameUUID = str(uuid4()) + '.pdf'
@@ -672,7 +672,7 @@ def create_note_from_msg_zip(zip_path):
     c.drawString(x_offset, y_current, "Вложения:")
     for file_uuid, original_name in attachments.items():
         file_path = os.path.join(temp_dir, file_uuid)
-        filename_uuid = save_attachment(file_path, original_name)
+        filename_uuid = save_attachment(file_path)
         link_url = f"http://{config['server_ip']}:{config['server_port']}/api/get_attachment/{filename_uuid}"
         c.drawString(x_offset_val, y_current, original_name)
         c.linkURL(link_url, (x_offset_val, y_current, x_offset_val + 200, y_current + 10))
@@ -691,18 +691,15 @@ def create_note_from_msg_zip(zip_path):
 
 
 def save_attachment(file_path):
-    with open(file_path, 'r') as file_data:
-        hash_md5 = hashlib.md5()
-        hash_md5.update(file_data)
-        hash_sum = hash_md5.hexdigest()
+    print(file_path)
+    hash_sum = calculate_md5(file_path)
     existing_file = UploadedAttachments.query.filter_by(hashSum=hash_sum).first()
     if existing_file:
         return existing_file.fileNameUUID
     filename_uuid = os.path.basename(file_path)
     file_extension = filename_uuid.split('.')[-1]
     save_directory = os.path.join(config['msg_attachments_dir'], filename_uuid)
-    with open(save_directory, 'wb') as f:
-        f.write(file_data)
+    shutil.move(file_path, save_directory)
     new_attachment = UploadedAttachments(
         fileNameUUID=filename_uuid,
         hashSum=hash_sum,
@@ -710,3 +707,11 @@ def save_attachment(file_path):
     db.session.add(new_attachment)
     db.session.commit()
     return filename_uuid
+
+
+def calculate_md5(file_path):
+    hasher = hashlib.md5()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b''):
+            hasher.update(chunk)
+    return hasher.hexdigest()
