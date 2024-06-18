@@ -75,7 +75,8 @@ def read_create_config(config_filepath=config_file):
         'restricted_emails': '',
         'server_ip': get_server_ip(),
         'server_port': 5000,
-        'msg_attachments_dir': r"C:\fileStorage\MsgAttachments"
+        'msg_attachments_dir': r"C:\fileStorage\MsgAttachments",
+        'server_secure': 'http'
     }
     if os.path.exists(config_filepath):
         try:
@@ -446,7 +447,8 @@ class ReportHandler(FileSystemEventHandler):
                         save_config()
                 os.remove(event.src_path)
                 return
-            if filename.endswith('.msg'):
+            if filename.endswith('.zip'):
+                print('found', filename)
                 time.sleep(3)
                 res = create_new_message_from_zip(event.src_path)
                 if not res:
@@ -576,6 +578,7 @@ def generate_modal_message(message):
 def create_new_message_from_zip(msg_zip_path):
     try:
         pdf_path, thread_id, message_id, subject, sender_email = create_note_from_msg_zip(msg_zip_path)
+        print(f'generated file {pdf_path} for {thread_id}-{message_id}')
         # Если это отчет, то просто прикрепляем полученный пдф к оригинальному письму
         if os.path.basename(msg_zip_path).startswith('report'):
             splitted_name = os.path.basename(msg_zip_path).split('-')
@@ -596,7 +599,7 @@ def create_new_message_from_zip(msg_zip_path):
 
         new_message = UploadedMessages(
             mailSubject=subject,
-            desctiption=subject,
+            description=subject,
             external_sender_id=sender.id,
             is_incoming=True,
             thread_id=thread_id
@@ -673,7 +676,7 @@ def create_note_from_msg_zip(zip_path):
     for file_uuid, original_name in attachments.items():
         file_path = os.path.join(temp_dir, file_uuid)
         filename_uuid = save_attachment(file_path)
-        link_url = f"http://{config['server_ip']}:{config['server_port']}/api/get_attachment/{filename_uuid}"
+        link_url = f"{config['server_secure']}://{config['server_ip']}:{config['server_port']}/api/get_attachment/{filename_uuid}"
         c.drawString(x_offset_val, y_current, original_name)
         c.linkURL(link_url, (x_offset_val, y_current, x_offset_val + 200, y_current + 10))
         y_current -= 14

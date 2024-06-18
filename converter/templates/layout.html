@@ -70,6 +70,7 @@
 
 <script>
     const userId = '{{ user.id if user.is_authenticated else "" }}'; // Идентификатор пользователя
+    const userFetchNotifications = '{{ user.has_role(2) }}' === 'True';
 
     // Запрос разрешения на показ уведомлений
     function requestNotificationPermission() {
@@ -91,7 +92,7 @@
 
     // Функция для опроса сервера
     function fetchNotifications() {
-        if (userId) {
+        if (userId && userFetchNotifications) {
             fetch(`/api/get-notifications`)
                 .then(response => response.json())
                 .then(data => {
