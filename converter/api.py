@@ -227,6 +227,22 @@ def get_file():
         return jsonify({'error': True, 'error_message': error_message})
 
 
+@api.route('/get-gf', methods=['GET'])
+@login_required
+def get_gf():
+    idx = request.args.get('file_id', 1, type=int)
+    file_obj = UploadedFiles.query.get(idx)
+    if not file_obj:
+        error_message = 'Ошибка: файл не найден в базе данных.'
+        return jsonify({'error': True, 'error_message': error_message})
+    file_path = os.path.join(config['file_storage'], file_obj.gf_fileNameUUID)
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=False, download_name=file_obj.gf_fileNameUUID)
+
+    else:
+        error_message = 'Ошибка: файл не найден в хранилище.'
+        return jsonify({'error': True, 'error_message': error_message})
+
 @api.route('/get-epr-report', methods=['GET'])
 @login_required
 def get_epr_report():

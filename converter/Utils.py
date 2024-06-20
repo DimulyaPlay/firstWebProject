@@ -488,7 +488,8 @@ def generate_modal_message(message):
         download_link = f'<a href="/api/get-file?file_id={file.id}" target="_blank">{file.fileName}</a>'
         # Проверка наличия электронной подписи
         signature_link = f'<a href="/api/get-sign?file_id={file.id}" target="_blank">(подписано УКЭП)</a>' if file.signed else ''
-        files_list_html += f"<li>{download_link} {signature_link}</li>"
+        gf_link = f'<a href="/api/get-gf?file_id={file.id}" target="_blank">(Документ со штампом)</a>' if file.gf_fileNameUUID else ''
+        files_list_html += f"<li>{download_link} {signature_link} {gf_link}</li>"
     # Получаем все сообщения, относящиеся к цепочке сообщений, и сортируем их по дате
     epr_report_link_html = ''
     if message.epr_uploadedUUID:
@@ -516,7 +517,7 @@ def generate_modal_message(message):
         <div class="accordion-item">
             <h2 class="accordion-header" id="headingOne{message.id}">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne{message.id}" aria-expanded="false" aria-controls="collapseOne{message.id}">
-                    Показать цепочку сообщений
+                    Показать ответы на сообщение
                 </button>
             </h2>
             <div id="collapseOne{message.id}" class="accordion-collapse collapse" aria-labelledby="headingOne{message.id}" data-bs-parent="#accordionExample{message.id}">
@@ -547,7 +548,7 @@ def generate_modal_message(message):
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Создано: <span data-utc-time="{message.createDatetime}"></span></p>
+                    <p><h6>Создано:</h6> <span data-utc-time="{message.createDatetime}"></span> <a href="/api/get-report?message_id={message.id}" target="_blank">Отчет от отправке</a> </p>
                     <div class="mb-3">
                         <label for="mailSubject" class="form-label">Тема:</label>
                         <div id="mailSubject" class="form-control" style="height: auto; white-space: pre-wrap;">{message.mailSubject}</div>
@@ -556,11 +557,13 @@ def generate_modal_message(message):
                         <label for="mailBody" class="form-label">Содержание:</label>
                         <div id="mailBody" class="form-control" style="height: auto; white-space: pre-wrap;">{message.mailBody}</div>
                     </div>
-                    <p>Отправлять в Росреестр: {"Да" if message.toRosreestr else "Нет"}</p>
-                    <p>Отправлять по email: {message.toEmails if message.toEmails else "Нет"}</p>
-                    <p>Отправлять на ЭПР: {"Да" if message.toEpr else "Нет"} {epr_report_link_html}</p>
                     <h6>Файлы:</h6>
                     <ul>{files_list_html}</ul>
+                    <h6>Получатели:</h6>
+                    <p>Росреестр: {"Да" if message.toRosreestr else "Нет"}</p>
+                    <p>Email: {message.toEmails if message.toEmails else "Нет"}</p>
+                    <p>ЭПР: {"Да" if message.toEpr else "Нет"} {epr_report_link_html}</p>
+                    <h6>Переслать сообщение на другие адреса:</h6>
                     {email_input_html}
                     {thread_spoiler_html}
                 </div>

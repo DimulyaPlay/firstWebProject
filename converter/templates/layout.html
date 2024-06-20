@@ -70,7 +70,7 @@
 
 <script>
     const userId = '{{ user.id if user.is_authenticated else "" }}'; // Идентификатор пользователя
-    const userFetchNotifications = '{{ user.has_role(2) }}' === 'True';
+    const userFetchNotifications = '{{ user.has_role(2) if user.is_authenticated else 'False' }}' === 'True';
 
     // Запрос разрешения на показ уведомлений
     function requestNotificationPermission() {

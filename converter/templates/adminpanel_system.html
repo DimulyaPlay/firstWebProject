@@ -20,7 +20,8 @@
             <input type="text" class="form-control selectable" id="soffice_path" name="soffice_path"
                 value="{{ default_configuration.soffice_path }}">
         </div>
-        <h3>При смене любых параметров адреса url ссылки на вложения в письмах перестанут работать</h3>
+        <br>
+        <h6>При смене любых параметров адреса url ссылки на вложения в письмах перестанут работать</h6>
         <div class="form-group-pt">
             <label for="server_secure">Протокол взаимодействия. http или https. Для https нужны действующие сертификаты.</label>
             <input type="text" class="form-control selectable" id="server_secure" name="server_secure"
@@ -36,6 +37,7 @@
             <input type="text" class="form-control selectable" id="server_port" name="server_port"
                 value="{{ default_configuration.server_port }}">
         </div>
+        <br>
         <div class="form-group-pt">
             <label for="file_storage">Путь к хранилищу файлов, сюда сохраняются все файлы пользователей включая подписи.
                 Хранятся с названиями в формате uuid4.</label>
@@ -55,9 +57,7 @@
                 value="{{ default_configuration.file_export_folder }}">
         </div>
         <div class="form-group-pt">
-            <label for="reports_path">Путь для ответов, отсюда будут браться входящие ответы на сообщения/отчеты. Имя файла
-                должно быть в виде "ИД сообщения.pdf". <br>OutlookAutosender выводит такие файлы после отправки в
-                заданную в нем папку:</label>
+            <label for="reports_path">Путь для отчетов и ответов, создаваемых OutlookAutosender</label>
             <input type="text" class="form-control selectable" id="reports_path" name="reports_path"
                 value="{{ default_configuration.reports_path }}">
         </div>
