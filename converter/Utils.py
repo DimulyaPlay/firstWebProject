@@ -75,8 +75,7 @@ def read_create_config(config_filepath=config_file):
         'restricted_emails': '',
         'server_ip': get_server_ip(),
         'server_port': 5000,
-        'msg_attachments_dir': r"C:\fileStorage\MsgAttachments",
-        'server_secure': 'http'
+        'msg_attachments_dir': r"C:\fileStorage\MsgAttachments"
     }
     if os.path.exists(config_filepath):
         try:
@@ -679,7 +678,7 @@ def create_note_from_msg_zip(zip_path):
     for file_uuid, original_name in attachments.items():
         file_path = os.path.join(temp_dir, file_uuid)
         filename_uuid = save_attachment(file_path)
-        link_url = f"{config['server_secure']}://{config['server_ip']}:{config['server_port']}/api/get_attachment/{filename_uuid}"
+        link_url = f"https://{config['server_ip']}:{config['server_port']}/api/get_attachment/{filename_uuid}"
         c.drawString(x_offset_val, y_current, original_name)
         c.linkURL(link_url, (x_offset_val, y_current, x_offset_val + 200, y_current + 10))
         y_current -= 14

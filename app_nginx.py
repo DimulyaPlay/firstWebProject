@@ -13,7 +13,7 @@ events {
 
 http {
     server {
-        listen 443 ssl;
+        listen ${app_port} ssl;
         server_name ${server_ip};
 
         ssl_certificate     ${ssl_certificate};
