@@ -134,6 +134,7 @@ def convert_to_pdf(input_file, output_file):
         output_dir
     ]
     try:
+        print(command)
         result = subprocess.run(command, check=True, capture_output=True, text=True)
         if result.returncode == 0:
             generated_pdf = os.path.join(output_dir, os.path.splitext(os.path.basename(input_file))[0] + '.pdf')
@@ -496,6 +497,10 @@ def generate_modal_message(message):
     thread_messages = UploadedMessages.query.filter_by(thread_id=message.thread_id).order_by(
         UploadedMessages.createDatetime).all()
     # Создаем HTML для сообщений в цепочке
+    message_sent_report = ""
+    if message.responseUUID:
+        message_sent_report = f'<a href="/api/get-report?message_id={message.id}" target="_blank">Отчет от отправке</a>'
+
     messages_list_html = ""
     for msg in thread_messages[1:]:
         # Получение первого файла в сообщении, если он существует
@@ -547,7 +552,7 @@ def generate_modal_message(message):
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p><h6>Создано:</h6> <span data-utc-time="{message.createDatetime}"></span> <a href="/api/get-report?message_id={message.id}" target="_blank">Отчет от отправке</a> </p>
+                    <p><h6>Создано:</h6> <span data-utc-time="{message.createDatetime}"></span> {message_sent_report} </p>
                     <div class="mb-3">
                         <label for="mailSubject" class="form-label">Тема:</label>
                         <div id="mailSubject" class="form-control" style="height: auto; white-space: pre-wrap;">{message.mailSubject}</div>

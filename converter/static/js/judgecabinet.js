@@ -51,7 +51,6 @@ $(document).ready(function () {
             const zipBlob = await signFile(fileData, fileName, selectedCert); // Передаем все необходимые данные для подписания
 
             await uploadSignedFile(message_id, fileId, zipBlob);
-            alert('Файл успешно подписан и загружен.');
             $button.html('Подписан').removeClass('btn-primary').addClass('btn-success');
             $tr.removeClass('table-warning').addClass('table-success');
             $cancelButton.prop('disabled', true).addClass('disabled');
@@ -252,7 +251,7 @@ $(document).ready(function () {
                                     </tr>`;
                     });
                 } else {
-                    $tbody.append('<tr><td colspan="5" class="text-center">Файлы не найдены</td></tr>');
+                    $tbody.append('<tr><td colspan="5" class="text-center no-preview">Файлы не найдены</td></tr>');
                 }
                 $tbody.append(content);
                 convertUtcToLocalTime();

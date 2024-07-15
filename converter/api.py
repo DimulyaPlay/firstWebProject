@@ -260,7 +260,7 @@ def get_epr_report():
 @login_required
 def get_sign():
     idx = request.args.get('file_id', 1, type=int)
-    file_obj = UploadedFiles.queёry.get(idx)
+    file_obj = UploadedFiles.query.get(idx)
     if not file_obj or not file_obj.signatures:
         error_message = 'Ошибка: файл подписи не найден в базе данных.'
         return jsonify({'error': True, 'error_message': error_message})
@@ -447,6 +447,7 @@ def create_new_message():
                     sigfile = [value for key, value in new_files_data.items() if key == 'sig' + str(idx)]
                     if not sigfile and file_type in convert_types_list:
                         file_type = 'pdf'
+                        file_name_uuid_old = file_name_uuid
                         file_name_uuid = str(uuid4()) + '.' + file_type
                         file_name = value.filename + '_converted.pdf'
                         new_filepath_to_save = os.path.join(config['file_storage'], file_name_uuid)
@@ -455,7 +456,7 @@ def create_new_message():
                         except:
                             traceback.print_exc()
                             file_type = os.path.splitext(value.filename)[1][1:]
-                            file_name_uuid = str(uuid4()) + '.' + file_type
+                            file_name_uuid = file_name_uuid_old
                             file_name = value.filename
                     addStamp = True if request.form.get('addStamp'+idx) == 'on' else False
                     allPages = True if request.form.get('allPages'+idx) == 'on' else False
