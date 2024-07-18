@@ -407,7 +407,7 @@ def export_signed_message(message):
 
 def export_files_to_epr(message, temp_dir):
     zip_filename = os.path.join(temp_dir,
-                                f'Response_to_{message.toEpr.split(":")[0]}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip')
+                                f'Response_{message.toEpr}_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.zip')
     files = message.files
     filepaths = [os.path.join(config['file_storage'], f.fileNameUUID) for f in files]
     filenames = [f.fileName for f in files]
@@ -585,11 +585,14 @@ def generate_modal_message(message):
 def create_new_message_from_zip(msg_zip_path):
     try:
         pdf_path, thread_id, message_id, subject, sender_email = create_note_from_msg_zip(msg_zip_path)
-        print(f'generated file {pdf_path} for {thread_id}-{message_id}')
+        if not pdf_path:
+            print(f'ERROR in file {pdf_path} for {thread_id}-{message_id}')
+            return False
+        else:
+            print(f'generated file {pdf_path} for {thread_id}-{message_id}')
         # Если это отчет, то просто прикрепляем полученный пдф к оригинальному письму
         if os.path.basename(msg_zip_path).startswith('report'):
-            splitted_name = os.path.basename(msg_zip_path).split('-')
-            msg_id = int(splitted_name[2])
+            msg_id = int(message_id)
             sent_msg = UploadedMessages.query.get(msg_id)
             fileNameUUID = str(uuid4()) + '.pdf'
             new_filepath_to_save = os.path.join(config['file_storage'], fileNameUUID)
@@ -597,6 +600,10 @@ def create_new_message_from_zip(msg_zip_path):
             sent_msg.responseUUID = fileNameUUID
             db.session.commit()
             return True
+        if os.path.basename(msg_zip_path).startswith('declined'): ## отклоненный архив
+            msg_id = int(message_id)
+            sent_msg = UploadedMessages.query.get(msg_id)
+            sent_msg.is_declined = True
         # Иначе создаем новое входящее письмо
         sender = ExternalSenders.query.filter_by(email=sender_email).first()
         if not sender:
@@ -639,15 +646,17 @@ def create_note_from_msg_zip(zip_path):
     @param zip_path: путь к Zip архиву
     @return: путь к созданному PDF файлу
     """
-    temp_dir = str(uuid4())
+    print('Agregating message', zip_path)
+    temp_dir = os.path.join(os.path.dirname(zip_path) ,str(uuid4()))
     os.makedirs(temp_dir, exist_ok=True)
 
     with zipfile.ZipFile(zip_path, 'r') as zipf:
         zipf.extractall(temp_dir)
-
+    print('Zip extracted')
     meta_path = os.path.join(temp_dir, 'meta.json')
     with open(meta_path, 'r', encoding='utf-8') as meta_file:
         meta = json.load(meta_file)
+    print('Meta read')
     subject = meta.get('subject', '')
     thread_id, message_id = extract_thread_id(subject)
     max_line_length = 75
@@ -660,6 +669,7 @@ def create_note_from_msg_zip(zip_path):
     body_text = meta.get('body', '').replace('\r', '').replace('\n\n', '\n')
     attachments = meta.get('attachments', {})
     pdf_path = f"{zip_path}.pdf"
+    print('Creating', pdf_path)
     c = canvas.Canvas(pdf_path, pagesize=A4)
     c.setFont("ttf", 8)
     x_offset = 25
@@ -696,8 +706,11 @@ def create_note_from_msg_zip(zip_path):
     text_object.textLines(body_text)
     c.drawText(text_object)
     c.save()
-    shutil.rmtree(temp_dir)
-    return pdf_path, thread_id, message_id, subject, sender_str
+    if os.path.exists(pdf_path):
+        shutil.rmtree(temp_dir)
+        return pdf_path, thread_id, message_id, subject, sender_str
+    else:
+        return '', '', '', '', ''
 
 
 def save_attachment(file_path):

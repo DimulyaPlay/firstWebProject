@@ -111,6 +111,7 @@ def get_out_messages():
         'sigByName': message.sigByName,
         'filesCount': len(message.files),
         'is_responsed': message.is_responsed,
+        'is_declined': message.is_declined,
         'responseUUID': bool(message.responseUUID)
     } for message in paginated_messages]
     return jsonify({
@@ -177,6 +178,30 @@ def get_epr_files():
     except Exception as e:
         shutil.rmtree(tempdir)
         raise e
+
+
+@api.get('/get-epr-messages_pm')
+def get_epr_messages_pm():
+    empty_toEpr_messages = UploadedMessages.query.filter(
+        UploadedMessages.toEpr.isnot(None),
+        UploadedMessages.signed.is_(True),
+        UploadedMessages.epr_uploadedUUID.isnot('')
+    ).order_by(
+        desc(UploadedMessages.createDatetime)
+    )
+    # status_mapping = {
+    #     '0': 'Ответ',
+    #     '1': 'Возвращено для устр. недост.',
+    #     '2': 'Возвращено без рассмотрения'
+    # }
+    messages_data = [{
+        'id': message.id,
+        'epr_number': message.toEpr.split(':')[0],
+        'epr_reason': message.toEpr.split(':')[1]
+    } for message in empty_toEpr_messages]
+    return jsonify({
+        'messages': messages_data
+    })
 
 
 @api.route('/analyze-file', methods=['POST'])

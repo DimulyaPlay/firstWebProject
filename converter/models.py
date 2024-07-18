@@ -71,6 +71,7 @@ class UploadedMessages(db.Model):
                                    nullable=True)  # внешний ключ для ExternalSenders.id
     is_responsed = db.Column(db.Boolean, default=False)  # Является ли сообщение ответом на другое сообщение
     is_incoming = db.Column(db.Boolean, default=False)  # Является ли сообщение входящим
+    is_declined = db.Column(db.Boolean, default=False)  # Возникла ли ошибка при отправке
     thread_id = db.Column(db.Integer, nullable=False)  # Идентификатор цепочки сообщений
     responseUUID = db.Column(db.String(255), unique=True, nullable=True)  # Путь к файлу отчета
     epr_uploadedUUID = db.Column(db.String(255), unique=True, nullable=True)  # Путь к файлу отчета
