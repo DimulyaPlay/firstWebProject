@@ -46,7 +46,7 @@ def create_app(config):
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
     from .Utils import start_monitoring, process_existing_msg
-    process_existing_msg(config['reports_path'], config['file_storage'],  app)
+    process_existing_msg(config['reports_path'],  app)
     Thread(target=start_monitoring, args=(config['reports_path'], app), daemon=True).start()
 
     @login_manager.user_loader

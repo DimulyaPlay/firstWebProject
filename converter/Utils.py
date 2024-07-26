@@ -234,6 +234,7 @@ def process_epr(request_form):
     if toEpr:
         epr_number = request_form.get('eprNumber')
         epr_status = request_form.get('eprStatus')
+        epr_comment = request_form.get('eprComment')
         status_mapping = {
             'response': 0,
             'returned_for_corrections': 1,
@@ -241,7 +242,7 @@ def process_epr(request_form):
         }
         status_number = status_mapping.get(epr_status, 0)
         if status_number is not None:
-            toEprString = f"{epr_number}:{status_number}"
+            toEprString = f"{epr_number}|{status_number}|{epr_comment}"
             return toEprString
         else:
             return None
@@ -357,9 +358,8 @@ def make_unique_filenames(names):
 
 def export_signed_message(message):
     zip_filename = os.path.join(config['file_export_folder'],
-                                f'Export_msg_id_{message.id}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip')
+                                f'Export_msg_id_{message.id}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{"epr" if message.toEpr else ""}.zip')
     zip_filename_part = zip_filename + '.part'
-
     files = message.files
     filepaths = [os.path.join(config['file_storage'], f.fileNameUUID) for f in files]
     filenames = [f.fileName for f in files]
@@ -449,12 +449,17 @@ class ReportHandler(FileSystemEventHandler):
                 return
             if filename.endswith('.zip'):
                 print('found', filename)
-                time.sleep(3)
+                time.sleep(2)
                 res = create_new_message_from_zip(event.src_path)
                 if not res:
                     print('failure on adding:', event.src_path)
                 else:
                     os.remove(event.src_path)
+            if filename.startswith('epr-') and filename.endswith('.pdf'):
+                from api import upload_epr_report
+                res = upload_epr_report(event.src_path)
+                if not res:
+                    print('failure on adding report:', event.src_path)
 
 
 def start_monitoring(path, app):
@@ -471,16 +476,21 @@ def start_monitoring(path, app):
         observer.join()
 
 
-def process_existing_msg(directory, file_storage, app):
+def process_existing_msg(directory, app):
     with app.app_context():
-        existing_files = glob.glob(directory + '/*.zip')
-        for msg in existing_files:
+        existing_msgs = glob.glob(directory + '/*.zip')
+        for msg in existing_msgs:
             res = create_new_message_from_zip(msg)
             if not res:
                 print('failure on adding:', msg)
             else:
                 os.remove(msg)
-
+        existing_epr = glob.glob(directory + '/*.pdf')
+        for epr in existing_epr:
+            from api import upload_epr_report
+            res = upload_epr_report(epr)
+            if not res:
+                print('failure on adding report:', epr)
 
 def generate_modal_message(message):
     files_list_html = ""
@@ -566,7 +576,7 @@ def generate_modal_message(message):
                     <h6>Получатели:</h6>
                     <p>Росреестр: {"Да" if message.toRosreestr else "Нет"}</p>
                     <p>Email: {message.toEmails if message.toEmails else "Нет"}</p>
-                    <p>ЭПР: {"Да" if message.toEpr else "Нет"} {epr_report_link_html}</p>
+                    <p>ЭПР: {message.toEpr.split('|')[0] if message.toEpr else "Нет"} {epr_report_link_html}</p>
                     <h6>Переслать сообщение на другие адреса:</h6>
                     {email_input_html}
                     {thread_spoiler_html}

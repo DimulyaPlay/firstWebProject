@@ -158,14 +158,12 @@ def get_epr_messages():
 
 
 @api.route('/get-epr-files', methods=['GET'])
-@login_required
 def get_epr_files():
     idx = request.args.get('message_id', 1, type=int)
     message_obj = UploadedMessages.query.get(idx)
     tempdir = tempfile.mkdtemp()
     try:
         zip_for_export = export_files_to_epr(message_obj, tempdir)
-
         @after_this_request
         def cleanup(response):
             try:
@@ -189,15 +187,15 @@ def get_epr_messages_pm():
     ).order_by(
         desc(UploadedMessages.createDatetime)
     )
-    # status_mapping = {
-    #     '0': 'Ответ',
-    #     '1': 'Возвращено для устр. недост.',
-    #     '2': 'Возвращено без рассмотрения'
-    # }
+    status_mapping = {
+        '0': 'Ответ',
+        '1': 'Возвращено для устр. недост.',
+        '2': 'Возвращено без рассмотрения'
+    }
     messages_data = [{
         'id': message.id,
         'epr_number': message.toEpr.split(':')[0],
-        'epr_reason': message.toEpr.split(':')[1]
+        'epr_reason': status_mapping[message.toEpr.split(':')[1]]
     } for message in empty_toEpr_messages]
     return jsonify({
         'messages': messages_data
@@ -399,10 +397,24 @@ def upload_signed_file():
 
 @api.route('/upload-epr-report', methods=['POST'])
 @login_required
-def upload_epr_report():
+def upload_epr_report(filepath=None):
     try:
-        msg_id = request.args.get('message_id', 1, type=int)
-        msg = UploadedMessages.query.get(msg_id)
+        if os.path.isfile(filepath):
+            try:
+                filename = os.path.basename(filepath)
+                msg_id = filename.split('-')[1]
+                msg = UploadedMessages.query.get(msg_id)
+                file_type = os.path.splitext(filename)[1][1:]
+                file_name_uuid = str(uuid4()) + '.' + file_type
+                filepath_to_save = os.path.join(config['file_storage'], file_name_uuid)
+                shutil.move(filepath, filepath_to_save)
+                msg.epr_uploadedUUID = file_name_uuid
+                db.session.commit()
+                return 1
+            except:
+                traceback.print_exc()
+                return 0
+
         uploaded_file = request.files.get('uploadedFile')
         file_type = os.path.splitext(uploaded_file.filename)[1][1:]
         file_name_uuid = str(uuid4()) + '.' + file_type
@@ -521,8 +533,7 @@ def create_new_message():
                                                     'error_message': f'Прикрепленная к файлу {value.filename} подпись не прошла проверку, отправка отменена'})
                             newSig = UploadedSigs(
                                 sigNameUUID=sigNameUUID,
-                                sigName=sigName,
-                                signed_by_user=current_user)
+                                sigName=sigName)
                         if newSig:
                             new_message.sigs.append(newSig)
                             newFile.signature = newSig
