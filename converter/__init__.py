@@ -37,9 +37,11 @@ def create_app(config):
     from .views import views
     from .auth import auth
     from .api import api
+    from .api_ext import ext
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(auth, url_prefix='/')
     app.register_blueprint(api, url_prefix='/api/')
+    app.register_blueprint(ext, url_prefix='/ext/')
     from .models import Users, UploadedFiles
     create_db(app)
     login_manager = LoginManager()

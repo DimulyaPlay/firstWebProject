@@ -96,6 +96,7 @@ $(document).ready(function () {
                 if (messages && messages.length > 0) {
                     $.each(messages, function (index, message) {
                         let rowClass = message.signed ? 'table-success' : 'table-warning';
+                        rowClass = message.is_declined ? 'table-danger' : rowClass;
                         let filesCount = message.filesCount;
                         let reportIcon = message.responseUUID ? 'report-icon.png' : 'no-report-icon.png';
                         let isResponsed = message.is_responsed ? ' (есть ответы)':'';

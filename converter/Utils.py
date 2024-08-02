@@ -2,6 +2,7 @@ import glob
 import os
 import sys
 import re
+import tempfile
 from PyPDF2 import PdfReader
 import subprocess
 from .models import UploadedFiles, UploadedMessages, UploadedSigs, Users, UploadedAttachments, ExternalSenders
@@ -356,9 +357,9 @@ def make_unique_filenames(names):
     return unique_names
 
 
-def export_signed_message(message):
-    zip_filename = os.path.join(config['file_export_folder'],
-                                f'Export_msg_id_{message.id}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{"epr" if message.toEpr else ""}.zip')
+def export_signed_message(message, tempdir=None):
+    export_folder = config['file_export_folder'] if os.path.isdir(config['file_export_folder']) else tempdir
+    zip_filename = os.path.join(export_folder, f'Export_msg_id_{message.id}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip')
     zip_filename_part = zip_filename + '.part'
     files = message.files
     filepaths = [os.path.join(config['file_storage'], f.fileNameUUID) for f in files]
@@ -385,7 +386,6 @@ def export_signed_message(message):
         'thread': message.thread_id,
         'rr': message.toRosreestr,
         'emails': message.toEmails,
-        'epr': message.toEpr,
         'subject': message.mailSubject,
         'body': message.mailBody,
         'fileNames': fileNames
@@ -492,25 +492,58 @@ def process_existing_msg(directory, app):
             if not res:
                 print('failure on adding report:', epr)
 
+
 def generate_modal_message(message):
-    files_list_html = ""
+    files_list_html = "Нет</h6>"
+    if message.files:
+        files_list_html = '</h6><ul>'
     for file in message.files:
         download_link = f'<a href="/api/get-file?file_id={file.id}" target="_blank">{file.fileName}</a>'
         # Проверка наличия электронной подписи
         signature_link = f'<a href="/api/get-sign?file_id={file.id}" target="_blank">(подписано УКЭП)</a>' if file.signed else ''
         gf_link = f'<a href="/api/get-gf?file_id={file.id}" target="_blank">(Документ со штампом)</a>' if file.gf_fileNameUUID else ''
         files_list_html += f"<li>{download_link} {signature_link} {gf_link}</li>"
-    # Получаем все сообщения, относящиеся к цепочке сообщений, и сортируем их по дате
-    epr_report_link_html = ''
+    if message.files:
+        files_list_html += '</ul>'
+
+    message_sent_report = "Отчет не загружен"
+    if message.responseUUID:
+        message_sent_report = f'<a href="/api/get-report?message_id={message.id}" target="_blank">Открыть отчет об отправке</a>'
+    to_email_form = 'Нет</p>'
+    if message.toEmails:
+        to_email_form = f'''</p>
+        <ul>
+            <li>Тема: {message.mailSubject}</li>
+            <li>Тело: {message.mailBody if message.mailBody else 'Пусто'}</li>
+            <li>Получатели: {message.toEmails}</li>
+            <li>{message_sent_report}</li>
+        </ul>'''
+
+    epr_report_link_html = 'Отчет не загружен'
     if message.epr_uploadedUUID:
-        epr_report_link_html = f'<a href="/api/get-epr-report?message_id={message.id}" target="_blank">(Отчет об отправке)</a>'
+        epr_report_link_html = f'<a href="/api/get-epr-report?message_id={message.id}" target="_blank">Открыть отчет об отправке</a>'
+    to_epr_form = 'Нет</p>'
+    if message.toEpr:
+        status_mapping = {
+            '0': 'Ответ',
+            '1': 'Возвращено для устр. недост.',
+            '2': 'Возвращено без рассмотрения'
+        }
+        to_epr_values = message.toEpr.split('|')
+        number = to_epr_values[0]
+        response_type = status_mapping[to_epr_values[1]]
+        comment = to_epr_values[2]
+        to_epr_form = f'''</p>
+        <ul>
+            <li>Номер: {number}</li>
+            <li>Вид ответа: {response_type}</li>
+            <li>Комментарий: {comment}</li>
+            <li>{epr_report_link_html}</li>
+        </ul>'''
+
     thread_messages = UploadedMessages.query.filter_by(thread_id=message.thread_id).order_by(
         UploadedMessages.createDatetime).all()
     # Создаем HTML для сообщений в цепочке
-    message_sent_report = ""
-    if message.responseUUID:
-        message_sent_report = f'<a href="/api/get-report?message_id={message.id}" target="_blank">Отчет от отправке</a>'
-
     messages_list_html = ""
     for msg in thread_messages[1:]:
         # Получение первого файла в сообщении, если он существует
@@ -562,21 +595,19 @@ def generate_modal_message(message):
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p><h6>Создано:</h6> <span data-utc-time="{message.createDatetime}"></span> {message_sent_report} </p>
+                    <p><h6>Создано:</h6> <span data-utc-time="{message.createDatetime}"></span></p>
                     <div class="mb-3">
-                        <label for="mailSubject" class="form-label">Тема:</label>
-                        <div id="mailSubject" class="form-control" style="height: auto; white-space: pre-wrap;">{message.mailSubject}</div>
+                        <h6 for="mailDesc" class="form-label">Описание отправления:</h6>
+                        <div id="mailDesc" class="form-control" style="height: auto; white-space: pre-wrap;">{message.description}</div>
                     </div>
-                    <div class="mb-3">
-                        <label for="mailBody" class="form-label">Содержание:</label>
-                        <div id="mailBody" class="form-control" style="height: auto; white-space: pre-wrap;">{message.mailBody}</div>
-                    </div>
-                    <h6>Файлы:</h6>
-                    <ul>{files_list_html}</ul>
-                    <h6>Получатели:</h6>
+                    <h6>Файлы:
+                    {files_list_html}
+                    <h6>Отправка в:</h6>
                     <p>Росреестр: {"Да" if message.toRosreestr else "Нет"}</p>
-                    <p>Email: {message.toEmails if message.toEmails else "Нет"}</p>
-                    <p>ЭПР: {message.toEpr.split('|')[0] if message.toEpr else "Нет"} {epr_report_link_html}</p>
+                    <p>Email:
+                    {to_email_form}
+                    <p>ЭПР:
+                    {to_epr_form}
                     <h6>Переслать сообщение на другие адреса:</h6>
                     {email_input_html}
                     {thread_spoiler_html}

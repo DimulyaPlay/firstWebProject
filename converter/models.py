@@ -62,10 +62,10 @@ class UploadedMessages(db.Model):
     description = db.Column(db.String(255), nullable=True)
     archived = db.Column(db.Boolean, default=False)  # Сообщение находится в архиве
     toRosreestr = db.Column(db.Boolean, default=False)  # Флаг отправки в росреестр
-    toEmails = db.Column(db.String(255), default='')  # Адреса отправки на почту, '' = не отправлять
-    toEpr = db.Column(db.String(32), nullable=True)  # Ответ на обращение на портале Эпр
+    toEmails = db.Column(db.String(255), nullable=True)  # Адреса отправки на почту, '' = не отправлять
+    toEpr = db.Column(db.String(32), )  # Ответ на обращение на портале Эпр
     mailSubject = db.Column(db.String(255))  # Тема письма для отправки
-    mailBody = db.Column(db.Text)  # Тело сообщения
+    mailBody = db.Column(db.Text, nullable=True)  # Тело сообщения
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # внешний ключ для Users.id
     external_sender_id = db.Column(db.Integer, db.ForeignKey('external_senders.id'),
                                    nullable=True)  # внешний ключ для ExternalSenders.id

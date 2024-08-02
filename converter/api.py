@@ -1,11 +1,11 @@
 import time
 import traceback
 from .auth import login
-from flask import request, jsonify, Blueprint, after_this_request, make_response, send_file, render_template_string, flash, url_for
+from flask import request, jsonify, Blueprint, make_response, send_file, render_template_string, flash, url_for
 from flask_login import current_user, login_required
 from .models import UploadedFiles, UploadedMessages, Users, Notifications, UploadedSigs, ExternalSenders, UploadedAttachments
 from sqlalchemy import desc, case, and_
-from .Utils import analyze_file, config, generate_modal_message, delayed_file_removal, export_files_to_epr, process_epr, process_description, convert_to_pdf, are_all_files_signed, generate_new_thread_id, sent_mails_in_current_session, process_files, check_sig, export_signed_message, is_valid, process_emails, generate_sig_pages, process_emails2
+from .Utils import analyze_file, config, generate_modal_message, process_epr, process_description, convert_to_pdf, are_all_files_signed, generate_new_thread_id, sent_mails_in_current_session, process_files, check_sig, export_signed_message, is_valid, process_emails, generate_sig_pages, process_emails2
 import os
 from . import db, free_mails_limit, convert_types_list
 import tempfile
@@ -112,7 +112,7 @@ def get_out_messages():
         'filesCount': len(message.files),
         'is_responsed': message.is_responsed,
         'is_declined': message.is_declined,
-        'responseUUID': bool(message.responseUUID)
+        'responseUUID': message.responseUUID if message.responseUUID else message.epr_uploadedUUID
     } for message in paginated_messages]
     return jsonify({
         'messages': messages_data,
@@ -124,11 +124,10 @@ def get_out_messages():
 
 
 @api.get('/get-epr-messages')
-@login_required
 def get_epr_messages():
     page = request.args.get('page', 1, type=int)
     per_page = 10
-    empty_toEpr_messages = UploadedMessages.query.filter(
+    empty_toepr_messages = UploadedMessages.query.filter(
         UploadedMessages.toEpr.isnot(None),
         UploadedMessages.signed.is_(True)
     ).order_by(
@@ -139,13 +138,13 @@ def get_epr_messages():
         '1': 'Возвращено для устр. недост.',
         '2': 'Возвращено без рассмотрения'
     }
-    pagination = empty_toEpr_messages.paginate(page=page, per_page=per_page, error_out=False)
+    pagination = empty_toepr_messages.paginate(page=page, per_page=per_page, error_out=False)
     total_pages = pagination.pages if pagination.pages else 1
     paginated_messages = pagination.items
     messages_data = [{
         'id': message.id,
-        'epr_number': message.toEpr.split(':')[0],
-        'epr_reason': status_mapping[message.toEpr.split(':')[1]],
+        'epr_number': message.toEpr.split('|')[0],
+        'epr_reason': status_mapping[message.toEpr.split('|')[1]],
         'epr_uploaded': bool(message.epr_uploadedUUID)
     } for message in paginated_messages]
     return jsonify({
@@ -154,51 +153,6 @@ def get_epr_messages():
         'current_page': page,
         "start_index_pages": max(1, page - 3),
         "end_index_pages": min(page + 3, total_pages),
-    })
-
-
-@api.route('/get-epr-files', methods=['GET'])
-def get_epr_files():
-    idx = request.args.get('message_id', 1, type=int)
-    message_obj = UploadedMessages.query.get(idx)
-    tempdir = tempfile.mkdtemp()
-    try:
-        zip_for_export = export_files_to_epr(message_obj, tempdir)
-        @after_this_request
-        def cleanup(response):
-            try:
-                Thread(target=delayed_file_removal, args=([tempdir],)).start()
-            except Exception as e:
-                print(f'Error starting cleanup thread: {e}')
-            return response
-
-        return send_file(zip_for_export, as_attachment=True, download_name=os.path.basename(zip_for_export))
-    except Exception as e:
-        shutil.rmtree(tempdir)
-        raise e
-
-
-@api.get('/get-epr-messages_pm')
-def get_epr_messages_pm():
-    empty_toEpr_messages = UploadedMessages.query.filter(
-        UploadedMessages.toEpr.isnot(None),
-        UploadedMessages.signed.is_(True),
-        UploadedMessages.epr_uploadedUUID.isnot('')
-    ).order_by(
-        desc(UploadedMessages.createDatetime)
-    )
-    status_mapping = {
-        '0': 'Ответ',
-        '1': 'Возвращено для устр. недост.',
-        '2': 'Возвращено без рассмотрения'
-    }
-    messages_data = [{
-        'id': message.id,
-        'epr_number': message.toEpr.split(':')[0],
-        'epr_reason': status_mapping[message.toEpr.split(':')[1]]
-    } for message in empty_toEpr_messages]
-    return jsonify({
-        'messages': messages_data
     })
 
 
@@ -266,6 +220,7 @@ def get_gf():
         error_message = 'Ошибка: файл не найден в хранилище.'
         return jsonify({'error': True, 'error_message': error_message})
 
+
 @api.route('/get-epr-report', methods=['GET'])
 @login_required
 def get_epr_report():
@@ -273,7 +228,7 @@ def get_epr_report():
     file_obj = UploadedMessages.query.get(idx)
     file_path = os.path.join(config['file_storage'], file_obj.epr_uploadedUUID)
     if os.path.exists(file_path):
-        return send_file(file_path, as_attachment=True, download_name=os.path.basename(file_path))
+        return send_file(file_path, as_attachment=False, download_name=os.path.basename(file_path))
     else:
         error_message = 'Ошибка: файл не найден в хранилище.'
         return jsonify({'error': True, 'error_message': error_message})
@@ -316,13 +271,14 @@ def get_attachment(file_uuid):
 def get_report():
     idx = request.args.get('message_id', 1, type=int)
     msg_obj = UploadedMessages.query.get(idx)
-    if not msg_obj or not msg_obj.responseUUID:
+    if not msg_obj or (not msg_obj.responseUUID and not msg_obj.epr_uploadedUUID):
         error_message = 'Ошибка: письмо или отчет не найден в базе данных.'
         return jsonify({'error': True, 'error_message': error_message})
-    report_path = os.path.join(config['file_storage'], msg_obj.responseUUID)
+    filename = msg_obj.responseUUID if msg_obj.responseUUID else msg_obj.epr_uploadedUUID
+    report_path = os.path.join(config['file_storage'], filename)
     if os.path.exists(report_path):
         # Отправка файла подписи
-        return send_file(report_path, as_attachment=False, download_name=msg_obj.responseUUID)
+        return send_file(report_path, as_attachment=False, download_name=filename)
     else:
         error_message = 'Ошибка: файл подписи не найден в хранилище.'
         return jsonify({'error': True, 'error_message': error_message})
@@ -341,7 +297,6 @@ def get_message_modal():
 @login_required
 def upload_signed_file():
     try:
-        print(request.form)
         file_id = request.form['fileId']
         message_id = request.form['messageId']
         zip_file = request.files['file']
@@ -385,7 +340,8 @@ def upload_signed_file():
         all_files_signed = are_all_files_signed(message)
         if all_files_signed:
             message.signed = True
-            export_signed_message(message)
+            if os.path.isdir(config['file_export_folder']):
+                export_signed_message(message)
             db.session.commit()
         return jsonify({'error': False, 'error_message': 'Файл успешно подписан.'})
     except Exception as e:
@@ -409,18 +365,23 @@ def upload_epr_report(filepath=None):
                 filepath_to_save = os.path.join(config['file_storage'], file_name_uuid)
                 shutil.move(filepath, filepath_to_save)
                 msg.epr_uploadedUUID = file_name_uuid
+                if not msg.responseUUID:
+                    msg.responseUUID = file_name_uuid
                 db.session.commit()
                 return 1
             except:
                 traceback.print_exc()
                 return 0
-
-        uploaded_file = request.files.get('uploadedFile')
+        idx = request.args.get('msg_id')
+        msg = UploadedMessages.query.get(idx)
+        uploaded_file = request.files.get('file')
         file_type = os.path.splitext(uploaded_file.filename)[1][1:]
         file_name_uuid = str(uuid4()) + '.' + file_type
         filepath_to_save = os.path.join(config['file_storage'], file_name_uuid)
         uploaded_file.save(filepath_to_save)
         msg.epr_uploadedUUID = file_name_uuid
+        if not msg.responseUUID:
+            msg.responseUUID = file_name_uuid
         db.session.commit()
         return jsonify({'error': False, 'error_message': 'Файл успешно загружен.'})
     except Exception as e:
@@ -578,7 +539,8 @@ def create_new_message():
             all_files_signed = are_all_files_signed(new_message)
             if all_files_signed:
                 new_message.signed = True
-                export_signed_message(new_message)
+                if os.path.isdir(config['file_export_folder']):
+                    export_signed_message(new_message)
                 db.session.commit()
                 sent_mails_in_current_session += "1"
                 flash('Сообщение успешно отправлено.', category='success')
@@ -616,8 +578,9 @@ def forward_existing_message():
             signed=original_message.signed,
             sigById=original_message.sigById,
             sigByName=original_message.sigByName,
+            description=f'FW: {original_message.description}',
             toEmails=new_emails,  # Новые адреса для отправки
-            mailSubject=f'Пересылка: {original_message.mailSubject}',
+            mailSubject=f'FW: {original_message.mailSubject}',
             mailBody=original_message.mailBody,
             user_id=original_message.user_id,
             thread_id=generate_new_thread_id())
@@ -627,7 +590,7 @@ def forward_existing_message():
         new_message.files.extend(original_message.files)
         new_message.sigs.extend(original_message.sigs)
         db.session.commit()
-        if new_message.signed:
+        if new_message.signed and os.path.isdir(config['file_export_folder']):
             export_signed_message(new_message)
     except Exception as e:
         db.session.rollback()
