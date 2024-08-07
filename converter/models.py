@@ -75,6 +75,7 @@ class UploadedMessages(db.Model):
     thread_id = db.Column(db.Integer, nullable=False)  # Идентификатор цепочки сообщений
     responseUUID = db.Column(db.String(255), unique=True, nullable=True)  # Путь к файлу отчета
     epr_uploadedUUID = db.Column(db.String(255), unique=True, nullable=True)  # Путь к файлу отчета
+    rr_uploadedUUID = db.Column(db.String(255), unique=False, nullable=True)  # Путь к файлу отчета PP
     files = db.relationship('UploadedFiles', secondary=files_messages_association, lazy='subquery',
                             backref=db.backref('messages', lazy=True))
     sigs = db.relationship('UploadedSigs', secondary=sigs_messages_association, lazy='subquery',
@@ -85,7 +86,7 @@ class UploadedFiles(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # ID
     createDatetime = db.Column(db.DateTime, default=datetime.utcnow)  # Время загрузки документа
     fileNameUUID = db.Column(db.String(255), unique=True, nullable=False)  # Путь к сохраненному файлу
-    fileName = db.Column(db.String(255), nullable=False)  # Название файла
+    fileName = db.Column(db.String(255), nullable=False, unique=False)  # Название файла
     fileType = db.Column(db.String(16), nullable=False)  # Расширение файла
     gf_fileNameUUID = db.Column(db.String(255), unique=True, nullable=True)  # Путь к сохраненному файлу
     sig_required = db.Column(db.Boolean, default=False)

@@ -5,7 +5,8 @@ import os
 import traceback
 import shutil
 from threading import Thread
-from flask import request, jsonify, Blueprint, send_file
+from flask import request, jsonify, Blueprint, send_file, after_this_request
+from sqlalchemy import desc, case, and_
 from . import db
 
 ext = Blueprint('ext', __name__)
@@ -15,9 +16,8 @@ ext = Blueprint('ext', __name__)
 def get_msg_messages_oa():
     empty_msg_messages = UploadedMessages.query.filter(
         UploadedMessages.responseUUID.is_(None),
-        UploadedMessages.signed.is_(True),
-        UploadedMessages.toEmails.isnot(None))
-    messages_data = [message.id for message in empty_msg_messages]
+        UploadedMessages.signed.is_(True))
+    messages_data = [message.id for message in empty_msg_messages if (message.toRosreestr or message.toEmails)]
     return jsonify({
         'messages': messages_data
     })
@@ -72,6 +72,7 @@ def get_msg_file():
     tempdir = tempfile.mkdtemp()
     try:
         zip_for_export = export_signed_message(message_obj, tempdir)
+
         @after_this_request
         def cleanup(response):
             try:

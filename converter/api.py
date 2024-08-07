@@ -234,18 +234,31 @@ def get_epr_report():
         return jsonify({'error': True, 'error_message': error_message})
 
 
+@api.route('/get-rr-report', methods=['GET'])
+@login_required
+def get_rr_report():
+    idx = request.args.get('message_id', 1, type=int)
+    file_obj = UploadedMessages.query.get(idx)
+    file_path = os.path.join(config['file_storage'], file_obj.rr_uploadedUUID)
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=False, download_name=os.path.basename(file_path))
+    else:
+        error_message = 'Ошибка: файл не найден в хранилище.'
+        return jsonify({'error': True, 'error_message': error_message})
+
+
 @api.route('/get-sign', methods=['GET'])
 @login_required
 def get_sign():
     idx = request.args.get('file_id', 1, type=int)
     file_obj = UploadedFiles.query.get(idx)
-    if not file_obj or not file_obj.signatures:
+    if not file_obj or not file_obj.signature:
         error_message = 'Ошибка: файл подписи не найден в базе данных.'
         return jsonify({'error': True, 'error_message': error_message})
-    sign_path = os.path.join(config['file_storage'], file_obj.signatures[0].sigNameUUID)
+    sign_path = os.path.join(config['file_storage'], file_obj.signature.sigNameUUID)
     if os.path.exists(sign_path):
         # Отправка файла подписи
-        return send_file(sign_path, as_attachment=True, download_name=file_obj.signatures[0].sigName)
+        return send_file(sign_path, as_attachment=True, download_name=file_obj.signature.sigName)
     else:
         error_message = 'Ошибка: файл подписи не найден в хранилище.'
         return jsonify({'error': True, 'error_message': error_message})
@@ -367,6 +380,7 @@ def upload_epr_report(filepath=None):
                 msg.epr_uploadedUUID = file_name_uuid
                 if not msg.responseUUID:
                     msg.responseUUID = file_name_uuid
+
                 db.session.commit()
                 return 1
             except:

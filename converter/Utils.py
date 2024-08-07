@@ -336,7 +336,11 @@ def extract_thread_id(subject):
     match = re.search(r'.*\[tid-(\d+)-(\d+)\].*', subject)
     if match:
         return match.group(1), match.group(2)
-    return None
+    else:
+        match = re.search(r'.*\[rr-(\d+)-(\d+)\].*', subject)
+        if match:
+            return match.group(1), match.group(2)
+    return None, None
 
 
 def are_all_files_signed(message):
@@ -506,6 +510,13 @@ def generate_modal_message(message):
     if message.files:
         files_list_html += '</ul>'
 
+    rr_sent_report = "Отчет не загружен"
+    if message.rr_uploadedUUID:
+        rr_sent_report = f'<a href="/api/get-rr-report?message_id={message.id}" target="_blank">Открыть отчет об отправке</a>'
+    to_rr_form = 'Нет</p>'
+    if message.toRosreestr:
+        to_rr_form = f'''Да. {rr_sent_report}</p>'''
+
     message_sent_report = "Отчет не загружен"
     if message.responseUUID:
         message_sent_report = f'<a href="/api/get-report?message_id={message.id}" target="_blank">Открыть отчет об отправке</a>'
@@ -603,7 +614,8 @@ def generate_modal_message(message):
                     <h6>Файлы:
                     {files_list_html}
                     <h6>Отправка в:</h6>
-                    <p>Росреестр: {"Да" if message.toRosreestr else "Нет"}</p>
+                    <p>Росреестр:
+                    {to_rr_form}
                     <p>Email:
                     {to_email_form}
                     <p>ЭПР:
@@ -626,19 +638,24 @@ def generate_modal_message(message):
 def create_new_message_from_zip(msg_zip_path):
     try:
         pdf_path, thread_id, message_id, subject, sender_email = create_note_from_msg_zip(msg_zip_path)
-        if not pdf_path:
+        if not pdf_path or not thread_id or not message_id:
             print(f'ERROR in file {pdf_path} for {thread_id}-{message_id}')
             return False
         else:
             print(f'generated file {pdf_path} for {thread_id}-{message_id}')
-        # Если это отчет, то просто прикрепляем полученный пдф к оригинальному письму
+        # Если это отчет, то просто прикрепляем полученный пдф к оригинальному письму как на мэйл или рр
         if os.path.basename(msg_zip_path).startswith('report'):
             msg_id = int(message_id)
             sent_msg = UploadedMessages.query.get(msg_id)
             fileNameUUID = str(uuid4()) + '.pdf'
             new_filepath_to_save = os.path.join(config['file_storage'], fileNameUUID)
             shutil.move(pdf_path, new_filepath_to_save)
-            sent_msg.responseUUID = fileNameUUID
+            if os.path.basename(msg_zip_path).endswith('rr.zip'):
+                sent_msg.rr_uploadedUUID = fileNameUUID
+                if not sent_msg.responseUUID:
+                    sent_msg.responseUUID = fileNameUUID
+            else:
+                sent_msg.responseUUID = fileNameUUID
             db.session.commit()
             return True
         if os.path.basename(msg_zip_path).startswith('declined'): ## отклоненный архив
