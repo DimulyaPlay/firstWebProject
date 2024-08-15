@@ -1,4 +1,4 @@
-from .Utils import create_new_message_from_zip, export_signed_message, delayed_file_removal
+from .Utils import create_new_message_from_zip, export_signed_message, delayed_file_removal, export_files_to_epr
 from .models import UploadedMessages
 import tempfile
 import os

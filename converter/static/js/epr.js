@@ -53,7 +53,7 @@ $(document).ready(function () {
                     let formData = new FormData($(`.upload-form[data-message-id="${messageId}"]`)[0]);
                     
                     $.ajax({
-                        url: `/api/upload-epr-report?message_id=${messageId}`,
+                        url: `/api/upload-epr-report?msg_id=${messageId}`,
                         type: 'POST',
                         data: formData,
                         processData: false,

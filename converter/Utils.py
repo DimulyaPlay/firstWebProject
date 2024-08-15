@@ -410,8 +410,9 @@ def export_signed_message(message, tempdir=None):
 
 
 def export_files_to_epr(message, temp_dir):
+
     zip_filename = os.path.join(temp_dir,
-                                f'Response_{message.toEpr}_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.zip')
+                                f'Response_{message.toEpr.replace("|", "%")}_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.zip')
     files = message.files
     filepaths = [os.path.join(config['file_storage'], f.fileNameUUID) for f in files]
     filenames = [f.fileName for f in files]

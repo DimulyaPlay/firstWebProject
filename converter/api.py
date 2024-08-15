@@ -365,10 +365,9 @@ def upload_signed_file():
 
 
 @api.route('/upload-epr-report', methods=['POST'])
-@login_required
 def upload_epr_report(filepath=None):
     try:
-        if os.path.isfile(filepath):
+        if filepath and os.path.isfile(filepath):
             try:
                 filename = os.path.basename(filepath)
                 msg_id = filename.split('-')[1]
@@ -386,6 +385,7 @@ def upload_epr_report(filepath=None):
             except:
                 traceback.print_exc()
                 return 0
+        print(request.args)
         idx = request.args.get('msg_id')
         msg = UploadedMessages.query.get(idx)
         uploaded_file = request.files.get('file')
