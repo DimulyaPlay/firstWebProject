@@ -26,7 +26,7 @@ $(document).ready(function () {
                         content += `<tr class="${epr_uploaded}" style="text-align: center;" data-message-id="${message.id}">
                                             <td class="align-middle selectable" style="text-align: left;">${message.epr_number}</td>
                                             <td class="align-middle" style="text-align: left;">${message.epr_reason}</td>
-                                            <td><a href="/api/get-epr-files?message_id=${message.id}" class="btn btn-primary">Скачать</a></td>
+                                            <td><a href="/ext/get-epr-file?message_id=${message.id}" class="btn btn-primary">Скачать</a></td>
                                             <td>
                                                 <form class="upload-form" data-message-id="${message.id}" enctype="multipart/form-data">
                                                     <input type="file" class="d-none file-input" name="uploadedFile" data-message-id="${message.id}">

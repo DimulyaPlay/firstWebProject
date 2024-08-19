@@ -4,5 +4,6 @@
 <div>
     <a href="{{ url_for('views.adminpanel_system') }}" class="btn btn-primary btn-lg mt-3">Настройки системы</a>
     <a href="{{ url_for('views.adminpanel_users') }}" class="btn btn-primary btn-lg mt-3">Управление пользователями</a>
+    <a href="{{ url_for('api.clear_database') }}" class="btn btn-danger btn-lg mt-3">Очистить БД (без подтверждения)</a>
 </div>
 {% endblock content %}

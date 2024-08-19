@@ -171,4 +171,100 @@ $(document).ready(function () {
         $('.' + emailClass).remove(); // Удаляем соответствующее скрытое поле
         $(this).parent().remove(); // Удаляем тег
     });
+
+
+
+    // Обработчики для зоны файлов на подпись
+    $('#signatureFilesDropZone').on('dragover', function (e) {
+        e.preventDefault();
+        $(this).addClass('dragover');
+    }).on('dragleave', function (e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+    }).on('drop', function (e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+        const files = e.originalEvent.dataTransfer.files;
+        handleSignatureFiles(files);
+    });
+
+    // Обработчики для зоны обычных файлов
+    $('#attachmentsDropZone').on('dragover', function (e) {
+        e.preventDefault();
+        $(this).addClass('dragover');
+    }).on('dragleave', function (e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+    }).on('drop', function (e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+        const files = e.originalEvent.dataTransfer.files;
+        handleAttachmentFiles(files);
+    });
+
+    // Обработка файлов для подписи
+    function handleSignatureFiles(files) {
+        const fileMap = {};
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const baseName = file.name.replace(/\.sig$/, '');
+
+            if (file.name.endsWith('.sig')) {
+                if (fileMap[baseName]) {
+                    fileMap[baseName].sig = file;
+                } else {
+                    fileMap[baseName] = { sig: file };
+                }
+            } else {
+                if (fileMap[file.name]) {
+                    fileMap[file.name].file = file;
+                } else {
+                    fileMap[file.name] = { file: file };
+                }
+            }
+        }
+
+                Object.keys(fileMap).forEach((baseName, index) => {
+            const fileObj = fileMap[baseName];
+            const currentBlockCount = $('#signatureFilesContainer .signature-file-block').length;
+            const signatureFileBlock = createSignatureFileBlock(currentBlockCount + 1);
+            const blockElement = $(signatureFileBlock);
+            blockElement.find('input[type="file"][name^="file"]').prop('files', createFileList(fileObj.file));
+            if (fileObj.sig) {
+                blockElement.find('input[type="file"][name^="sig"]').prop('files', createFileList(fileObj.sig));
+            }
+            $('#signatureFilesContainer').append(blockElement);
+        });
+
+
+    }
+
+    // Обработка обычных файлов
+    function handleAttachmentFiles(files) {
+        const attachmentInput = $('[name="attachments"]');
+        const existingFiles = attachmentInput.prop('files');
+        const dataTransfer = new DataTransfer();
+
+        for (let i = 0; i < existingFiles.length; i++) {
+            dataTransfer.items.add(existingFiles[i]);
+        }
+        for (let i = 0; i < files.length; i++) {
+            dataTransfer.items.add(files[i]);
+        }
+
+        attachmentInput.prop('files', dataTransfer.files);
+    }
+
+    function createFileList(file) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        return dataTransfer.files;
+    }
+
+    // Обработчик кнопки для очистки выбранных файлов
+    $('#clearAttachments').click(function () {
+        $('[name="attachments"]').val('');  // Очистка выбранных файлов
+    });
+    
 });

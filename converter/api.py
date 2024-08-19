@@ -495,6 +495,7 @@ def create_new_message():
                             sig_required=True,
                             sigPages=sig_page_str)
                         newSig = None
+                        db.session.add(newFile)
                         if sigfile:
                             sigNameUUID = file_name_uuid + '.sig'
                             sig_path_to_save = os.path.join(config['file_storage'], sigNameUUID)
@@ -509,6 +510,7 @@ def create_new_message():
                             newSig = UploadedSigs(
                                 sigNameUUID=sigNameUUID,
                                 sigName=sigName)
+                            db.session.add(newSig)
                         if newSig:
                             new_message.sigs.append(newSig)
                             newFile.signature = newSig
@@ -684,4 +686,36 @@ def convert_to_pdf_route():
     except:
         traceback.print_exc()
         return "Error during conversion", 500
+
+
+@api.route('/clear-database', methods=['GET'])
+@login_required
+def clear_database():
+    if current_user.login != 'admin':
+        return "Очистка базы доступна только администратору", 403  # Возвращаем текст ошибки с кодом 403
+
+    try:
+        # Удаляем записи из зависимых таблиц
+        db.session.query(UploadedSigs).delete()
+        db.session.query(UploadedFiles).delete()
+        db.session.query(UploadedMessages).delete()
+        db.session.query(Notifications).delete()
+        db.session.query(ExternalSenders).delete()
+        db.session.query(UploadedAttachments).delete()
+
+        db.session.commit()
+
+        file_storage_path = config['file_storage']
+        if os.path.exists(file_storage_path):
+            for root, dirs, files in os.walk(file_storage_path):
+                for file in files:
+                    os.remove(os.path.join(root, file))
+
+        return "База данных и файлы успешно очищены."
+    except Exception as e:
+        db.session.rollback()
+        return f"Ошибка при очистке базы данных: {str(e)}", 500  # Возвращаем текст ошибки с кодом 500
+    finally:
+        db.session.close()
+
 
