@@ -16,7 +16,7 @@ $(document).ready(function () {
             <div class="signature-file-block bg-secondary bg-opacity-25 rounded p-1 m-1" data-file-index="${index}">
                 <div class="row">
                     <div class="col-md-6 mb-0 mt-2">
-                        <label class="form-label">Файл на подпись:
+                        <label class="form-label d-block">Файл на подпись:
                             <input type="file" class="form-control btn btn-primary"  id="formFile${index}" name="file${index}" accept=".pdf" />
                         </label>
                         <div class="form-check mb-0">
@@ -49,7 +49,7 @@ $(document).ready(function () {
                         </div>
                     </div>
                     <div class="col-md-6 mb-0 mt-2">
-                        <label class="form-label">Выберите подпись, если файл подписан:
+                        <label class="form-label d-block">Выберите подпись, если файл подписан:
                             <input type="file" class="form-control btn btn-secondary" name="sig${index}" accept=".sig" />
                         </label>
                         <div class="text-end">

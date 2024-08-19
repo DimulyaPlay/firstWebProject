@@ -12,30 +12,56 @@
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
-    <div class="nav nav-pills" style="margin-left:0.5rem">
-        <div class="navbar-nav">
-            {% if user.is_authenticated %}
-            <a class="nav-item nav-link" id="welcomeUser">Добро пожаловать, {{ user.login }}</a>
-            <a class="nav-item nav-link {{ 'active' if title=='Отправить письмо' else '' }}" id="home" href="/create_message">Отправить письмо</a>
-            <a class="nav-item nav-link {{ 'active' if title=='Мои отправления' else '' }}" id="outbox" href="/outbox">Мои отправления</a>
-            <a class="nav-item nav-link {{ 'active' if title=='Архив' else '' }}" id="archive" href="/archive">Архив</a>
-            {% if user.has_role(2) %}
-            <a class="nav-item nav-link {{ 'active' if title=='Кабинет судьи' else '' }}" id="judgeCabinet" href="/judge_cabinet">Кабинет судьи</a>
-            {% endif %}
-            {% if user.has_role(1) %}
-            <a class="nav-item nav-link {{ 'active' if title=='Кабинет ЭПР' else '' }}" id="eprCabinet" href="/epr_cabinet">Кабинет ЭПР</a>
-            {% endif %}
-            {% if user.login == 'admin' %}
-            <a class="nav-item nav-link {{ 'active' if title=='Панель управления' else '' }}" id="adminPanel" href="/admin">Панель управления</a>
-            {% endif %}
-            <a class="nav-item nav-link" id="logout" href="/logout">Выйти</a>
-            {% else %}
-            <a class="nav-item nav-link {{ 'active' if title=='Войти' else '' }}" id="login" href="/login">Войти</a>
-            <a class="nav-item nav-link {{ 'active' if title=='Зарегистрироваться' else '' }}" id="register" href="/register">Зарегистрироваться</a>
-            {% endif %}
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" id="welcomeUser">Добро пожаловать, {{ user.login }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if title=='Отправить письмо' else '' }}" id="home" href="/create_message">Отправить письмо</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if title=='Мои отправления' else '' }}" id="outbox" href="/outbox">Мои отправления</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if title=='Архив' else '' }}" id="archive" href="/archive">Архив</a>
+                </li>
+                {% if user.has_role(2) %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if title=='Кабинет судьи' else '' }}" id="judgeCabinet" href="/judge_cabinet">Кабинет судьи</a>
+                </li>
+                {% endif %}
+                {% if user.has_role(1) %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if title=='Кабинет ЭПР' else '' }}" id="eprCabinet" href="/epr_cabinet">Кабинет ЭПР</a>
+                </li>
+                {% endif %}
+                {% if user.login == 'admin' %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if title=='Панель управления' else '' }}" id="adminPanel" href="/admin">Панель управления</a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a class="nav-link" id="logout" href="/logout">Выйти</a>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if title=='Войти' else '' }}" id="login" href="/login">Войти</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if title=='Зарегистрироваться' else '' }}" id="register" href="/register">Зарегистрироваться</a>
+                </li>
+                {% endif %}
+            </ul>
         </div>
     </div>
 </nav>
+
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 {% for category, message in messages %}
