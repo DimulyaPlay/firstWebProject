@@ -3,17 +3,18 @@ import traceback
 from .auth import login
 from flask import request, jsonify, Blueprint, make_response, send_file, render_template_string, flash, url_for
 from flask_login import current_user, login_required
-from .models import UploadedFiles, UploadedMessages, Users, Notifications, UploadedSigs, ExternalSenders, UploadedAttachments
+from .models import UploadedFiles, UploadedMessages, Users, Notifications, UploadedSigs, ExternalSenders, UploadedAttachments, files_messages_association, sigs_messages_association
 from sqlalchemy import desc, case, and_
 from .Utils import analyze_file, config, generate_modal_message, process_epr, process_description, convert_to_pdf, are_all_files_signed, generate_new_thread_id, sent_mails_in_current_session, process_files, check_sig, export_signed_message, is_valid, process_emails, generate_sig_pages, process_emails2
 import os
-from . import db, free_mails_limit, convert_types_list
+from . import db, free_mails_limit, convert_types_list, basedir
 import tempfile
 import zipfile
 import shutil
 from uuid import uuid4
 from datetime import datetime, timedelta
 from threading import Thread
+import json
 
 
 api = Blueprint('api', __name__)
@@ -695,7 +696,9 @@ def clear_database():
         return "Очистка базы доступна только администратору", 403  # Возвращаем текст ошибки с кодом 403
 
     try:
-        # Удаляем записи из зависимых таблиц
+        # Удаляем записи из зависимых таблиц и ассоциативных таблиц
+        db.session.query(files_messages_association).delete()
+        db.session.query(sigs_messages_association).delete()
         db.session.query(UploadedSigs).delete()
         db.session.query(UploadedFiles).delete()
         db.session.query(UploadedMessages).delete()
@@ -705,6 +708,7 @@ def clear_database():
 
         db.session.commit()
 
+        # Очистка файловой системы
         file_storage_path = config['file_storage']
         if os.path.exists(file_storage_path):
             for root, dirs, files in os.walk(file_storage_path):
@@ -719,3 +723,84 @@ def clear_database():
         db.session.close()
 
 
+@api.route('/backup-users', methods=['GET'])
+@login_required
+def backup_users():
+    if current_user.login != 'admin':
+        return "Создание бэкапа доступно только администратору", 403  # Доступ только для администратора
+
+    try:
+        # Получаем всех пользователей
+        users = Users.query.all()
+
+        # Преобразуем данные пользователей в словарь
+        users_data = []
+        for user in users:
+            users_data.append({
+                'id': user.id,
+                'createDatetime': user.createDatetime.isoformat(),
+                'roles': user.roles,
+                'fio': user.fio,
+                'login': user.login,
+                'password': user.password,
+                'last_judge': user.last_judge,
+                'last_seen': user.last_seen.isoformat() if user.last_seen else None
+            })
+
+        # Сохраняем в файл JSON
+        backup_file = os.path.join(basedir, 'backup_users.json')
+        with open(backup_file, 'w') as f:
+            json.dump(users_data, f)
+
+        # Отправляем файл на скачивание
+        return send_file(backup_file, as_attachment=True)
+    except Exception as e:
+        return f"Ошибка при создании бэкапа: {str(e)}", 500
+
+
+@api.route('/restore-users', methods=['POST'])
+@login_required
+def restore_users():
+    if current_user.login != 'admin':
+        return "Восстановление данных доступно только администратору", 403  # Доступ только для администратора
+
+    if 'file' not in request.files:
+        return "Файл не был загружен", 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return "Файл не был выбран", 400
+
+    if file and file.filename.endswith('.json'):
+        filen = file.filename
+        filename = os.path.join(basedir, filen)
+        file.save(filename)
+
+        try:
+            with open(filename, 'r') as f:
+                users_data = json.load(f)
+
+            # Очищаем существующих пользователей перед восстановлением
+            Users.query.delete()
+
+            # Восстанавливаем пользователей
+            for user_data in users_data:
+                user = Users(
+                    id=user_data['id'],
+                    createDatetime=datetime.fromisoformat(user_data['createDatetime']),
+                    roles=user_data['roles'],
+                    fio=user_data['fio'],
+                    login=user_data['login'],
+                    password=user_data['password'],
+                    last_judge=user_data.get('last_judge'),
+                    last_seen=datetime.fromisoformat(user_data['last_seen']) if user_data['last_seen'] else None
+                )
+                db.session.add(user)
+
+            db.session.commit()
+            return "Пользователи успешно восстановлены."
+        except Exception as e:
+            db.session.rollback()
+            return f"Ошибка при восстановлении данных: {str(e)}", 500
+    else:
+        return "Неверный формат файла, ожидается .json", 400

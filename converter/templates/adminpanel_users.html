@@ -43,6 +43,15 @@
     пользователя</button>
 <button type="button" class="btn btn-primary save-user-settings-btn">Сохранить настройки пользователей</button>
 
+<!-- Кнопка для создания бэкапа пользователей -->
+<a href="{{ url_for('api.backup_users') }}" class="btn btn-success btn">Создать бэкап пользователей</a>
+<!-- Кнопка для восстановления пользователей из бэкапа -->
+<button id="restoreBackupBtn" class="btn btn-warning btn">Восстановить пользователей из бэкапа</button>
+<!-- Скрытый input для выбора файла -->
+<input type="file" id="backupFileInput" style="display:none;" accept=".json">
+<br><br>
+
+
 <!-- Модальное окно для смены пароля -->
 <div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel"
     aria-hidden="true">

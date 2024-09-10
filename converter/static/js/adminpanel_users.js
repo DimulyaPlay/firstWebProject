@@ -67,7 +67,34 @@ $(document).ready(function () {
         var userId = $(this).data('userId');
         sendData('/block-user', { userId });
     });
+    $('#restoreBackupBtn').on('click', function() {
+        // Открываем окно выбора файла
+        $('#backupFileInput').click();
+    });
 
+    $('#backupFileInput').on('change', function() {
+        var file = this.files[0];
+        if (file) {
+            var formData = new FormData();
+            formData.append('file', file);
+
+            // Отправляем файл через AJAX запрос
+            $.ajax({
+                url: "/api/restore-users",
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    alert(response);  // Выводим результат (успех или ошибка)
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Ошибка:', textStatus, errorThrown);
+                    alert('Ошибка при восстановлении бэкапа');
+                }
+            });
+        }
+    });
     convertUtcToLocalTime();
     
 });
