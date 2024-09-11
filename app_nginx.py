@@ -12,6 +12,7 @@ events {
 }
 
 http {
+    client_max_body_size 50M;
     server {
         listen ${app_port} ssl;
         server_name ${server_ip};
@@ -58,7 +59,7 @@ def start_nginx():
 
 def start_flask():
     app = create_app(config)
-    serve(app, host='127.0.0.1', port=config['server_port'], threads=4)
+    serve(app, host='127.0.0.1', port=config['server_port'], threads=12, max_request_body_size=50 * 1024 * 1024)
 
 
 if __name__ == '__main__':

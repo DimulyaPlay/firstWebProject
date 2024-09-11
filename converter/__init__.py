@@ -27,6 +27,7 @@ def create_app(config):
         app = Flask(__name__)
     app.config['SECRET_KEY'] = 'ndfjknsdflkghnfhjkgndbfd dfghmdghnm'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + database_path + '?check_same_thread=False'
+    app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
     #  кэширование ресурсов на стороне клиента
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(seconds=31536000)
     app.jinja_env.filters['versioned_static'] = lambda filename: url_for('static', filename=filename) + '?v=' + str(
