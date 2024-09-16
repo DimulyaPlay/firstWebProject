@@ -54,7 +54,7 @@ def generate_nginx_config(config):
 
 
 def start_nginx():
-    subprocess.run(['nginx-1.27.0/nginx.exe', '-c', os.path.abspath('nginx_dynamic.conf')])
+    subprocess.run(['nginx-1.27.1/nginx.exe', '-c', os.path.abspath('nginx_dynamic.conf')])
 
 
 def start_flask():
@@ -65,8 +65,8 @@ def start_flask():
 if __name__ == '__main__':
     generate_nginx_config(config)
 
-    nginx_thread = threading.Thread(target=start_nginx)
-    flask_thread = threading.Thread(target=start_flask)
+    nginx_thread = threading.Thread(target=start_nginx, daemon=True)
+    flask_thread = threading.Thread(target=start_flask, daemon=True)
 
     nginx_thread.start()
     flask_thread.start()

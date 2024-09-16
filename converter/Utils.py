@@ -76,7 +76,8 @@ def read_create_config(config_filepath=config_file):
         'restricted_emails': '',
         'server_ip': get_server_ip(),
         'server_port': 5000,
-        'msg_attachments_dir': r"C:\fileStorage\MsgAttachments"
+        'msg_attachments_dir': r"C:\fileStorage\MsgAttachments",
+        "offline_export": True
     }
     if os.path.exists(config_filepath):
         try:
@@ -311,6 +312,7 @@ def check_sig(fp, sp):
 
 def process_files(request_files):
     files_data = request_files.lists()
+    print(files_data)
     new_files_data = {}
     for key, value in files_data:
         if key != 'attachments' and value[0].filename:

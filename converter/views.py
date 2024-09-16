@@ -101,7 +101,7 @@ def adminpanel_system():
             config['server_ip'] = request.form.get('server_ip', get_server_ip())
             config['server_port'] = request.form.get('server_port', 5000)
             config['msg_attachments_dir'] = request.form.get('msg_attachments_dir')
-            config['server_secure'] = request.form.get('server_secure', 'http')
+            config['offline_export'] = request.form.get('offline_export')
             save_config()
             flash('Параметры успешно сохранены', category='success')
         except:

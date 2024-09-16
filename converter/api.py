@@ -354,7 +354,7 @@ def upload_signed_file():
         all_files_signed = are_all_files_signed(message)
         if all_files_signed:
             message.signed = True
-            if os.path.isdir(config['file_export_folder']):
+            if os.path.isdir(config['file_export_folder'] and config['offline_export']):
                 export_signed_message(message)
             db.session.commit()
         return jsonify({'error': False, 'error_message': 'Файл успешно подписан.'})
@@ -556,7 +556,7 @@ def create_new_message():
             all_files_signed = are_all_files_signed(new_message)
             if all_files_signed:
                 new_message.signed = True
-                if os.path.isdir(config['file_export_folder']):
+                if os.path.isdir(config['file_export_folder'] and config['offline_export']):
                     export_signed_message(new_message)
                 db.session.commit()
                 sent_mails_in_current_session += "1"
@@ -607,7 +607,7 @@ def forward_existing_message():
         new_message.files.extend(original_message.files)
         new_message.sigs.extend(original_message.sigs)
         db.session.commit()
-        if new_message.signed and os.path.isdir(config['file_export_folder']):
+        if new_message.signed and os.path.isdir(config['file_export_folder']) and config['offline_export']:
             export_signed_message(new_message)
     except Exception as e:
         db.session.rollback()
