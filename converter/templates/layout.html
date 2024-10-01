@@ -20,7 +20,7 @@
             <ul class="navbar-nav nav-pills me-auto mb-2 mb-lg-0">
                 {% if user.is_authenticated %}
                 <li class="nav-item">
-                    <a class="nav-link" id="welcomeUser">Добро пожаловать, {{ user.fio }}</a>
+                    <a class="nav-link" id="welcomeUser" href="/api/generate-api-key">Добро пожаловать, {{ user.fio }}</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ 'active' if title=='Отправить письмо' else '' }}" id="home" href="/create_message">Отправить письмо</a>

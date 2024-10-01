@@ -19,10 +19,11 @@ sigs_messages_association = db.Table('sigs_messages',
 class Users(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     createDatetime = db.Column(db.DateTime, default=datetime.utcnow)  # время создания пользователя
-    roles = db.Column(db.String(8), default='0')  # Храним роли как строку  # 0 отправитель, 1 регистратор, 2 судья
+    roles = db.Column(db.String(8), default='0')  # Храним роли как строку 0 отправитель, 1 регистратор, 2 судья
     fio = db.Column(db.String(80), unique=True, nullable=False)
     login = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
+    api_key = db.Column(db.String(256), unique=True, nullable=True, default=None)
     last_judge = db.Column(db.String(80), nullable=True)
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     files = db.relationship('UploadedFiles', backref='user', lazy=True)

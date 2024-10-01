@@ -5,7 +5,7 @@ from flask import request, jsonify, Blueprint, make_response, send_file, render_
 from flask_login import current_user, login_required
 from .models import UploadedFiles, UploadedMessages, Users, Notifications, UploadedSigs, ExternalSenders, UploadedAttachments, files_messages_association, sigs_messages_association
 from sqlalchemy import desc, case, and_
-from .Utils import analyze_file, config, generate_modal_message, process_epr, process_description, convert_to_pdf, are_all_files_signed, generate_new_thread_id, sent_mails_in_current_session, process_files, check_sig, export_signed_message, is_valid, process_emails, generate_sig_pages, process_emails2
+from .Utils import analyze_file, create_api_key, config, generate_modal_message, process_epr, process_description, convert_to_pdf, are_all_files_signed, generate_new_thread_id, sent_mails_in_current_session, process_files, check_sig, export_signed_message, is_valid, process_emails, generate_sig_pages, process_emails2
 import os
 from . import db, free_mails_limit, convert_types_list, basedir
 import tempfile
@@ -62,6 +62,15 @@ def get_judge_files():
         "start_index_pages": max(1, page - 3),
         "end_index_pages": min(page + 3, total_pages)
     })
+
+
+@api.get('/generate-api-key')
+@login_required
+def generate_api_key_route():
+    api_key = create_api_key(current_user)
+    current_user.api_key = api_key
+    db.session.commit()
+    return jsonify({'api_key': api_key})
 
 
 @api.get('/outbox-messages')

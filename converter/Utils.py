@@ -10,6 +10,8 @@ from . import db, free_mails_limit
 from sqlalchemy import func
 import zipfile
 import json
+import base64
+import secrets
 from datetime import datetime
 from uuid import uuid4
 import traceback
@@ -17,6 +19,8 @@ import shutil
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from email_validator import validate_email
+from functools import wraps
+from flask import request, jsonify, g
 import time
 import jwt
 import textwrap
@@ -192,6 +196,47 @@ def delayed_file_removal(file_list, delay=5):
                     time.sleep(1)
         except Exception as e:
             print(f'Error removing file {file_path}: {e}')
+
+
+def create_api_key(user, server_url=config['server_ip'], server_port=config['server_port']):
+    server_info = {
+        'url': server_url,
+        'port': server_port,
+        'username': user.login,  # Используем логин пользователя
+        'api_key': secrets.token_hex(32)  # Генерация уникального API-ключа
+    }
+    # Кодируем данные в JSON и затем в Base64
+    encoded_key = base64.b64encode(json.dumps(server_info).encode()).decode()
+    return encoded_key
+
+
+def decode_api_key(api_key):
+    try:
+        decoded_data = base64.b64decode(api_key).decode()
+        return json.loads(decoded_data)
+    except Exception as e:
+        print(e)
+        return None  # Возвращаем None в случае ошибки декодирования
+
+
+def api_key_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = request.headers.get('X-API-KEY')
+        if not api_key:
+            return jsonify({'message': 'API key is missing'}), 401
+        key_data = decode_api_key(api_key)
+        if not key_data:
+            return jsonify({'message': 'Invalid API key'}), 401
+        user_stored = Users.query.filter_by(api_key=api_key).first()
+        if not user_stored:
+            return jsonify({'message': 'Unauthorized'}), 401
+        user = Users.query.filter_by(login=key_data['username']).first()
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+        g.user = user
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def analyze_text(text):
