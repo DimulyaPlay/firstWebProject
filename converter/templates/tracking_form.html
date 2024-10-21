@@ -1,0 +1,101 @@
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <style>
+        body {
+            position: relative;
+            /* Добавляем относительное позиционирование для body */
+            padding-bottom: 50px;
+            /* Устанавливаем подушку для футера, соответствующую высоте футера */
+        }
+
+        footer {
+            position: absolute;
+            /* Используем абсолютное позиционирование для футера внутри body */
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            /* Высота для футера */
+            background-color: transparent;
+            /* Цвет фона футера */
+            text-align: center;
+            line-height: 50px;
+            /* Выравнивание по вертикали по центру */
+        }
+    </style>
+</head>
+
+<body>
+    <center>
+
+        <table width="800" border="0" cellpadding="0" style="margin-top:0px;">
+            <tr
+                style="font-size: 14px; font-family: 'ArialMT', sans-serif; color: #000; border-top: 1px solid #DEF0FA;">
+                <td>
+                    <div><img src="{{ url_for('static', filename='img/logo-print.png') }}"></div>
+                </td>
+                <td>
+                    <div>Отчет сформирован официальным сайтом Почты России {{ current_time }}.</div>
+                </td>
+            </tr>
+        </table>
+        <table width="800" border="0" cellpadding="0" style="margin-top:0px;">
+            <tr>
+                <td
+                    style="font-size: 26px; font-family: 'ArialMT', sans-serif; color: #000; border-top: 1px solid #DEF0FA;">
+                    <br>
+                    <div><span><br>Отчет об отслеживании отправления<br>с почтовым идентификатором</span></div>
+                    <div style="margin-bottom: 10px;"><b>{{ barcode }}</b></div>
+                    <div style="font-size: 15px; font-family: 'ArialMT', sans-serif; color: #000;">{{ mailtype }}</div>
+                    <div style="font-size: 15px; font-family: 'ArialMT', sans-serif; color: #000;">Отправитель: {{
+                        otpravitel }}</div>
+                    <div style="font-size: 15px; font-family: 'ArialMT', sans-serif; color: #000;">Получатель: {{
+                        poluchatel }}</div>
+                    <div style="font-size: 15px; font-family: 'ArialMT', sans-serif; color: #000;"></div>
+                </td>
+        </table>
+
+        <table width="800" border="0" cellpadding="0" style="margin-top:0px;">
+            <tr
+                style="font-size: 20px; font-family: 'ArialMT', sans-serif; color: #000; border-top: 1px solid #DEF0FA;">
+                <td>
+                    <b>Дата и время</b>
+                </td>
+                <td>
+                    <b>Статус</b>
+                </td>
+                <td>
+                    <b>Место</b>
+                </td>
+            </tr>
+            <br><br>
+            {% for i in data %}
+
+            <tr
+                style="font-size: 17px; font-family: 'ArialMT', sans-serif; color: #000; border-top: 1px solid #DEF0FA; line-height: 1.5;">
+                <td>
+                    <div>{{ i['Дата'] }}</div>
+                </td>
+                <td>
+                    <div>{{ i['Событие'] }}</div>
+                </td>
+                <td>
+                    <div>{{ i['Место действия'] }}</div>
+                </td>
+            </tr>
+
+            {% endfor %}
+        </table>
+
+        <footer>
+            Отчет об отслеживании отправления с почтовым идентификатором {{ barcode }}
+        </footer>
+
+
+
+    </center>
+</body>
+
+</html>

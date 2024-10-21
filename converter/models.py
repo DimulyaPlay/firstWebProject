@@ -112,3 +112,23 @@ class UploadedAttachments(db.Model):
     hashSum = db.Column(db.String(255), unique=True, nullable=False)  # Хэшсумма
     fileType = db.Column(db.String(16), nullable=False)  # Расширение файла
 
+
+class PostalOrder(db.Model):
+    __bind_key__ = 'tracking_db'
+    __tablename__ = 'postal_orders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    barcode = db.Column(db.String, nullable=False)
+    comment = db.Column(db.String)
+    address = db.Column(db.String)
+    fullName = db.Column(db.String)
+    lastOperAttr = db.Column(db.String)
+    lastOperDate = db.Column(db.String)
+    lastOperType = db.Column(db.String)
+    mailTypeText = db.Column(db.String)
+    track_data = db.Column(db.JSON)
+    last_track = db.Column(db.String)
+    enot_loaded = db.Column(db.Integer, default=0)
+
+    def __repr__(self):
+        return f'<PostalOrder {self.id}>'

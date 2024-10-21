@@ -31,6 +31,13 @@
                 <li class="nav-item">
                     <a class="nav-link {{ 'active' if title=='Архив' else '' }}" id="archive" href="/archive">Архив</a>
                 </li>
+
+                {% if config.tracking_path %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if title=='Отслеживание заказных писем' else '' }}" id="judgeCabinet" href="/tracking">Отслеживание заказных писем</a>
+                </li>
+                {% endif %}
+                
                 {% if user.has_role(2) %}
                 <li class="nav-item">
                     <a class="nav-link {{ 'active' if title=='Кабинет судьи' else '' }}" id="judgeCabinet" href="/judge_cabinet">Кабинет судьи</a>

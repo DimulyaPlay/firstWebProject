@@ -85,6 +85,7 @@ $(document).ready(function () {
     }
 
     async function signFile(fileData, fileName, selectedCert) {
+        
         const { blob, fileType, sigPages } = fileData;
         const formData = new FormData();
         formData.append('file', blob);
@@ -92,7 +93,6 @@ $(document).ready(function () {
         formData.append('fileType', fileType);
         formData.append('selectedCert', selectedCert);
         formData.append('fileName', fileName);
-
         const response = await fetch('http://localhost:4999/sign_file', {
             method: 'POST',
             body: formData
@@ -200,7 +200,7 @@ $(document).ready(function () {
         }
     }
 
-    $(document).on('keypress', '#emailInput', function(e) {
+    $(document).on('keypress', '#emailInput', function (e) {
         if (e.which === 13) {
             e.preventDefault();
             var email = $(this).val().trim();
@@ -214,9 +214,9 @@ $(document).ready(function () {
             }
         }
     });
-    
+
     // Обработчик удаления тега
-    $(document).on('click', '.remove-tag', function() {
+    $(document).on('click', '.remove-tag', function () {
         $(this).parent().remove();
     });
 

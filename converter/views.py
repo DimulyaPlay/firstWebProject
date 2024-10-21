@@ -19,9 +19,9 @@ def home_redirector():
         if current_user.has_role(2):
             return redirect(url_for('views.judge_cabinet'))
         judges = get_users_with_role(2)
-        return render_template('index.html', title='Отправить письмо', user=current_user, judges=judges)
+        return render_template('index.html', title='Отправить письмо', user=current_user, judges=judges, config=config)
     else:
-        return render_template('login.html', title='Войти', user=current_user)
+        return render_template('login.html', title='Войти', user=current_user, config=config)
 
 
 @views.route('/create_message', methods=['GET'])
@@ -30,35 +30,41 @@ def create_message():
         if not is_valid and len(sent_mails_in_current_session) > free_mails_limit:
             flash('Лимит сообщений исчерпан, новые сообщения отправляться не будут.', 'error')
         judges = get_users_with_role(2)
-        return render_template('index.html', title='Отправить письмо', user=current_user, judges=judges)
+        return render_template('index.html', title='Отправить письмо', user=current_user, judges=judges, config=config)
     else:
-        return render_template('login.html', title='Войти', user=current_user)
+        return render_template('login.html', title='Войти', user=current_user, config=config)
 
 
 @views.route('/epr_cabinet', methods=['GET'])
 def epr_cabinet():
     if current_user.is_authenticated:
-        return render_template('epr.html', title='Кабинет ЭПР', user=current_user)
+        return render_template('epr.html', title='Кабинет ЭПР', user=current_user, config=config)
     else:
-        return render_template('login.html', title='Войти', user=current_user)
+        return render_template('login.html', title='Войти', user=current_user, config=config)
 
 
 @views.route('/judge_cabinet', methods=['GET'])
 @login_required
 def judge_cabinet():
-    return render_template('judgecabinet.html', title='Кабинет судьи', user=current_user)
+    return render_template('judgecabinet.html', title='Кабинет судьи', user=current_user, config=config)
 
 
 @views.route('/archive', methods=['GET'])
 @login_required
 def archive():
-    return render_template('archive.html', title='Архив', user=current_user)
+    return render_template('archive.html', title='Архив', user=current_user, config=config)
+
+
+@views.route('/tracking', methods=['GET'])
+@login_required
+def tracking():
+    return render_template('tracking.html', title='Отслеживание заказных писем', user=current_user, config=config)
 
 
 @views.route('/admin', methods=['GET'])
 @login_required
 def adminpanel():
-    return render_template('adminpanel.html', title='Панель управления', user=current_user)
+    return render_template('adminpanel.html', title='Панель управления', user=current_user, config=config)
 
 
 @views.route('/adminpanel/system', methods=['GET', 'POST'])
@@ -71,7 +77,7 @@ def adminpanel_system():
                                user=current_user,
                                default_configuration=config,
                                hwid=hwid,
-                               license_message=license_message)
+                               license_message=license_message, config=config)
     if request.method == 'POST':
         try:
             sig_check = request.form.get('sig_check') == 'on'  # Преобразование в boolean
@@ -80,6 +86,8 @@ def adminpanel_system():
             file_export_folder = request.form.get('file_export_folder')
             reports_path = request.form.get('reports_path')
             soffice_path = request.form.get('soffice_path')
+            tracking_path = request.form.get('tracking_path')
+            enots_path = request.form.get('enots_path')
             if sig_check:
                 if not os.path.exists(csp_path):
                     flash('Параметры не были сохранены, недействительный путь к Крипто Про', category='error')
@@ -102,6 +110,12 @@ def adminpanel_system():
             config['server_port'] = request.form.get('server_port', 5000)
             config['msg_attachments_dir'] = request.form.get('msg_attachments_dir')
             config['offline_export'] = request.form.get('offline_export')
+            config['rr_sending'] = request.form.get('rr_sending') == 'on'
+            config['epr_sending'] = request.form.get('epr_sending') == 'on'
+            config['email_sending'] = request.form.get('email_sending') == 'on'
+            config['tracking_path'] = tracking_path
+            config['enots_path'] = enots_path
+
             save_config()
             flash('Параметры успешно сохранены', category='success')
         except:
@@ -121,7 +135,7 @@ def adminpanel_users():
                                title='Панель управления',
                                user=current_user,
                                default_configuration=config,
-                               users_table=users_table)
+                               users_table=users_table, config=config)
     if request.method == 'POST':
         try:
             data = request.json
@@ -150,6 +164,6 @@ def adminpanel_users():
 def outbox():
     return render_template('outbox.html',
                            title='Мои отправления',
-                           user=current_user)
+                           user=current_user, config=config)
 
 

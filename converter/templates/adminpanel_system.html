@@ -1,92 +1,139 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="mt-3">
+<div class="mt-2">
     <h2>Настройки системы</h2>
     <form id="settings-form" method="POST">
-        <div class="form-group-pt">
-            <input type="checkbox" class="form-check-input" id="offline_export" name="offline_export" {% if
-                default_configuration.offline_export %}checked{% endif %}>
-            <label for="offline_export">Оффлайн доступ. Все отправления сохраняются в виде zip архивов, которые 
-            нужно переносить на ПК с Outlook OutlookAutosender</label>
+        <div class="border p-2 rounded mb-3 mt-3">
+            <h5 class="mb-2">Пути к дополнительному ПО</h5>
+            <div class="form-group-pt m-1">
+                <input type="checkbox" class="form-check-input" id="sig_check" name="sig_check" {% if
+                    default_configuration.sig_check %}checked{% endif %}>
+                <label for="sig_check">Проверка подписи с помощью КриптоПро. Прикрепяемый sig файл должен будет пройти
+                    проверку, иначе результат не будет сохранен.</label>
+            </div>
+            <div class="form-group-pt m-1">
+                <label for="csp_path">Путь к Крипто Про CSP:</label>
+                <input type="text" class="form-control selectable" id="csp_path" name="csp_path"
+                    value="{{ default_configuration.csp_path }}">
+            </div>
+            <div class="form-group-pt m-1">
+                <label for="soffice_path">Путь к OpenOffice для конвертации в PDF:</label>
+                <input type="text" class="form-control selectable" id="soffice_path" name="soffice_path"
+                    value="{{ default_configuration.soffice_path }}">
+            </div>
         </div>
-        <div class="form-group-pt">
-            <input type="checkbox" class="form-check-input" id="sig_check" name="sig_check" {% if
-                default_configuration.sig_check %}checked{% endif %}>
-            <label for="sig_check">Проверка подписи с помощью КриптоПро. Прикрепяемый sig файл должен будет пройти
-                проверку, иначе результат не будет сохранен.</label>
+        <div class="border p-2 rounded mb-3">
+            <h5 class="mb-2">Параметры работы сервера</h5>
+            <h6 class="mt-1 m-1">Не забывайте открыть доступ к порту в фаерволе (для порта или программы).<br>При смене
+                любых параметров адреса
+                url
+                ссылки на вложения
+                в генерируемых письмах перестанут работать </h6>
+            <div class="form-group-pt m-1">
+                <label for="server_ip">IP адрес сервера. Например: "10.20.30.40". Укажите адрес интерфейса по которому
+                    можно
+                    обратиться к компьютеру.</label>
+                <input type="text" class="form-control selectable" id="server_ip" name="server_ip"
+                    value="{{ default_configuration.server_ip }}">
+            </div>
+            <div class="form-group-pt m-1">
+                <label for="server_port">Порт сервера. Например: "5000". Укажите 443 если хотите, чтобы не нужно было
+                    вводить его в адресе.</label>
+                <input type="text" class="form-control selectable" id="server_port" name="server_port"
+                    value="{{ default_configuration.server_port }}">
+            </div>
+            <div class="form-group-pt m-1">
+                <label for="auth_timeout">Таймаут авторизации. Укажите время неактивности (в часах), после которого
+                    сессия
+                    пользователя будет автоматически завершена. <br>Установите 0 для отключения таймаута.</label>
+                <input type="number" class="form-control" id="auth_timeout" name="auth_timeout"
+                    value="{{ default_configuration.auth_timeout }}" min="0" step="1">
+            </div>
+            <div class="form-group-pt m-1 mt-2">
+                <input type="checkbox" class="form-check-input" id="offline_export" name="offline_export" {% if
+                    default_configuration.offline_export %}checked{% endif %}>
+                <label for="offline_export">Оффлайн обмен данными. Все отправления сохраняются в виде zip архивов,
+                    которые
+                    нужно переносить на ПК с OutlookAutosender</label>
+            </div>
         </div>
-        <div class="form-group-pt">
-            <label for="csp_path">Путь к Crypto Pro CSP:</label>
-            <input type="text" class="form-control selectable" id="csp_path" name="csp_path"
-                value="{{ default_configuration.csp_path }}">
+
+        <div class="border p-2 rounded mb-3">
+            <h5 class="mb-2">Параметры хранилищ сервера</h5>
+            <div class="form-group-pt m-1 mt-2">
+                <label for="file_storage">Путь к хранилищу файлов, сюда сохраняются все файлы пользователей включая
+                    подписи.
+                    Хранятся с названиями в формате uuid4.</label>
+                <input type="text" class="form-control selectable" id="file_storage" name="file_storage"
+                    value="{{ default_configuration.file_storage }}">
+            </div>
+            <div class="form-group-pt m-1">
+                <label for="msg_attachments_dir">Путь к хранилищу с почтовыми вложениями.
+                    Хранятся с названиями в формате uuid4, дубликаты не сохраняются.</label>
+                <input type="text" class="form-control selectable" id="msg_attachments_dir" name="msg_attachments_dir"
+                    value="{{ default_configuration.msg_attachments_dir }}">
+            </div>
+            <div class="form-group-pt m-1">
+                <label for="file_export_folder">Путь для экспорта файлов, сюда выводятся пакеты для отправки с помощью
+                    OutlookAutosender. Один пакет - одно сообщение.<br>Оставьте пустым для прямого
+                    взаимодействия.</label>
+                <input type="text" class="form-control selectable" id="file_export_folder" name="file_export_folder"
+                    value="{{ default_configuration.file_export_folder }}">
+            </div>
+            <div class="form-group-pt m-1">
+                <label for="reports_path">Путь для отчетов и ответов, создаваемых OutlookAutosender. Проверяется только
+                    если
+                    есть путь экспорта.</label>
+                <input type="text" class="form-control selectable" id="reports_path" name="reports_path"
+                    value="{{ default_configuration.reports_path }}">
+            </div>
+                        <div class="form-group-pt m-1">
+                <label for="tracking_path">Путь к базе трекинга Почты России (.db).</label>
+                <input type="text" class="form-control selectable" id="tracking_path" name="tracking_path"
+                    value="{{ default_configuration.tracking_path }}">
+            </div>
+                        <div class="form-group-pt m-1">
+                <label for="enots_path">Путь к папке с уведомлениями.</label>
+                <input type="text" class="form-control selectable" id="enots_path" name="enots_path"
+                    value="{{ default_configuration.enots_path }}">
+            </div>
         </div>
-        <div class="form-group-pt">
-            <label for="soffice_path">Путь к OpenOffice для конвертации в PDF:</label>
-            <input type="text" class="form-control selectable" id="soffice_path" name="soffice_path"
-                value="{{ default_configuration.soffice_path }}">
+        <div class="border p-2 rounded mb-3">
+            <h5 class="mb-2">Параметры страницы отправки</h5>
+            <div class="form-group-pt m-1">
+                <label for="restricted_emails" ;>Черный список email адресов для пропуска при
+                    распознавании и отправке (через ";")</label>
+                <input type="text" class="form-control selectable" id="restricted_emails" name="restricted_emails"
+                    value="{{ default_configuration.restricted_emails }}"
+                    placeholder="example@example.com;test@tset.ru">
+            </div>
+            <div class="form-group-pt m-1">
+                <input type="checkbox" class="form-check-input" id="rr_sending" name="rr_sending" {% if
+                    default_configuration.rr_sending %}checked{% endif %}>
+                <label for="rr_sending">Включить отправку в Росреестр.</label>
+            </div>
+            <div class="form-group-pt m-1">
+                <input type="checkbox" class="form-check-input" id="epr_sending" name="epr_sending" {% if
+                    default_configuration.epr_sending %}checked{% endif %}>
+                <label for="epr_sending">Включить отправку на ЭПР.</label>
+            </div>
+            <div class="form-group-pt m-1">
+                <input type="checkbox" class="form-check-input" id="email_sending" name="email_sending" {% if
+                    default_configuration.email_sending %}checked{% endif %}>
+                <label for="email_sending">Включить отправку по эл. почте.</label>
+            </div>
         </div>
-        <br>
-        <h6>Не забывайте открыть доступ к порту в фаерволе.<br>При смене любых параметров адреса url ссылки на вложения
-            в письмах перестанут работать </h6>
-        <div class="form-group-pt">
-            <label for="server_ip">IP адрес сервера. Например: "10.20.30.40". Укажите адрес интерфейса по которому можно
-                обратиться к компьютеру.</label>
-            <input type="text" class="form-control selectable" id="server_ip" name="server_ip"
-                value="{{ default_configuration.server_ip }}">
+        <div class="border p-2 rounded mb-3">
+            <h5 class="mb-2">Дополнительные параметры</h5>
+            <div class="form-group-pt m-1">
+                <label for="l_key" class="selectable" ;>Отправьте этот ID оборудования для активации полного
+                    функционала сервиса: {{hwid}}<br>Статус проверки: {{ license_message }}</label>
+                <input type="text" class="form-control selectable" id="l_key" name="l_key"
+                    value="{{ default_configuration.l_key }}" placeholder="Введите сюда полученный ключ">
+            </div>
         </div>
-        <div class="form-group-pt">
-            <label for="server_port">Порт сервера. Например: "5000". Укажите 443 если хотите, чтобы не нужно было
-                вводить его в адресе.</label>
-            <input type="text" class="form-control selectable" id="server_port" name="server_port"
-                value="{{ default_configuration.server_port }}">
-        </div>
-        <br>
-        <div class="form-group-pt">
-            <label for="file_storage">Путь к хранилищу файлов, сюда сохраняются все файлы пользователей включая подписи.
-                Хранятся с названиями в формате uuid4.</label>
-            <input type="text" class="form-control selectable" id="file_storage" name="file_storage"
-                value="{{ default_configuration.file_storage }}">
-        </div>
-        <div class="form-group-pt">
-            <label for="msg_attachments_dir">Путь к хранилищу с почтовыми вложениями.
-                Хранятся с названиями в формате uuid4, дубликаты не сохраняются.</label>
-            <input type="text" class="form-control selectable" id="msg_attachments_dir" name="msg_attachments_dir"
-                value="{{ default_configuration.msg_attachments_dir }}">
-        </div>
-        <div class="form-group-pt">
-            <label for="file_export_folder">Путь для экспорта файлов, сюда выводятся пакеты для отправки с помощью
-                OutlookAutosender. Один пакет - одно сообщение. Оставьте пустым для прямого взаимодействия.</label>
-            <input type="text" class="form-control selectable" id="file_export_folder" name="file_export_folder"
-                value="{{ default_configuration.file_export_folder }}">
-        </div>
-        <div class="form-group-pt">
-            <label for="reports_path">Путь для отчетов и ответов, создаваемых OutlookAutosender. Проверяется только если
-                есть путь экспорта.</label>
-            <input type="text" class="form-control selectable" id="reports_path" name="reports_path"
-                value="{{ default_configuration.reports_path }}">
-        </div>
-        <div class="form-group-pt">
-            <label for="auth_timeout">Таймаут авторизации. Укажите время неактивности (в часах), после которого сессия
-                пользователя будет автоматически завершена. <br>Установите 0 для отключения таймаута.</label>
-            <input type="number" class="form-control" id="auth_timeout" name="auth_timeout"
-                value="{{ default_configuration.auth_timeout }}" min="0" step="1">
-        </div>
-        <div class="form-group-pt">
-            <label for="restricted_emails" ;>Черный список email адресов для пропуска при
-                распознавании и отправке через ";"</label>
-            <input type="text" class="form-control selectable" id="restricted_emails" name="restricted_emails"
-                value="{{ default_configuration.restricted_emails }}" placeholder="example@example.com;test@tset.ru">
-        </div>
-        <div class="form-group-pt">
-            <label for="l_key" class="selectable" ;>Отправьте этот ID оборудования для активации полного
-                функционала сервиса: {{hwid}}<br>Статус проверки: {{ license_message }}</label>
-            <input type="text" class="form-control selectable" id="l_key" name="l_key"
-                value="{{ default_configuration.l_key }}" placeholder="Введите сюда полученный ключ">
-        </div>
-        <br>
-        <button type="submit" class="btn btn-primary">Сохранить настройки системы</button>
-        <br><br>
+        <button type="submit" class="btn btn-primary mb-3">Сохранить настройки системы</button>
     </form>
 </div>
 

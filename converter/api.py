@@ -1,10 +1,10 @@
 import time
 import traceback
 from .auth import login
-from flask import request, jsonify, Blueprint, make_response, send_file, render_template_string, flash, url_for
+from flask import request, jsonify, Blueprint, make_response, send_file, render_template_string, flash, url_for, render_template, send_from_directory
 from flask_login import current_user, login_required
-from .models import UploadedFiles, UploadedMessages, Users, Notifications, UploadedSigs, ExternalSenders, UploadedAttachments, files_messages_association, sigs_messages_association
-from sqlalchemy import desc, case, and_
+from .models import UploadedFiles, UploadedMessages, Users, Notifications, UploadedSigs, ExternalSenders, UploadedAttachments, files_messages_association, sigs_messages_association, PostalOrder
+from sqlalchemy import desc, case, and_, or_
 from .Utils import analyze_file, create_api_key, config, generate_modal_message, process_epr, process_description, convert_to_pdf, are_all_files_signed, generate_new_thread_id, sent_mails_in_current_session, process_files, check_sig, export_signed_message, is_valid, process_emails, generate_sig_pages, process_emails2
 import os
 from . import db, free_mails_limit, convert_types_list, basedir
@@ -164,6 +164,71 @@ def get_epr_messages():
         "start_index_pages": max(1, page - 3),
         "end_index_pages": min(page + 3, total_pages),
     })
+
+
+@api.get('/get-postal-orders')
+def get_postal_orders():
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '', type=str)
+    per_page = 10
+    postal_orders_query = PostalOrder.query
+    if search:
+        postal_orders_query = postal_orders_query.filter(
+            or_(
+                PostalOrder.barcode.like(f'%{search}%'),
+                PostalOrder.comment.like(f'%{search}%'),
+                PostalOrder.address.like(f'%{search}%'),
+                PostalOrder.fullName.like(f'%{search}%')
+            )
+        )
+
+    pagination = postal_orders_query.order_by(PostalOrder.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    total_pages = pagination.pages if pagination.pages else 1
+    paginated_orders = pagination.items
+    orders_data = [{
+        'id': order.id,
+        'barcode': order.barcode,
+        'comment': order.comment or '',
+        'address': order.address or '',
+        'fullName': order.fullName or '',
+        'last_track': order.last_track or '',
+        'enot_loaded': order.enot_loaded
+    } for order in paginated_orders]
+
+    return jsonify({
+        'orders': orders_data,
+        'total_pages': total_pages,
+        'current_page': page,
+        "start_index_pages": max(1, page - 3),
+        "end_index_pages": min(page + 3, total_pages),
+    })
+
+
+@api.get('/get-tracking')
+def get_postal_tracking():
+    order_id = request.args.get('order_id')
+    order = PostalOrder.query.get(order_id)
+    barcode = order.barcode
+    current_time = datetime.now().strftime('%d %b %Y в %H:%M').lower()
+    info = order.track_data['info']
+    mailtype = info['Тип отправления']
+    otpravitel = info['Отправитель']
+    poluchatel = info['Получатель']
+    data = order.track_data['tracking']
+    return render_template('tracking_form.html',
+                           barcode=barcode,
+                           current_time=current_time,
+                           mailtype=mailtype,
+                           otpravitel=otpravitel,
+                           poluchatel=poluchatel,
+                           data=data)
+
+
+@api.get('/get-enot')
+def get_enot():
+    barcode = request.args.get('barcode')
+    image_name = f'{barcode}.jpeg'
+    return send_from_directory(config['enots_path'], image_name)
 
 
 @api.route('/analyze-file', methods=['POST'])

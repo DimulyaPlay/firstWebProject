@@ -81,7 +81,10 @@ def read_create_config(config_filepath=config_file):
         'server_ip': get_server_ip(),
         'server_port': 5000,
         'msg_attachments_dir': r"C:\fileStorage\MsgAttachments",
-        "offline_export": True
+        "offline_export": True,
+        'rr_sending': True,
+        'epr_sending': True,
+        'email_sending': True
     }
     if os.path.exists(config_filepath):
         try:

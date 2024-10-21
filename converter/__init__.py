@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user, logout_user
 import os
 import sys
+import shutil
 from threading import Thread
 from datetime import datetime, timedelta
 from flask_migrate import Migrate
@@ -10,6 +11,7 @@ from flask_migrate import Migrate
 db = SQLAlchemy()
 basedir = os.path.abspath(os.path.dirname(__file__))
 database_path = os.path.join(basedir, 'instance', 'database.db')
+local_tracking_db = os.path.join(basedir, 'instance', 'tracking_db.db')
 soffice_path = os.path.join(basedir, 'tools', 'LibreOfficePortablePrevious', 'LibreOfficePortablePrevious.exe')
 convert_types_list = ['doc', 'docx', 'odt', 'rtf']
 if not os.path.exists(os.path.join(basedir, 'instance')):
@@ -27,6 +29,12 @@ def create_app(config):
         app = Flask(__name__)
     app.config['SECRET_KEY'] = 'ndfjknsdflkghnfhjkgndbfd dfghmdghnm'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + database_path + '?check_same_thread=False'
+    if config['tracking_path']:
+        if os.path.exists(config['tracking_path'] and config['tracking_path'].endswith('.db')):
+            shutil.copyfile(config['tracking_path'], local_tracking_db)
+            app.config['SQLALCHEMY_BINDS'] = {
+                'tracking_db': 'sqlite:///' + local_tracking_db + '?check_same_thread=False'
+            }
     app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
     #  кэширование ресурсов на стороне клиента
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(seconds=31536000)
