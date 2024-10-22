@@ -1,0 +1,36 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container">
+  <div class="input-group mt-3 mb-3">
+    <input type="text" id="searchString" class="form-control" placeholder="Поиск по всем полям">
+    <button id="search" class="btn btn-primary">Искать</button>
+  </div>
+
+  <div class="rounded bg-secondary bg-opacity-25 p-1">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr style="text-align: center;">
+          <th scope="col" class="col-md-0 align-middle">Отправлено</th>
+          <th scope="col" class="col-md-3 align-middle">Комментарий</th>
+          <th scope="col" class="col-md-2 align-middle">Адрес</th>
+          <th scope="col" class="col-md-2 align-middle">Получатель</th>
+          <th scope="col" class="col-md-2 align-middle">Последний статус</th>
+          <th scope="col" class="col-md-0 align-middle">Печать движения</th>
+          <th scope="col" class="col-md-0 align-middle">Печать уведомл.</th>
+        </tr>
+      </thead>
+      <tbody id="postalOrderList">
+      </tbody>
+    </table>
+  </div>
+  <br>
+  <nav aria-label="Page navigation" class="d-flex justify-content-center">
+    <ul class="pagination">
+    </ul>
+  </nav>
+  <br>
+</div>
+
+<script type="module" src="{{ 'js/tracking.js'|versioned_static }}"></script>
+{% endblock content %}

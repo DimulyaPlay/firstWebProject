@@ -187,11 +187,11 @@ def get_postal_orders():
     paginated_orders = pagination.items
     orders_data = [{
         'id': order.id,
-        'barcode': order.barcode,
         'comment': order.comment or '',
         'address': order.address or '',
         'fullName': order.fullName or '',
-        'last_track': order.last_track or '',
+        'last_track': f"{order.last_track} от {order.track_data['tracking'][-1]['Дата']}" or '',
+        'sent_date': order.track_data['tracking'][0]['Дата'],
         'enot_loaded': order.enot_loaded
     } for order in paginated_orders]
 
@@ -226,7 +226,9 @@ def get_postal_tracking():
 
 @api.get('/get-enot')
 def get_enot():
-    barcode = request.args.get('barcode')
+    order_id = request.args.get('order_id')
+    order = PostalOrder.query.get(order_id)
+    barcode = order.barcode
     image_name = f'{barcode}.jpeg'
     return send_from_directory(config['enots_path'], image_name)
 
