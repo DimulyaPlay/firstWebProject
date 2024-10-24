@@ -34,7 +34,7 @@ def create_app(config):
         app = Flask(__name__)
     app.config['SECRET_KEY'] = 'ndfjknsdflkghnfhjkgndbfd dfghmdghnm'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + database_path + '?check_same_thread=False'
-    if config['tracking_path']:
+    if config.get('tracking_path'):
         if os.path.exists(config['tracking_path'] and config['tracking_path'].endswith('.db')):
             instance_path = os.path.join(basedir, 'instance')
             for filename in os.listdir(instance_path):
